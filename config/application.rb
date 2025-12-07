@@ -30,6 +30,5 @@ module Honeywagon
 
     # Use Sidekiq for background jobs
     config.active_job.queue_adapter = :sidekiq
-
   end
 end

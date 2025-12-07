@@ -5,17 +5,17 @@ gem "rails", "~> 8.1.0"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use Postgres as Rails database
-gem 'pg'
+gem "pg"
 # Use devise for authentication
-gem 'devise'
+gem "devise"
 # Use pundit for authorization
-gem 'pundit'
+gem "pundit"
 # Use Sidekiq for background jobs
-gem 'sidekiq'
+gem "sidekiq"
 # Use pagy for pagination
-gem 'pagy'
+gem "pagy"
 # Use money-rails for handling currency
-gem 'money-rails'
+gem "money-rails"
 
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
