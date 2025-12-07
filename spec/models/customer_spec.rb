@@ -1,0 +1,58 @@
+require "rails_helper"
+
+RSpec.describe Customer, type: :model do
+  describe "#full_name" do
+    it "joins first and last name with a space" do
+      customer = Customer.new(first_name: "John", last_name: "Doe")
+
+      expect(customer.full_name).to eq("John Doe")
+    end
+
+    it "returns just first name when last name is missing" do
+      customer = Customer.new(first_name: "John", last_name: nil)
+
+      expect(customer.full_name).to eq("John")
+    end
+
+    it "returns an empty string when both names are missing" do
+      customer = Customer.new(first_name: nil, last_name: nil)
+
+      expect(customer.full_name).to eq("")
+    end
+  end
+
+  describe "#display_name" do
+    it "prefers company_name when present" do
+      customer = Customer.new(
+        first_name: "John",
+        last_name: "Doe",
+        company_name: "Acme Construction",
+        billing_email: "john@example.com"
+      )
+
+      expect(customer.display_name).to eq("Acme Construction")
+    end
+
+    it "falls back to full_name when no company_name" do
+      customer = Customer.new(
+        first_name: "John",
+        last_name: "Doe",
+        company_name: nil,
+        billing_email: "john@example.com"
+      )
+
+      expect(customer.display_name).to eq("John Doe")
+    end
+
+    it "falls back to billing_email when no names present" do
+      customer = Customer.new(
+        first_name: nil,
+        last_name: nil,
+        company_name: nil,
+        billing_email: "no-name@example.com"
+      )
+
+      expect(customer.display_name).to eq("no-name@example.com")
+    end
+  end
+end
