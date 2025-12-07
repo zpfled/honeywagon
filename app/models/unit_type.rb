@@ -7,5 +7,7 @@ class UnitType < ApplicationRecord
     { name: "Handwash Station", slug: "handwash" }
   ].freeze
 
+  validates :prefix, presence: true, format: { with: /\A[A-Z]\z/ }
+
   def to_s = name
 end

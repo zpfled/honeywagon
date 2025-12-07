@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_07_010004) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_07_154318) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -46,16 +46,20 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_010004) do
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name"
+    t.integer "next_serial", default: 1, null: false
+    t.string "prefix"
     t.string "slug"
     t.datetime "updated_at", null: false
   end
 
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "manufacturer", null: false
     t.string "serial"
     t.string "status"
     t.uuid "unit_type_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["serial"], name: "index_units_on_serial", unique: true
     t.index ["status"], name: "index_units_on_status"
     t.index ["unit_type_id"], name: "index_units_on_unit_type_id"
   end
