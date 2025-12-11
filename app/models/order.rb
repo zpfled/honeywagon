@@ -11,6 +11,8 @@ class Order < ApplicationRecord
   validates :start_date, :end_date, presence: true
   validate :end_date_after_start_date
 
+  before_save :recalculate_totals
+
   STATUSES.each do |status_name|
     define_method("#{status_name}?") { status == status_name }
   end

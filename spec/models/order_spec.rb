@@ -68,6 +68,24 @@ RSpec.describe Order, type: :model do
     end
   end
 
+  describe "callbacks" do
+    it "recalculates totals before save" do
+      order = build(
+        :order,
+        rental_subtotal_cents: 10_000,
+        delivery_fee_cents:    2_500,
+        pickup_fee_cents:      2_500,
+        discount_cents:        1_000,
+        tax_cents:             1_000,
+        total_cents:           0
+      )
+
+      order.save!
+
+      expect(order.reload.total_cents).to eq(15_000)
+    end
+  end
+
   describe "status helpers" do
     Order::STATUSES.each do |status|
       it "##{status}? returns true when status is '#{status}'" do

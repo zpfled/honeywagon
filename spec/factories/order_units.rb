@@ -1,9 +1,10 @@
 FactoryBot.define do
   factory :order_unit do
-    order { nil }
-    unit { nil }
-    placed_on { "2025-12-11" }
-    removed_on { "2025-12-11" }
-    daily_rate_cents { 1 }
+    association :order
+    association :unit
+
+    placed_on  { order.start_date }
+    removed_on { nil }
+    daily_rate_cents { nil }
   end
 end
