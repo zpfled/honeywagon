@@ -1,0 +1,82 @@
+<%= form_with(model: order) do |form| %>
+  <% if order.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(order.errors.count, "error") %> prohibited this order from being saved:</h2>
+
+      <ul>
+        <% order.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :customer_id, style: "display: block" %>
+    <%= form.text_field :customer_id %>
+  </div>
+
+  <div>
+    <%= form.label :location_id, style: "display: block" %>
+    <%= form.text_field :location_id %>
+  </div>
+
+  <div>
+    <%= form.label :external_reference, style: "display: block" %>
+    <%= form.text_field :external_reference %>
+  </div>
+
+  <div>
+    <%= form.label :status, style: "display: block" %>
+    <%= form.text_field :status %>
+  </div>
+
+  <div>
+    <%= form.label :start_date, style: "display: block" %>
+    <%= form.date_field :start_date %>
+  </div>
+
+  <div>
+    <%= form.label :end_date, style: "display: block" %>
+    <%= form.date_field :end_date %>
+  </div>
+
+  <div>
+    <%= form.label :rental_subtotal_cents, style: "display: block" %>
+    <%= form.number_field :rental_subtotal_cents %>
+  </div>
+
+  <div>
+    <%= form.label :delivery_fee_cents, style: "display: block" %>
+    <%= form.number_field :delivery_fee_cents %>
+  </div>
+
+  <div>
+    <%= form.label :pickup_fee_cents, style: "display: block" %>
+    <%= form.number_field :pickup_fee_cents %>
+  </div>
+
+  <div>
+    <%= form.label :discount_cents, style: "display: block" %>
+    <%= form.number_field :discount_cents %>
+  </div>
+
+  <div>
+    <%= form.label :tax_cents, style: "display: block" %>
+    <%= form.number_field :tax_cents %>
+  </div>
+
+  <div>
+    <%= form.label :total_cents, style: "display: block" %>
+    <%= form.number_field :total_cents %>
+  </div>
+
+  <div>
+    <%= form.label :notes, style: "display: block" %>
+    <%= form.textarea :notes %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

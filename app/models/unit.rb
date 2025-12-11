@@ -1,6 +1,9 @@
 class Unit < ApplicationRecord
   belongs_to :unit_type
 
+  has_many :order_units, dependent: :nullify
+  has_many :orders, through: :order_units
+
   STATUSES = %w[available rented maintenance retired].freeze
 
   before_validation :assign_serial, on: :create

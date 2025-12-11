@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_07_154318) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_11_170005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,38 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_154318) do
     t.string "zip"
     t.index ["customer_id"], name: "index_locations_on_customer_id"
     t.index ["dump_site"], name: "index_locations_on_dump_site"
+  end
+
+  create_table "order_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "daily_rate_cents"
+    t.uuid "order_id", null: false
+    t.date "placed_on"
+    t.date "removed_on"
+    t.uuid "unit_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_id"], name: "index_order_units_on_order_id"
+    t.index ["unit_id"], name: "index_order_units_on_unit_id"
+  end
+
+  create_table "orders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "customer_id", null: false
+    t.integer "delivery_fee_cents"
+    t.integer "discount_cents"
+    t.date "end_date"
+    t.string "external_reference"
+    t.uuid "location_id", null: false
+    t.text "notes"
+    t.integer "pickup_fee_cents"
+    t.integer "rental_subtotal_cents"
+    t.date "start_date"
+    t.string "status"
+    t.integer "tax_cents"
+    t.integer "total_cents"
+    t.datetime "updated_at", null: false
+    t.index ["customer_id"], name: "index_orders_on_customer_id"
+    t.index ["location_id"], name: "index_orders_on_location_id"
   end
 
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -78,5 +110,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_07_154318) do
   end
 
   add_foreign_key "locations", "customers"
+  add_foreign_key "order_units", "orders"
+  add_foreign_key "order_units", "units"
+  add_foreign_key "orders", "customers"
+  add_foreign_key "orders", "locations"
   add_foreign_key "units", "unit_types"
 end
