@@ -42,8 +42,9 @@ jobs:
           key: rubocop-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}
       - run: bin/rubocop -f github
 
-  test:
+    test:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:16
@@ -62,6 +63,7 @@ jobs:
     env:
       RAILS_ENV: test
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/honeywagon_test
+      TZ: America/Chicago
 
     steps:
       - uses: actions/checkout@v5
@@ -70,8 +72,8 @@ jobs:
         with:
           bundler-cache: true
 
-      - name: Prepare DB
-        run: bin/rails db:prepare
+      - name: Prepare DB (test env)
+        run: bin/rails db:test:prepare
 
-      - name: Run RSpec
-        run: bundle exec rspec
+      - name: Run RSpec (show full failures)
+        run: bundle exec rspec --format documentation --backtrace
