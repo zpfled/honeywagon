@@ -21,7 +21,6 @@ class OrdersController < ApplicationController
       params:               order_params,
       unit_type_requests: unit_type_requests_params
     )
-
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order created.'
     else
