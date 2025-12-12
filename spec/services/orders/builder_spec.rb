@@ -59,7 +59,8 @@ RSpec.describe Orders::Builder do
         }
       )
       order1.save!
-
+      expect(order1.order_units.count).to eq(4)
+      
       # Second order tries to take 9 more in the same timeframe (should fail: only 6 left)
       order2 = Order.new
       order2 = described_class.new(order2).assign(
