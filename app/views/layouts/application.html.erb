@@ -9,10 +9,8 @@
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     
-    <!-- PicoCSS -->
-    <link rel="stylesheet"
-          href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
-    
+    <!-- Tailwind -->
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= yield :head %>
 
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
@@ -28,20 +26,31 @@
   </head>
 
   <body>
-   <!-- Top navigation bar -->
-    <header class="container-fluid">
-      <nav>
-        <ul>
-          <li>
-            <strong>Honeywagon</strong>
-          </li>
-        </ul>
-        <ul>
-          <li><%= link_to "Dashboard", root_path %></li>
-          <li><%= link_to "Orders", orders_path %></li>
-        </ul>
-      </nav>
+    <!-- Top navigation bar -->
+    <header class="border-b border-gray-200 bg-white">
+      <div class="mx-auto max-w-6xl px-4">
+        <div class="flex h-16 items-center justify-between">
+          <!-- Brand -->
+          <div class="flex items-center gap-2">
+            <span class="text-lg font-semibold text-gray-900">
+              Honeywagon
+            </span>
+          </div>
+
+          <!-- Nav links -->
+          <nav class="flex items-center gap-6 text-sm font-medium">
+            <%= link_to "Dashboard",
+              root_path,
+              class: "text-gray-700 hover:text-gray-900" %>
+
+            <%= link_to "Orders",
+              orders_path,
+              class: "text-gray-700 hover:text-gray-900" %>
+          </nav>
+        </div>
+      </div>
     </header>
+
     <p class="notice"><%= notice %></p>
     <p class="alert"><%= alert %></p>
     <main class="container-fluid">

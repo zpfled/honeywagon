@@ -1,17 +1,103 @@
-<p style="color: green"><%= notice %></p>
+<div class="mx-auto max-w-6xl px-4 py-8">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="truncate text-2xl font-semibold text-gray-900">Orders</h1>
+      <p class="mt-1 text-sm text-gray-600"><%= @orders.size %> total</p>
+    </div>
 
-<% content_for :title, "Orders" %>
+    <div class="flex flex-wrap gap-2">
+      <% if respond_to?(:new_order_path) %>
+        <%= link_to "New order", new_order_path,
+          class: "inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800" %>
+      <% end %>
+    </div>
+  </div>
 
-<h1>Orders</h1>
+  <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Order</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Customer</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Location</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Dates</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Subtotal</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
+        </tr>
+      </thead>
 
-<div id="orders">
-  <% @orders.each do |order| %>
-    <%= render order %>
-    <p>
-      <%= link_to "Show this order", order %>
-    </p>
-  <% end %>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% if @orders.any? %>
+          <% @orders.each do |order| %>
+            <% p = OrderPresenter.new(order, view_context: self) %>
+
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <div class="truncate text-sm font-semibold text-gray-900">
+                      <%= link_to "##{p.id}", order_path(order), class: "hover:underline" %>
+                    </div>
+
+                    <%= p.status_badge %>
+                  </div>
+
+                  <% if p.external_reference.present? %>
+                    <div class="mt-1 text-xs text-gray-600">
+                      External Ref: <span class="font-medium text-gray-900"><%= p.external_reference %></span>
+                    </div>
+                  <% end %>
+                </div>
+              </td>
+
+              <td class="px-4 py-3">
+                <div class="text-sm font-medium text-gray-900"><%= p.customer_name %></div>
+              </td>
+
+              <td class="px-4 py-3">
+                <div class="text-sm font-medium text-gray-900"><%= p.location_name %></div>
+                <% if p.location_address_line.present? %>
+                  <div class="mt-1 text-xs text-gray-600"><%= p.location_address_line %></div>
+                <% end %>
+              </td>
+
+              <td class="px-4 py-3">
+                <div class="text-sm text-gray-900">
+                  <%= p.start_date %> <span class="text-gray-400">→</span> <%= p.end_date %>
+                </div>
+                <% if p.date_range_days.present? %>
+                  <div class="mt-1 text-xs text-gray-600">
+                    <%= pluralize(p.date_range_days, "day") %>
+                  </div>
+                <% end %>
+              </td>
+
+              <td class="px-4 py-3 text-right">
+                <div class="text-sm font-semibold text-gray-900"><%= p.rental_subtotal_currency %></div>
+                <div class="mt-1 text-xs text-gray-600">
+                  <%= p.line_items_count %> items • <%= p.units_count %> units
+                </div>
+              </td>
+
+              <td class="px-4 py-3 text-right">
+                <div class="flex justify-end gap-2">
+                  <%= link_to "View", order_path(order),
+                    class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+
+                  <%= link_to "Edit", edit_order_path(order),
+                    class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-500">
+              No orders yet.
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
 </div>
-
-
-<%= link_to "New order", new_order_path %>

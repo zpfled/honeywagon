@@ -5,7 +5,9 @@ class OrdersController < ApplicationController
     @orders = Order.includes(:customer, :location).order(start_date: :desc)
   end
 
-  def show; end
+  def show
+    @order_presenter = OrderPresenter.new(@order, view_context: view_context)
+  end
 
   def new
     @order = Order.new(

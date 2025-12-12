@@ -71,3 +71,7 @@ end
 gem 'rubocop', '~> 1.81', group: :development
 gem 'rubocop-rails', '~> 2.33', group: :development
 gem 'rubocop-performance', '~> 1.26', group: :development
+
+gem 'tailwindcss-rails', '~> 4.4'
+
+gem 'foreman', '~> 0.90.0'
