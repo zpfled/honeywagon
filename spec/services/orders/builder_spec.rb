@@ -19,6 +19,61 @@ RSpec.describe Orders::Builder do
   end
 
   describe '#assign' do
+    it 'prevents allocating units that are already assigned to overlapping orders' do
+      standard = create(:unit_type, :standard)
+
+      # 10 standard units in inventory
+      create_list(:unit, 10, unit_type: standard, status: 'available')
+
+      create(
+        :rate_plan,
+        unit_type: standard,
+        service_schedule: 'weekly',
+        billing_period: 'monthly',
+        price_cents: 14_000,
+        active: true
+      )
+
+      # First order takes 4 units in the same date range
+      order1 = create(
+        :order,
+        customer: customer,
+        location: location,
+        start_date: start_date,
+        end_date: end_date,
+        status: 'draft',
+        external_reference: 'ONE'
+      )
+
+      described_class.new(order1).assign(
+        params: {
+          customer_id: customer.id,
+          location_id: location.id,
+          start_date: start_date,
+          end_date: end_date,
+          status: 'draft',
+          external_reference: 'ONE'
+        },
+        unit_type_requests: {
+          standard.id.to_s => { quantity: 4, service_schedule: 'weekly' }
+        }
+      )
+      order1.save!
+
+      # Second order tries to take 9 more in the same timeframe (should fail: only 6 left)
+      order2 = Order.new
+      order2 = described_class.new(order2).assign(
+        params: order_params.merge(external_reference: 'TWO'),
+        unit_type_requests: {
+          standard.id.to_s => { quantity: 9, service_schedule: 'weekly' }
+        }
+      )
+
+      expect(order2.errors[:base]).to include(
+        "Only 6 Standard Unit units are available for these dates (you requested 9)."
+      )
+    end
+
     it 'builds order_units and order_line_items and sets rental_subtotal_cents' do
       standard = create(:unit_type, :standard)
       ada      = create(:unit_type, :ada)

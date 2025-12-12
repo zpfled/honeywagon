@@ -6,7 +6,6 @@ module Orders
       @order = order
     end
 
-
     # unit_type_requests format:
     # {
     #   "1" => { quantity: 3, service_schedule: "weekly" },
@@ -67,9 +66,10 @@ module Orders
 
         # Availability: choose actual units to assign
         available_units = Unit.available_between(order.start_date, order.end_date)
-                              .where(unit_type_id: unit_type.id)
-                              .limit(qty)
-                              .to_a
+                      .where(unit_type_id: unit_type.id)
+                      .limit(qty)
+                      .to_a
+
 
         if available_units.size < qty
           order.errors.add(
