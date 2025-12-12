@@ -42,7 +42,7 @@ jobs:
           key: rubocop-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}
       - run: bin/rubocop -f github
 
-    test:
+  test:
     runs-on: ubuntu-latest
 
     services:
