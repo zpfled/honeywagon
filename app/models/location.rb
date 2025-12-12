@@ -5,6 +5,6 @@ class Location < ApplicationRecord
   scope :job_sites,  -> { where(dump_site: false) }
 
   def full_address
-    [ street, city, state, zip ].compact.join(", ")
+    [ street, city, state, zip ].compact.join(', ')
   end
 end

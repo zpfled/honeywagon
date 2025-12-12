@@ -8,7 +8,11 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-
+    
+    <!-- PicoCSS -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    
     <%= yield :head %>
 
     <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
@@ -24,8 +28,24 @@
   </head>
 
   <body>
+   <!-- Top navigation bar -->
+    <header class="container-fluid">
+      <nav>
+        <ul>
+          <li>
+            <strong>Honeywagon</strong>
+          </li>
+        </ul>
+        <ul>
+          <li><%= link_to "Dashboard", root_path %></li>
+          <li><%= link_to "Orders", orders_path %></li>
+        </ul>
+      </nav>
+    </header>
     <p class="notice"><%= notice %></p>
     <p class="alert"><%= alert %></p>
-    <%= yield %>
+    <main class="container-fluid">
+      <%= yield %>
+    </main>
   </body>
 </html>

@@ -52,8 +52,7 @@ RSpec.describe Order, type: :model do
     end
 
     it "is invalid when end_date is before start_date" do
-      order = build(:order, start_date: Date.today, end_date: Date.yesterday)
-
+      order = build(:order, start_date: Date.today, end_date: 2.days.ago)
       expect(order).not_to be_valid
       expect(order.errors[:end_date]).to include("must be on or after start date")
     end
@@ -130,6 +129,37 @@ RSpec.describe Order, type: :model do
         expect(result).to include(active_order, edge_start_order, edge_end_order)
         expect(result).not_to include(before_order, after_order)
       end
+    end
+  end
+
+  describe "unit lifecycle" do
+    let(:unit)  { create(:unit, status: "available") }
+    let(:order) { create(:order, status: "draft") }
+
+    before do
+      create(:order_unit, order: order, unit: unit, placed_on: order.start_date)
+    end
+
+    it "marks units as rented when order becomes scheduled" do
+      expect(unit.status).to eq("available")
+
+      order.update!(status: "scheduled")
+
+      expect(unit.reload.status).to eq("rented")
+    end
+
+    it "marks units as rented when order becomes active" do
+      order.update!(status: "active")
+      expect(unit.reload.status).to eq("rented")
+    end
+
+    it "releases units back to available when order is completed and unit not on other active orders" do
+      order.update!(status: "scheduled")
+      expect(unit.reload.status).to eq("rented")
+
+      order.update!(status: "completed")
+
+      expect(unit.reload.status).to eq("available")
     end
   end
 

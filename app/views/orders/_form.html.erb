@@ -1,82 +1,104 @@
-<%= form_with(model: order) do |form| %>
+<%= form_with(model: order) do |f| %>
   <% if order.errors.any? %>
-    <div style="color: red">
-      <h2><%= pluralize(order.errors.count, "error") %> prohibited this order from being saved:</h2>
-
+    <div class="errors">
+      <h2><%= pluralize(order.errors.count, "error") %> prevented this order from saving:</h2>
       <ul>
-        <% order.errors.each do |error| %>
-          <li><%= error.full_message %></li>
+        <% order.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
         <% end %>
       </ul>
     </div>
   <% end %>
 
   <div>
-    <%= form.label :customer_id, style: "display: block" %>
-    <%= form.text_field :customer_id %>
+    <%= f.label :customer_id %><br>
+    <%= f.collection_select :customer_id, Customer.all, :id, :company_name, include_blank: true %>
   </div>
 
   <div>
-    <%= form.label :location_id, style: "display: block" %>
-    <%= form.text_field :location_id %>
+    <%= f.label :location_id %><br>
+    <%= f.collection_select :location_id, Location.all, :id, :label, include_blank: true %>
   </div>
 
   <div>
-    <%= form.label :external_reference, style: "display: block" %>
-    <%= form.text_field :external_reference %>
+    <%= f.label :external_reference, "Internal ref / PO #" %><br>
+    <%= f.text_field :external_reference %>
   </div>
 
   <div>
-    <%= form.label :status, style: "display: block" %>
-    <%= form.text_field :status %>
+    <%= f.label :status %><br>
+    <%= f.select :status, Order::STATUSES %>
   </div>
 
   <div>
-    <%= form.label :start_date, style: "display: block" %>
-    <%= form.date_field :start_date %>
+    <%= f.label :start_date %><br>
+    <%= f.date_field :start_date %>
   </div>
 
   <div>
-    <%= form.label :end_date, style: "display: block" %>
-    <%= form.date_field :end_date %>
+    <%= f.label :end_date %><br>
+    <%= f.date_field :end_date %>
+  </div>
+
+  <fieldset>
+  <legend>Units & service schedule</legend>
+
+  <% schedule_options = [
+    ["Weekly service (monthly)",   "weekly"],
+    ["Biweekly service (monthly)", "biweekly"],
+    ["Event only (deliver/pickup)", "event"]
+  ] %>
+
+  <% UnitType.all.each do |unit_type| %>
+    <% qty_name      = "order[unit_type_requests][#{unit_type.id}][quantity]" %>
+    <% sched_name    = "order[unit_type_requests][#{unit_type.id}][service_schedule]" %>
+
+    <% qty_value =
+         if params.dig(:order, :unit_type_requests, unit_type.id.to_s, :quantity)
+           params.dig(:order, :unit_type_requests, unit_type.id.to_s, :quantity)
+         elsif order.persisted?
+           order.units.where(unit_type_id: unit_type.id).count
+         else
+           0
+         end %>
+
+    <% sched_value =
+         if params.dig(:order, :unit_type_requests, unit_type.id.to_s, :service_schedule)
+           params.dig(:order, :unit_type_requests, unit_type.id.to_s, :service_schedule)
+         else
+           "weekly"
+         end %>
+
+    <article class="compact">
+      <header>
+        <strong><%= unit_type.name %></strong>
+      </header>
+
+      <div class="grid">
+        <div>
+          <%= label_tag qty_name, "Quantity" %>
+          <%= number_field_tag qty_name, qty_value, min: 0, step: 1 %>
+        </div>
+
+        <div>
+          <%= label_tag sched_name, "Service schedule" %>
+          <%= select_tag sched_name,
+                         options_for_select(schedule_options, sched_value) %>
+        </div>
+      </div>
+    </article>
+  <% end %>
+
+  <p><em>Pick a quantity and service schedule for each unit type.</em></p>
+</fieldset>
+
+
+  <div>
+    <%= f.label :notes %><br>
+    <%= f.text_area :notes, rows: 4 %>
   </div>
 
   <div>
-    <%= form.label :rental_subtotal_cents, style: "display: block" %>
-    <%= form.number_field :rental_subtotal_cents %>
-  </div>
-
-  <div>
-    <%= form.label :delivery_fee_cents, style: "display: block" %>
-    <%= form.number_field :delivery_fee_cents %>
-  </div>
-
-  <div>
-    <%= form.label :pickup_fee_cents, style: "display: block" %>
-    <%= form.number_field :pickup_fee_cents %>
-  </div>
-
-  <div>
-    <%= form.label :discount_cents, style: "display: block" %>
-    <%= form.number_field :discount_cents %>
-  </div>
-
-  <div>
-    <%= form.label :tax_cents, style: "display: block" %>
-    <%= form.number_field :tax_cents %>
-  </div>
-
-  <div>
-    <%= form.label :total_cents, style: "display: block" %>
-    <%= form.number_field :total_cents %>
-  </div>
-
-  <div>
-    <%= form.label :notes, style: "display: block" %>
-    <%= form.textarea :notes %>
-  </div>
-
-  <div>
-    <%= form.submit %>
+    <%= f.submit %>
   </div>
 <% end %>

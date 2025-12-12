@@ -36,8 +36,6 @@ UnitType::TYPES.each do |attrs|
   end
 end
 
-
-
 banner "Seeding Units"
 
 def seed_unit(unit_type:, serial:, manufacturer:, status: "available")
@@ -101,8 +99,6 @@ else
   reused(customer)
 end
 
-
-
 banner "Seeding Locations"
 
 location = Location.find_or_initialize_by(label: "ACME Wedding Site")
@@ -116,3 +112,29 @@ if location.new_record?
 else
   reused(location)
 end
+
+banner "Seeding Rate Plans"
+
+plans = [
+  { unit_type: standard, service_schedule: "weekly",   billing_period: "monthly",  price_cents: 14_000 },
+  { unit_type: standard, service_schedule: "biweekly", billing_period: "monthly",  price_cents: 12_000 },
+  { unit_type: standard, service_schedule: "event",    billing_period: "per_event", price_cents: 11_000 }
+]
+
+plans.each do |attrs|
+  rp = RatePlan.find_or_initialize_by(
+    unit_type: attrs[:unit_type],
+    service_schedule: attrs[:service_schedule],
+    billing_period: attrs[:billing_period]
+  )
+  if rp.new_record?
+    rp.price_cents = attrs[:price_cents]
+    rp.active = true
+    rp.save!
+    created(rp)
+  else
+    reused(rp)
+  end
+end
+
+banner = "Finished Seeding Database"

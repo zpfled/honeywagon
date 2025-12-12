@@ -1,47 +1,53 @@
 class OrdersController < ApplicationController
   before_action :set_order, only: %i[show edit update destroy]
 
-  # TODO: add Pundit authorize calls when you wire policies
-
   def index
     @orders = Order.includes(:customer, :location).order(start_date: :desc)
   end
 
-  def show
-  end
+  def show; end
 
   def new
     @order = Order.new(
       start_date: Date.today,
-      end_date: Date.today + 7.days,
-      status: "draft"
+      end_date:   Date.today + 7.days,
+      status:     'draft'
     )
   end
 
   def create
-    @order = Order.new(order_params)
+    builder = Orders::Builder.new(Order.new)
+    @order  = builder.assign(
+      params:               order_params,
+      unit_type_requests: unit_type_requests_params
+    )
 
-    if @order.save
-      redirect_to @order, notice: "Order created."
+    if @order.errors.empty? && @order.save
+      redirect_to @order, notice: 'Order created.'
     else
       render :new, status: :unprocessable_entity
     end
   end
 
-  def edit
-  end
+  def edit; end
 
   def update
-      if @order.update(order_params)
-        redirect_to @order, notice: "Order updated."
-      else
-        render :edit, status: :unprocessable_entity
-      end
+    builder = Orders::Builder.new(@order)
+    builder.assign(
+      params:               order_params,
+      unit_type_requests: unit_type_requests_params
+    )
+
+    if @order.errors.empty? && @order.save
+      redirect_to @order, notice: 'Order updated.'
+    else
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   def destroy
     @order.destroy
-    redirect_to orders_path, notice: "Order deleted."
+    redirect_to orders_path, notice: 'Order deleted.'
   end
 
   private
@@ -50,7 +56,6 @@ class OrdersController < ApplicationController
     @order = Order.find(params[:id])
   end
 
-  # Note: we're using `unit_ids` to manage the join table automatically.
   def order_params
     params.require(:order).permit(
       :customer_id,
@@ -65,8 +70,18 @@ class OrdersController < ApplicationController
       :pickup_fee_cents,
       :discount_cents,
       :tax_cents,
-      :total_cents,
-      unit_ids: [] # <— assigns OrderUnits behind the scenes
+      :total_cents
     )
+  end
+
+  def unit_type_requests_params
+    raw = params.dig(:order, :unit_type_requests) || {}
+
+    raw.transform_values do |h|
+      {
+        quantity: h[:quantity].to_i,
+        service_schedule: h[:service_schedule].to_s
+      }
+    end
   end
 end

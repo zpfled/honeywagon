@@ -66,6 +66,56 @@ RSpec.describe Unit, type: :model do
     end
   end
 
+  describe 'scopes' do
+    describe ".available_between" do
+      let(:start_date) { Date.today }
+      let(:end_date)   { Date.today + 3.days }
+
+      it "returns units that are available and not booked by overlapping blocking orders" do
+        # u1: available, no orders → should be included
+        u1 = create(:unit, status: "available")
+
+        # u2: available, on a scheduled order overlapping the window → should be excluded
+        u2 = create(:unit, status: "available")
+        blocking_order = create(
+          :order,
+          start_date: start_date - 1.day,
+          end_date:   end_date + 1.day,
+          status:     "scheduled"
+        )
+        create(:order_unit, order: blocking_order, unit: u2, placed_on: blocking_order.start_date)
+
+        # u3: available, on an order that ends before window → should be included
+        u3 = create(:unit, status: "available")
+        past_order = create(
+          :order,
+          start_date: start_date - 10.days,
+          end_date:   start_date - 5.days,
+          status:     "completed"
+        )
+        create(:order_unit, order: past_order, unit: u3, placed_on: past_order.start_date)
+
+        # u4: available, on an order that starts after window → should be included
+        u4 = create(:unit, status: "available")
+        future_order = create(
+          :order,
+          start_date: end_date + 1.day,
+          end_date:   end_date + 5.days,
+          status:     "scheduled"
+        )
+        create(:order_unit, order: future_order, unit: u4, placed_on: future_order.start_date)
+
+        # u5: retired, no orders → excluded because of status
+        u5 = create(:unit, status: "retired")
+
+        result = Unit.available_between(start_date, end_date)
+
+        expect(result).to include(u1, u3, u4)
+        expect(result).not_to include(u2, u5)
+      end
+    end
+  end
+
   describe "#available?" do
     it "returns true when status is 'available'" do
       unit = Unit.new(unit_type: unit_type, status: "available")

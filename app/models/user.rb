@@ -7,8 +7,8 @@ class User < ApplicationRecord
 
   ROLES = %w[admin dispatcher driver accountant].freeze
 
-  def accountant? = role == "accountant"
-  def admin?      = role == "admin"
-  def dispatcher? = role == "dispatcher"
-  def driver?     = role == "driver"
+  def accountant? = role == 'accountant'
+  def admin?      = role == 'admin'
+  def dispatcher? = role == 'dispatcher'
+  def driver?     = role == 'driver'
 end

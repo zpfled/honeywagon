@@ -1,0 +1,52 @@
+<%= form_with(model: rate_plan) do |form| %>
+  <% if rate_plan.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(rate_plan.errors.count, "error") %> prohibited this rate_plan from being saved:</h2>
+
+      <ul>
+        <% rate_plan.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.label :unit_type_id, style: "display: block" %>
+    <%= form.text_field :unit_type_id %>
+  </div>
+
+  <div>
+    <%= form.label :service_schedule, style: "display: block" %>
+    <%= form.text_field :service_schedule %>
+  </div>
+
+  <div>
+    <%= form.label :billing_period, style: "display: block" %>
+    <%= form.text_field :billing_period %>
+  </div>
+
+  <div>
+    <%= form.label :price_cents, style: "display: block" %>
+    <%= form.number_field :price_cents %>
+  </div>
+
+  <div>
+    <%= form.label :active, style: "display: block" %>
+    <%= form.checkbox :active %>
+  </div>
+
+  <div>
+    <%= form.label :effective_on, style: "display: block" %>
+    <%= form.date_field :effective_on %>
+  </div>
+
+  <div>
+    <%= form.label :expires_on, style: "display: block" %>
+    <%= form.date_field :expires_on %>
+  </div>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

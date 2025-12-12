@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_11_170005) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_12_001738) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -43,6 +43,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_11_170005) do
     t.index ["dump_site"], name: "index_locations_on_dump_site"
   end
 
+  create_table "order_line_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "billing_period"
+    t.datetime "created_at", null: false
+    t.uuid "order_id", null: false
+    t.integer "quantity", default: 0, null: false
+    t.uuid "rate_plan_id", null: false
+    t.string "service_schedule"
+    t.integer "subtotal_cents", default: 0, null: false
+    t.integer "unit_price_cents", default: 0, null: false
+    t.uuid "unit_type_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_id"], name: "index_order_line_items_on_order_id"
+    t.index ["rate_plan_id"], name: "index_order_line_items_on_rate_plan_id"
+    t.index ["unit_type_id"], name: "index_order_line_items_on_unit_type_id"
+  end
+
   create_table "order_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "daily_rate_cents"
@@ -73,6 +89,19 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_11_170005) do
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_orders_on_customer_id"
     t.index ["location_id"], name: "index_orders_on_location_id"
+  end
+
+  create_table "rate_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "active"
+    t.string "billing_period"
+    t.datetime "created_at", null: false
+    t.date "effective_on"
+    t.date "expires_on"
+    t.integer "price_cents"
+    t.string "service_schedule"
+    t.uuid "unit_type_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["unit_type_id"], name: "index_rate_plans_on_unit_type_id"
   end
 
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -110,9 +139,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_11_170005) do
   end
 
   add_foreign_key "locations", "customers"
+  add_foreign_key "order_line_items", "orders"
+  add_foreign_key "order_line_items", "rate_plans"
+  add_foreign_key "order_line_items", "unit_types"
   add_foreign_key "order_units", "orders"
   add_foreign_key "order_units", "units"
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
+  add_foreign_key "rate_plans", "unit_types"
   add_foreign_key "units", "unit_types"
 end

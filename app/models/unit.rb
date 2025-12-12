@@ -9,8 +9,21 @@ class Unit < ApplicationRecord
   before_validation :assign_serial, on: :create
   validates :serial, presence: true, uniqueness: true
 
-  def available? = status == "available"
-  def rented?    = status == "rented"
+  # A unit is available in a window if:
+  # - its status is "available"
+  # - and it is NOT on any order with blocking status whose dates overlap [start_date, end_date]
+  scope :available_between, ->(start_date, end_date) {
+    blocking_order_ids = Order
+      .where(status: Order::BLOCKING_STATUSES)
+      .where('start_date <= ? AND end_date >= ?', end_date, start_date)
+      .joins(:units)
+      .select('units.id')
+
+    where(status: 'available').where.not(id: blocking_order_ids)
+  }
+
+  def available? = status == 'available'
+  def rented?    = status == 'rented'
 
   private
 

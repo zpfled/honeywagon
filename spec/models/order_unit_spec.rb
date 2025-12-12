@@ -22,11 +22,56 @@ RSpec.describe OrderUnit, type: :model do
       order_unit = build(
         :order_unit,
         placed_on: Date.today,
-        removed_on: Date.yesterday
+        removed_on: 2.days.ago
       )
 
       expect(order_unit).not_to be_valid
       expect(order_unit.errors[:removed_on]).to include("must be on or after placed_on")
+    end
+
+    describe "unit availability validation" do
+      let(:start_date) { Date.today }
+      let(:end_date)   { Date.today + 3.days }
+
+      it "allows attaching a unit when there is no overlapping blocking order" do
+        unit  = create(:unit, status: "available")
+        order = create(:order, start_date: start_date, end_date: end_date, status: "scheduled")
+
+        order_unit = build(:order_unit, order: order, unit: unit, placed_on: start_date)
+
+        expect(order_unit).to be_valid
+      end
+
+      it "disallows attaching a unit when there is an overlapping blocking order" do
+        unit = create(:unit, status: "available")
+
+        # First blocking order overlaps the window
+        existing_order = create(
+          :order,
+          start_date: start_date,
+          end_date:   end_date,
+          status:     "active"
+        )
+        create(:order_unit, order: existing_order, unit: unit, placed_on: existing_order.start_date)
+
+        # Second order tries to use the same unit in an overlapping range
+        new_order = create(
+          :order,
+          start_date: start_date + 1.day,
+          end_date:   end_date + 2.days,
+          status:     "scheduled"
+        )
+
+        conflicting_order_unit = build(
+          :order_unit,
+          order: new_order,
+          unit: unit,
+          placed_on: new_order.start_date
+        )
+
+        expect(conflicting_order_unit).not_to be_valid
+        expect(conflicting_order_unit.errors[:base]).to include("Unit is already booked for that date range")
+      end
     end
   end
 

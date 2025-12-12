@@ -1,10 +1,161 @@
-<p style="color: green"><%= notice %></p>
+<section class="contrast compact" aria-label="Order details">
 
-<%= render @order %>
+  <!-- HEADER: title + summary -->
+  <header class="grid">
+    <div>
+      <hgroup>
+        <h1>Order <%= @order.external_reference.presence || "##{@order.id}" %></h1>
+        <% if @order.customer %>
+          <p>
+            <small>Customer</small><br>
+            <strong>
+              <%= @order.customer.company_name.presence ||
+                    "#{@order.customer.first_name} #{@order.customer.last_name}" %>
+            </strong>
+          </p>
+        <% end %>
+      </hgroup>
+    </div>
 
-<div>
-  <%= link_to "Edit this order", edit_order_path(@order) %> |
-  <%= link_to "Back to orders", orders_path %>
+    <div>
+      <p>
+        <small>Total</small><br>
+        <strong><%= number_to_currency(@order.total_cents.to_i / 100.0) %></strong>
+      </p>
+      <p>
+        <small>Status</small><br>
+        <strong><%= @order.status %></strong>
+      </p>
+      <p>
+        <small>Dates</small><br>
+        <%= @order.start_date %> – <%= @order.end_date %>
+      </p>
+    </div>
+  </header>
 
-  <%= button_to "Destroy this order", @order, method: :delete %>
-</div>
+  <hr>
+
+  <!-- ROW: customer + location -->
+  <div class="grid compact">
+    <section aria-label="Customer">
+      <h2>Customer</h2>
+      <% if @order.customer %>
+        <p>
+          <strong>
+            <%= @order.customer.company_name.presence ||
+                  "#{@order.customer.first_name} #{@order.customer.last_name}" %>
+          </strong><br>
+          <% if @order.customer.billing_email.present? %>
+            <%= mail_to @order.customer.billing_email %><br>
+          <% end %>
+          <% if @order.customer.phone.present? %>
+            <%= @order.customer.phone %>
+          <% end %>
+        </p>
+      <% else %>
+        <p><em>No customer set.</em></p>
+      <% end %>
+    </section>
+
+    <section aria-label="Location">
+      <h2>Location</h2>
+      <% if @order.location %>
+        <p>
+          <strong><%= @order.location.label %></strong><br>
+          <%= @order.location.street %><br>
+          <%= [@order.location.city, @order.location.state, @order.location.zip].compact.join(", ") %><br>
+          <% if @order.location.access_notes.present? %>
+            <small><em>Access notes: <%= @order.location.access_notes %></em></small>
+          <% end %>
+        </p>
+      <% else %>
+        <p><em>No location set.</em></p>
+      <% end %>
+    </section>
+  </div>
+
+  <hr>
+
+  <!-- UNITS TABLE -->
+  <section aria-label="Units on this order">
+    <h2>Units</h2>
+
+    <% unit_groups = @order.units.includes(:unit_type).group_by(&:unit_type) %>
+
+    <% if unit_groups.any? %>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Unit type</th>
+            <th scope="col">Qty</th>
+            <th scope="col">Serials</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% unit_groups.each do |unit_type, units| %>
+            <tr>
+              <td><%= unit_type.name %></td>
+              <td><%= units.size %></td>
+              <td><%= units.map(&:serial).join(", ") %></td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    <% else %>
+      <p><em>No units assigned.</em></p>
+    <% end %>
+  </section>
+
+  <hr>
+
+  <!-- NOTES + PRICING -->
+  <div class="grid compact" aria-label="Notes and pricing">
+    <section>
+      <h2>Notes</h2>
+      <% if @order.notes.present? %>
+        <%= simple_format(@order.notes) %>
+      <% else %>
+        <p><em>No notes.</em></p>
+      <% end %>
+    </section>
+
+    <section>
+      <h2>Pricing</h2>
+      <ul>
+        <li>
+          <small>Rental subtotal</small><br>
+          <strong><%= number_to_currency(@order.rental_subtotal_cents.to_i / 100.0) %></strong>
+        </li>
+        <li>
+          <small>Delivery fee</small><br>
+          <strong><%= number_to_currency(@order.delivery_fee_cents.to_i / 100.0) %></strong>
+        </li>
+        <li>
+          <small>Pickup fee</small><br>
+          <strong><%= number_to_currency(@order.pickup_fee_cents.to_i / 100.0) %></strong>
+        </li>
+        <li>
+          <small>Discount</small><br>
+          <strong><%= number_to_currency(@order.discount_cents.to_i / 100.0) %></strong>
+        </li>
+        <li>
+          <small>Tax</small><br>
+          <strong><%= number_to_currency(@order.tax_cents.to_i / 100.0) %></strong>
+        </li>
+      </ul>
+      <p>
+        <small>Total</small><br>
+        <strong><%= number_to_currency(@order.total_cents.to_i / 100.0) %></strong>
+      </p>
+    </section>
+  </div>
+
+  <footer>
+    <nav>
+      <ul>
+        <li><%= link_to "Edit order", edit_order_path(@order), class: "secondary" %></li>
+        <li><%= link_to "Back to orders", orders_path, role: "button" %></li>
+      </ul>
+    </nav>
+  </footer>
+</section>
