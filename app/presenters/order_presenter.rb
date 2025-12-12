@@ -54,7 +54,7 @@ class OrderPresenter
   # ---- Associations / display ----
   #
   def customer_name
-    order.customer&.company_name.presence || order.customer&.name.presence || '—'
+    order.customer&.company_name.presence || order.customer&.display_name.presence || '—'
   end
 
   def line_item_unit_type_name(line_item)

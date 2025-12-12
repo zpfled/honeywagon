@@ -5,6 +5,7 @@ class Order < ApplicationRecord
   has_many :order_line_items, dependent: :destroy
   has_many :order_units, dependent: :destroy
   has_many :units, through: :order_units
+  has_many :service_events, dependent: :destroy
 
   BLOCKING_STATUSES = %w[scheduled active].freeze
   STATUSES = %w[draft scheduled active completed cancelled].freeze

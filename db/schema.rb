@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_12_001738) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_12_183535) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -104,6 +104,17 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_001738) do
     t.index ["unit_type_id"], name: "index_rate_plans_on_unit_type_id"
   end
 
+  create_table "service_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "event_type"
+    t.text "notes"
+    t.uuid "order_id", null: false
+    t.date "scheduled_on"
+    t.integer "status"
+    t.datetime "updated_at", null: false
+    t.index ["order_id"], name: "index_service_events_on_order_id"
+  end
+
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name"
@@ -147,5 +158,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_12_001738) do
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
   add_foreign_key "rate_plans", "unit_types"
+  add_foreign_key "service_events", "orders"
   add_foreign_key "units", "unit_types"
 end

@@ -34,7 +34,13 @@ FactoryBot.define do
       status { "cancelled" }
     end
 
-    # This trait creates an order with N units attached through OrderUnit
+    trait :with_service_events do
+      after(:create) do |order|
+        create(:service_event, :delivery, order: order, scheduled_on: order.start_date)
+        create(:service_event, :pickup,   order: order, scheduled_on: order.end_date)
+      end
+    end
+
     trait :with_units do
       transient do
         unit_count { 3 }
