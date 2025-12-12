@@ -14,7 +14,7 @@ This is not a generic rental app — it models how portable sanitation businesse
 - PostgreSQL
 - Devise (authentication)
 - Pundit (authorization, partial)
-- Minitest + RSpec
+- RSpec
 - PicoCSS (semantic HTML, minimal JS)
 
 ---
