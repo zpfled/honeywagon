@@ -5,8 +5,7 @@ class OrderPresenter
 
   attr_reader :order, :view
 
-  # Delegate unknown stuff to the underlying order
-  delegate_missing_to :order
+  delegate :order_line_items, :units, to: :order, allow_nil: true
 
   # `view` lets you call things like `l(...)` safely (I18n localization) from the presenter.
   def initialize(order, view_context:)
@@ -21,25 +20,32 @@ class OrderPresenter
     order.id
   end
 
+  def notes
+    order.notes
+  end
+
   def external_reference
     order.external_reference.presence
   end
 
   def created_at_long
+    return order.created_at.to_s if order.created_at.blank?
     view.l(order.created_at, format: :long)
-  rescue StandardError
+  rescue I18n::ArgumentError
     order.created_at.to_s
   end
 
   def start_date
+    return order.start_date.to_s if order.start_date.blank?
     view.l(order.start_date)
-  rescue StandardError
+  rescue I18n::ArgumentError
     order.start_date.to_s
   end
 
   def end_date
+    return order.end_date.to_s if order.end_date.blank?
     view.l(order.end_date)
-  rescue StandardError
+  rescue I18n::ArgumentError
     order.end_date.to_s
   end
 
@@ -77,16 +83,16 @@ class OrderPresenter
     parts.any? ? parts.join(' • ') : '—'
   end
 
-   def line_item_quantity(line_item)
+  def line_item_quantity(line_item)
     return '—' unless line_item.respond_to?(:quantity)
     line_item.quantity.presence || '—'
   end
 
   def line_item_unit_price(line_item)
     if line_item.respond_to?(:unit_price_cents) && line_item.unit_price_cents.present?
-      number_to_currency(line_item.unit_price_cents / 100.0)
+      format_currency(line_item.unit_price_cents, from_cents: true)
     elsif line_item.respond_to?(:unit_price) && line_item.unit_price.present?
-      number_to_currency(line_item.unit_price)
+      format_currency(line_item.unit_price)
     else
       '—'
     end
@@ -94,9 +100,9 @@ class OrderPresenter
 
   def line_item_subtotal(line_item)
     if line_item.respond_to?(:subtotal_cents) && line_item.subtotal_cents.present?
-      number_to_currency(line_item.subtotal_cents / 100.0)
+      format_currency(line_item.subtotal_cents, from_cents: true)
     elsif line_item.respond_to?(:subtotal) && line_item.subtotal.present?
-      number_to_currency(line_item.subtotal)
+      format_currency(line_item.subtotal)
     else
       '—'
     end
@@ -160,10 +166,10 @@ class OrderPresenter
   end
 
   def status_badge
-    status = (order.status || 'unknown').to_s
+    current_status = status
 
     classes =
-      case status
+      case current_status
       when 'draft'
         'bg-gray-100 text-gray-800 ring-gray-300'
       when 'scheduled'
@@ -178,9 +184,9 @@ class OrderPresenter
         'bg-gray-100 text-gray-800 ring-gray-300'
       end
 
-    content_tag(
+    view.content_tag(
       :span,
-      status.humanize,
+      current_status.humanize,
       class: "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset #{classes}"
     )
   end
@@ -193,21 +199,23 @@ class OrderPresenter
   end
 
   def rental_subtotal_amount
-    return nil if rental_subtotal_cents.blank?
-    rental_subtotal_cents / 100.0
+    dollars_from_cents(rental_subtotal_cents)
   end
 
   def rental_subtotal_currency
-    return '—' if rental_subtotal_amount.nil?
-    number_to_currency(rental_subtotal_amount)
+    format_currency(rental_subtotal_cents, from_cents: true)
   end
 
   # For your “Line items” footer row subtotal (presentation only)
   def line_items_subtotal_cents
     return nil unless order.respond_to?(:order_line_items)
+    line_items = order.order_line_items
+    return nil if line_items.blank?
 
-    if order.order_line_items.first&.respond_to?(:subtotal_cents)
-      order.order_line_items.sum { |li| li.subtotal_cents.to_i }
+    if supports_subtotal_cents?(line_items)
+      sum_subtotal_cents(line_items)
+    elsif supports_subtotal_amount?(line_items)
+      sum_subtotal_amount(line_items)
     else
       nil
     end
@@ -215,8 +223,7 @@ class OrderPresenter
 
   def line_items_subtotal_currency
     cents = line_items_subtotal_cents
-    return '—' if cents.blank?
-    number_to_currency(cents / 100.0)
+    format_currency(cents, from_cents: true)
   end
 
   #
@@ -228,5 +235,58 @@ class OrderPresenter
 
   def units_count
     order.respond_to?(:units) ? order.units.size : 0
+  end
+
+  private
+
+  def format_currency(value, from_cents: false)
+    return '—' if value.blank?
+
+    amount =
+      if from_cents
+        value.to_f / 100
+      else
+        value.to_f
+      end
+
+    number_to_currency(amount)
+  end
+
+  def dollars_from_cents(cents)
+    return nil if cents.blank?
+    cents.to_f / 100
+  end
+
+  def supports_subtotal_cents?(line_items)
+    relation_supports_column?(line_items, :subtotal_cents) || collection_supports?(line_items, :subtotal_cents)
+  end
+
+  def supports_subtotal_amount?(line_items)
+    relation_supports_column?(line_items, :subtotal) || collection_supports?(line_items, :subtotal)
+  end
+
+  def relation_supports_column?(collection, column_name)
+    collection.respond_to?(:klass) && collection.klass.column_names.include?(column_name.to_s)
+  end
+
+  def collection_supports?(collection, method_name)
+    first_item = collection.respond_to?(:first) ? collection.first : nil
+    first_item.respond_to?(method_name)
+  end
+
+  def sum_subtotal_cents(line_items)
+    if line_items.respond_to?(:loaded?) && !line_items.loaded? && relation_supports_column?(line_items, :subtotal_cents)
+      line_items.sum(:subtotal_cents).to_i
+    else
+      Array(line_items).sum { |li| li.subtotal_cents.to_i }
+    end
+  end
+
+  def sum_subtotal_amount(line_items)
+    if line_items.respond_to?(:loaded?) && !line_items.loaded? && relation_supports_column?(line_items, :subtotal)
+      (line_items.sum(:subtotal).to_f * 100).to_i
+    else
+      (Array(line_items).sum { |li| li.subtotal.to_f } * 100).to_i
+    end
   end
 end
