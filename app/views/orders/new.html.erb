@@ -1,11 +1,18 @@
 <% content_for :title, "New order" %>
 
-<h1>New order</h1>
+<div class="mx-auto max-w-4xl px-4 py-8">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="truncate text-2xl font-semibold text-gray-900">New order</h1>
+      <p class="mt-1 text-sm text-gray-600">Enter customer, timing, and unit details.</p>
+    </div>
 
-<%= render "form", order: @order %>
+    <%= link_to "Back to orders",
+      orders_path,
+      class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-gray-300 hover:bg-gray-50" %>
+  </div>
 
-<br>
-
-<div>
-  <%= link_to "Back to orders", orders_path %>
+  <div class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+    <%= render "form", order: @order %>
+  </div>
 </div>

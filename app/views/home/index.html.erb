@@ -1,2 +1,81 @@
-<h1>Home#index</h1>
-<p>Find me in app/views/home/index.html.erb</p>
+<div class="mx-auto max-w-6xl px-4 py-8">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="truncate text-2xl font-semibold text-gray-900">Upcoming Service Events</h1>
+      <p class="mt-1 text-sm text-gray-600">
+        Next 7 days • <%= pluralize(@service_events.size, "event") %>
+      </p>
+    </div>
+  </div>
+
+  <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Event</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Order</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Customer</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Location</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% if @service_events.any? %>
+          <% @service_events.each do |event| %>
+            <% order = event.order %>
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="text-sm font-semibold text-gray-900"><%= l(event.scheduled_on, format: :long) %></div>
+                <div class="mt-1 text-xs text-gray-600"><%= order.status.humanize %></div>
+              </td>
+
+              <td class="px-4 py-3">
+                <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                  <%= event.event_type.humanize %>
+                </span>
+              </td>
+
+              <td class="px-4 py-3">
+                <div class="text-sm font-semibold text-gray-900">
+                  <%= link_to(order.external_reference.presence || "##{order.id}", order_path(order), class: "hover:underline") %>
+                </div>
+                <div class="mt-1 text-xs text-gray-600">
+                  <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
+                </div>
+              </td>
+
+              <td class="px-4 py-3">
+                <div class="text-sm font-medium text-gray-900"><%= order.customer.company_name %></div>
+                <div class="mt-1 text-xs text-gray-600"><%= order.customer.billing_email %></div>
+              </td>
+
+              <td class="px-4 py-3">
+                <div class="text-sm font-medium text-gray-900"><%= order.location.label %></div>
+                <div class="mt-1 text-xs text-gray-600">
+                  <%= [order.location.city, order.location.state].compact.join(", ") %>
+                </div>
+              </td>
+
+              <td class="px-4 py-3 text-right">
+                <%= button_to "Mark completed",
+                  service_event_path(event),
+                  method: :patch,
+                  params: { service_event: { status: :completed } },
+                  class: "inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-500",
+                  data: { turbo_confirm: "Mark this event as completed?" } %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-500">
+              No service events scheduled for the upcoming week.
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

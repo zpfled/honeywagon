@@ -4,7 +4,7 @@ FactoryBot.define do
     association :unit_type
     association :rate_plan
 
-    service_schedule { rate_plan&.service_schedule || 'weekly' }
+    service_schedule { rate_plan&.service_schedule || RatePlan::SERVICE_SCHEDULES[:weekly] }
     billing_period   { rate_plan&.billing_period   || 'monthly' }
 
     quantity         { 1 }

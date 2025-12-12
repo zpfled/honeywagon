@@ -3,7 +3,12 @@ Rails.application.routes.draw do
   resources :rate_plans
   get 'home/index'
   resources :order_units
-  resources :orders
+  resources :orders do
+    member do
+      post :schedule
+    end
+  end
+  resources :service_events, only: :update
   devise_for :users
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -17,6 +22,4 @@ Rails.application.routes.draw do
 
   # Defines the root path route ("/")
   root to: 'home#index'
-
-  resources :orders
 end

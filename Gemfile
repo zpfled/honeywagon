@@ -75,3 +75,5 @@ gem 'rubocop-performance', '~> 1.26', group: :development
 gem 'tailwindcss-rails', '~> 4.4'
 
 gem 'foreman', '~> 0.90.0'
+
+gem 'ruby-lsp', '~> 0.26.4'

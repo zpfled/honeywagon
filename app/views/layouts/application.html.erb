@@ -51,8 +51,29 @@
       </div>
     </header>
 
-    <p class="notice"><%= notice %></p>
-    <p class="alert"><%= alert %></p>
+    <% flash_messages = flash.to_hash.slice("notice", "alert", "success", "error", "warning") %>
+    <% if flash_messages.values.any?(&:present?) %>
+      <div class="mx-auto mt-4 max-w-6xl px-4">
+        <% flash_messages.each do |type, message| %>
+          <% next if message.blank? %>
+          <% styles = case type.to_sym
+            when :notice, :success
+              "border-green-200 bg-green-50 text-green-900"
+            when :alert, :error
+              "border-red-200 bg-red-50 text-red-900"
+            when :warning
+              "border-yellow-200 bg-yellow-50 text-yellow-900"
+            else
+              "border-gray-200 bg-gray-50 text-gray-900"
+          end %>
+
+          <div class="mb-3 rounded-xl border px-4 py-3 text-sm shadow-sm <%= styles %>">
+            <%= message %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
     <main class="container-fluid">
       <%= yield %>
     </main>

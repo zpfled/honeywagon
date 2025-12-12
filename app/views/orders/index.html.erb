@@ -81,6 +81,14 @@
 
               <td class="px-4 py-3 text-right">
                 <div class="flex justify-end gap-2">
+                  <% if order.status == "draft" %>
+                    <%= button_to "Schedule",
+                      schedule_order_path(order),
+                      method: :post,
+                      data: { turbo_confirm: "Schedule this order and generate service events?" },
+                      class: "inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500" %>
+                  <% end %>
+
                   <%= link_to "View", order_path(order),
                     class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
 

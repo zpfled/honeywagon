@@ -1,5 +1,5 @@
 class OrdersController < ApplicationController
-  before_action :set_order, only: %i[show edit update destroy]
+  before_action :set_order, only: %i[show edit update destroy schedule]
 
   def index
     @orders = Order.includes(:customer, :location).order(start_date: :desc)
@@ -49,6 +49,13 @@ class OrdersController < ApplicationController
   def destroy
     @order.destroy
     redirect_to orders_path, notice: 'Order deleted.'
+  end
+
+  def schedule
+    @order.schedule!
+    redirect_to @order, notice: 'Order scheduled.'
+  rescue StandardError => e
+    redirect_to @order, alert: "Unable to schedule order: #{e.message}"
   end
 
   private

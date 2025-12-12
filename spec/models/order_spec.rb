@@ -163,6 +163,21 @@ RSpec.describe Order, type: :model do
     end
   end
 
+  describe "service event generation" do
+    it "generates events when transitioning to scheduled" do
+      order = create(
+        :order,
+        status: "draft",
+        start_date: Date.new(2024, 9, 2),
+        end_date: Date.new(2024, 9, 6)
+      )
+      create(:order_line_item, order: order, service_schedule: RatePlan::SERVICE_SCHEDULES[:none])
+
+      expect { order.schedule! }.to change { order.service_events.count }.from(0).to(2)
+      expect(order.service_events.order(:scheduled_on).pluck(:event_type)).to eq(%w[delivery pickup])
+    end
+  end
+
   describe "#recalculate_totals!" do
     it "sets total_cents from the component fields" do
       order = create(

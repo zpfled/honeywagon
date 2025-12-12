@@ -1,3 +1,5 @@
+# Order models the lifecycle of a rental/service order and owns associated line
+# items, units, and generated service events.
 class Order < ApplicationRecord
   belongs_to :customer
   belongs_to :location
@@ -16,6 +18,7 @@ class Order < ApplicationRecord
 
   before_save :recalculate_totals
   after_save  :sync_unit_statuses, if: :saved_change_to_status?
+  after_commit :generate_service_events, if: :trigger_service_event_generation?
 
   STATUSES.each do |status_name|
     define_method("#{status_name}?") { status == status_name }
@@ -24,34 +27,42 @@ class Order < ApplicationRecord
   scope :upcoming, -> { where('start_date >= ?', Date.today) }
   scope :active_on, ->(date) { where('start_date <= ? AND end_date >= ?', date, date) }
 
+  # Marks the order status as active and persists the change.
   def activate!
     update!(status: 'active')
   end
 
+  # Marks the order status as scheduled and persists the change.
   def schedule!
     update!(status: 'scheduled')
   end
 
+  # Marks the order status as completed and persists the change.
   def complete!
     update!(status: 'completed')
   end
 
+  # Marks the order status as cancelled and persists the change.
   def cancel!
     update!(status: 'cancelled')
   end
 
-    def affecting_unit_status?
+  # Returns true when the current status should affect linked unit statuses.
+  def affecting_unit_status?
     %w[scheduled active completed cancelled].include?(status)
   end
 
+  # Returns true when units should be marked rented for the current status.
   def marks_units_rented?
     %w[scheduled active].include?(status)
   end
 
+  # Returns true when units should be released from rental for the current status.
   def releases_units?
     %w[completed cancelled].include?(status)
   end
 
+  # Recomputes the aggregate cents fields based on their individual components.
   def recalculate_totals
     # Normalize nils to 0 and ensure integers
     self.rental_subtotal_cents = rental_subtotal_cents.to_i
@@ -70,6 +81,7 @@ class Order < ApplicationRecord
     self
   end
 
+  # Recalculate totals and persist immediately.
   def recalculate_totals!
     recalculate_totals
     save!
@@ -94,5 +106,15 @@ class Order < ApplicationRecord
         unit.update!(status: 'available')
       end
     end
+  end
+
+  # Whether the current change should enqueue service-event generation.
+  def trigger_service_event_generation?
+    saved_change_to_status? && scheduled?
+  end
+
+  # Calls the service-event generator for this order.
+  def generate_service_events
+    Orders::ServiceEventGenerator.new(self).call
   end
 end

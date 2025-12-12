@@ -6,6 +6,7 @@ RSpec.describe Orders::Builder do
 
   let(:start_date) { Date.today }
   let(:end_date)   { Date.today + 7.days }
+  let(:weekly_schedule) { RatePlan::SERVICE_SCHEDULES[:weekly] }
 
   let(:order_params) do
     {
@@ -28,7 +29,7 @@ RSpec.describe Orders::Builder do
       create(
         :rate_plan,
         unit_type: standard,
-        service_schedule: 'weekly',
+        service_schedule: weekly_schedule,
         billing_period: 'monthly',
         price_cents: 14_000,
         active: true
@@ -55,7 +56,7 @@ RSpec.describe Orders::Builder do
           external_reference: 'ONE'
         },
         unit_type_requests: {
-          standard.id.to_s => { quantity: 4, service_schedule: 'weekly' }
+          standard.id.to_s => { quantity: 4, service_schedule: weekly_schedule }
         }
       )
       order1.save!
@@ -66,7 +67,7 @@ RSpec.describe Orders::Builder do
       order2 = described_class.new(order2).assign(
         params: order_params.merge(external_reference: 'TWO'),
         unit_type_requests: {
-          standard.id.to_s => { quantity: 9, service_schedule: 'weekly' }
+          standard.id.to_s => { quantity: 9, service_schedule: weekly_schedule }
         }
       )
 
@@ -85,7 +86,7 @@ RSpec.describe Orders::Builder do
       standard_weekly = create(
         :rate_plan,
         unit_type: standard,
-        service_schedule: 'weekly',
+        service_schedule: weekly_schedule,
         billing_period: 'monthly',
         price_cents: 14_000,
         active: true
@@ -94,7 +95,7 @@ RSpec.describe Orders::Builder do
       ada_weekly = create(
         :rate_plan,
         unit_type: ada,
-        service_schedule: 'weekly',
+        service_schedule: weekly_schedule,
         billing_period: 'monthly',
         price_cents: 18_000,
         active: true
@@ -106,8 +107,8 @@ RSpec.describe Orders::Builder do
       builder.assign(
         params: order_params,
         unit_type_requests: {
-          standard.id.to_s => { quantity: 2, service_schedule: 'weekly' },
-          ada.id.to_s      => { quantity: 1, service_schedule: 'weekly' }
+          standard.id.to_s => { quantity: 2, service_schedule: weekly_schedule },
+          ada.id.to_s      => { quantity: 1, service_schedule: weekly_schedule }
         }
       )
 
@@ -146,7 +147,7 @@ RSpec.describe Orders::Builder do
       create(
         :rate_plan,
         unit_type: standard,
-        service_schedule: 'weekly',
+        service_schedule: weekly_schedule,
         billing_period: 'monthly',
         price_cents: 14_000,
         active: true
@@ -158,7 +159,7 @@ RSpec.describe Orders::Builder do
       builder.assign(
         params: order_params,
         unit_type_requests: {
-          standard.id.to_s => { quantity: 3, service_schedule: 'weekly' }
+          standard.id.to_s => { quantity: 3, service_schedule: weekly_schedule }
         }
       )
 
@@ -180,7 +181,7 @@ RSpec.describe Orders::Builder do
       builder.assign(
         params: order_params,
         unit_type_requests: {
-          standard.id.to_s => { quantity: 1, service_schedule: 'weekly' }
+          standard.id.to_s => { quantity: 1, service_schedule: weekly_schedule }
         }
       )
 
@@ -196,7 +197,7 @@ RSpec.describe Orders::Builder do
       create(
         :rate_plan,
         unit_type: standard,
-        service_schedule: 'weekly',
+        service_schedule: weekly_schedule,
         billing_period: 'monthly',
         price_cents: 14_000,
         active: true
@@ -214,7 +215,7 @@ RSpec.describe Orders::Builder do
 
       # Existing assignment (simulate older state)
       create(:order_unit, order: order, unit: Unit.available_between(start_date, end_date).where(unit_type_id: standard.id).first, placed_on: start_date)
-      create(:order_line_item, order: order, unit_type: standard, service_schedule: 'weekly', billing_period: 'monthly', quantity: 1, unit_price_cents: 14_000, subtotal_cents: 14_000)
+      create(:order_line_item, order: order, unit_type: standard, service_schedule: weekly_schedule, billing_period: 'monthly', quantity: 1, unit_price_cents: 14_000, subtotal_cents: 14_000)
 
       expect(order.order_units.count).to eq(1)
       expect(order.order_line_items.count).to eq(1)
@@ -224,7 +225,7 @@ RSpec.describe Orders::Builder do
       builder.assign(
         params: order_params,
         unit_type_requests: {
-          standard.id.to_s => { quantity: 3, service_schedule: 'weekly' }
+          standard.id.to_s => { quantity: 3, service_schedule: weekly_schedule }
         }
       )
 

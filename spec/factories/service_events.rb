@@ -3,8 +3,9 @@ FactoryBot.define do
     association :order
     scheduled_on { Date.today }
     event_type { :delivery }
-    status { :planned }
+    status { :scheduled }
     notes { nil }
+    auto_generated { false }
 
     trait :delivery do
       event_type { :delivery }

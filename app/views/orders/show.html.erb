@@ -21,6 +21,14 @@
 
     <!-- Actions -->
     <div class="flex flex-wrap gap-2">
+      <% if @order_presenter.order.status == "draft" %>
+        <%= button_to "Schedule",
+          schedule_order_path(@order_presenter.order),
+          method: :post,
+          data: { turbo_confirm: "Schedule this order and generate service events?" },
+          class: "inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white hover:bg-green-500" %>
+      <% end %>
+
       <%= link_to "Back", orders_path,
         class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
 
