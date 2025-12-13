@@ -95,7 +95,7 @@ module Orders
 
         # Availability: choose actual units to assign
         available_scope = Unit.available_between(order.start_date, order.end_date)
-                              .where(unit_type_id: unit_type.id)
+                              .where(unit_type_id: unit_type.id, company_id: order.company_id)
         if used_unit_ids.any?
           available_scope = available_scope.where.not(id: used_unit_ids)
         end

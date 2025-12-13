@@ -37,14 +37,16 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      # First order takes 4 units in the same date range
+      # First order (scheduled) takes 4 units in the same date range
       order1 = create(
         :order,
+        company: company,
+        created_by: user,
         customer: customer,
         location: location,
         start_date: start_date,
         end_date: end_date,
-        status: 'draft',
+        status: 'scheduled',
         external_reference: 'ONE'
       )
 
@@ -54,7 +56,7 @@ RSpec.describe Orders::Builder do
           location_id: location.id,
           start_date: start_date,
           end_date: end_date,
-          status: 'draft',
+          status: 'scheduled',
           external_reference: 'ONE'
         },
         unit_type_requests: [
@@ -234,6 +236,8 @@ RSpec.describe Orders::Builder do
 
       order = create(
         :order,
+        company: company,
+        created_by: user,
         customer: customer,
         location: location,
         start_date: start_date,
@@ -243,7 +247,7 @@ RSpec.describe Orders::Builder do
       )
 
       # Existing assignment (simulate older state)
-      create(:order_unit, order: order, unit: Unit.available_between(start_date, end_date).where(unit_type_id: standard.id).first, placed_on: start_date)
+      create(:order_unit, order: order, unit: Unit.available_between(start_date, end_date).where(unit_type_id: standard.id, company_id: company.id).first, placed_on: start_date)
       create(
         :order_line_item,
         order: order,

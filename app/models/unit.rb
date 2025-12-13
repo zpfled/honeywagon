@@ -14,17 +14,22 @@ class Unit < ApplicationRecord
 
   # Scope for the standard unit type to simplify seeding/demo data.
   scope :standard, -> { includes(:unit_type).where(unit_type: { slug: 'standard' }) }
-  # Scope returning units available for the given date range.
-  scope :available_between, ->(start_date, end_date) do
+  scope :assignable, -> { where.not(status: 'retired') }
+  scope :overlapping_between, lambda { |start_date, end_date, statuses = Order::BLOCKING_STATUSES|
     return none if start_date.blank? || end_date.blank?
 
-    overlapping_orders = Order
-      .where.not(status: %w[cancelled completed])
+    joins(order_units: :order)
+      .where(orders: { status: statuses })
       .where('orders.start_date <= ? AND orders.end_date >= ?', end_date, start_date)
+      .distinct
+  }
+  scope :available_between, lambda { |start_date, end_date, statuses = Order::BLOCKING_STATUSES|
+    return none if start_date.blank? || end_date.blank?
 
-    where(status: 'available')
-      .where.not(id: OrderUnit.where(order_id: overlapping_orders.select(:id)).select(:unit_id))
-  end
+    assignable.where.not(
+      id: overlapping_between(start_date, end_date, statuses).select(:id)
+    )
+  }
 
   # True when the unit is in the available status.
   def available? = status == 'available'
