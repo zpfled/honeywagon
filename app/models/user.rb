@@ -5,6 +5,9 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
+  has_many :orders, dependent: :destroy
+  has_many :service_events, dependent: :destroy
+  has_many :service_event_reports, dependent: :destroy
 
   ROLES = %w[admin dispatcher driver accountant].freeze
 

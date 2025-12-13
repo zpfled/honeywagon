@@ -83,6 +83,21 @@ def apply_final_status(order, final_status)
 end
 
 ActiveRecord::Base.transaction do
+  banner "Ensuring Default User"
+  primary_user = User.find_or_initialize_by(email: "demo@honeywagon.test")
+  primary_user.role ||= "dispatcher"
+  if primary_user.new_record?
+    primary_user.password = "password123"
+    primary_user.password_confirmation = "password123"
+  end
+
+  if primary_user.new_record? || primary_user.changed?
+    primary_user.save!
+    created(primary_user)
+  else
+    reused(primary_user)
+  end
+
   banner "Seeding Unit Types"
   UnitType::TYPES.each do |attrs|
     ut = UnitType.find_or_initialize_by(slug: attrs[:slug])
@@ -429,6 +444,7 @@ ActiveRecord::Base.transaction do
     customer = customers.fetch(config[:customer_key])
     location = locations.fetch(config[:location_key])
     order = Order.find_or_initialize_by(external_reference: config[:external_reference])
+    order.user ||= primary_user
 
     if order.persisted?
       order.units.update_all(status: "available") if order.units.any?

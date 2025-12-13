@@ -3,6 +3,7 @@
 class ServiceEvent < ApplicationRecord
   belongs_to :order
   belongs_to :service_event_type
+  belongs_to :user
   has_one :service_event_report, dependent: :destroy
 
   enum :event_type, { delivery: 0, service: 1, pickup: 2 }, prefix: true
@@ -11,6 +12,7 @@ class ServiceEvent < ApplicationRecord
   validates :scheduled_on, presence: true
 
   before_validation :assign_service_event_type, if: -> { service_event_type_id.blank? && event_type.present? }
+  before_validation :inherit_user_from_order, if: -> { order.present? && user_id.blank? }
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
 
   # Scope returning only auto-generated events that can be safely regenerated.
@@ -38,12 +40,16 @@ class ServiceEvent < ApplicationRecord
     self.service_event_type = type if type
   end
 
+  def inherit_user_from_order
+    self.user ||= order&.user
+  end
+
   # Ensures a ServiceEventReport exists when the event flips to completed.
   def ensure_report_for_completion
     return unless status_completed?
     return unless report_required?
 
-    service_event_report || create_service_event_report!(data: default_report_data)
+    service_event_report || create_service_event_report!(data: default_report_data, user: user)
   end
 
   # Builds default JSON data for the report using the configured fields.

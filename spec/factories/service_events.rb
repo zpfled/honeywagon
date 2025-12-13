@@ -7,6 +7,9 @@ FactoryBot.define do
     notes { nil }
     auto_generated { false }
     association :service_event_type, factory: :service_event_type_service
+    after(:build) do |event|
+      event.user ||= event.order&.user || create(:user)
+    end
 
     trait :delivery do
       event_type { :delivery }

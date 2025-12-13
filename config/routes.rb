@@ -1,8 +1,4 @@
 Rails.application.routes.draw do
-  resources :order_line_items
-  resources :rate_plans
-  get 'home/index'
-  resources :order_units
   resources :orders do
     member do
       post :schedule
@@ -22,5 +18,11 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  root to: 'home#index'
+  authenticated :user do
+    root to: 'dashboard#index', as: :authenticated_root
+  end
+
+  unauthenticated do
+    root to: 'public#landing', as: :unauthenticated_root
+  end
 end

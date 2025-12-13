@@ -3,16 +3,16 @@ class ServiceEventsController < ApplicationController
 
   def update
     if @service_event.update(service_event_params)
-      redirect_to root_path, notice: 'Service event updated.'
+      redirect_to authenticated_root_path, notice: 'Service event updated.'
     else
-      redirect_to root_path, alert: @service_event.errors.full_messages.to_sentence
+      redirect_to authenticated_root_path, alert: @service_event.errors.full_messages.to_sentence
     end
   end
 
   private
 
   def set_service_event
-    @service_event = ServiceEvent.find(params[:id])
+    @service_event = current_user.service_events.find(params[:id])
   end
 
   def service_event_params

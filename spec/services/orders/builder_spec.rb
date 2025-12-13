@@ -1,6 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Orders::Builder do
+  let(:user) { create(:user) }
   let(:customer) { create(:customer, company_name: 'ACME Events') }
   let(:location) { create(:location, label: 'ACME Wedding Site') }
 
@@ -63,7 +64,7 @@ RSpec.describe Orders::Builder do
       expect(order1.order_units.count).to eq(4)
 
       # Second order tries to take 9 more in the same timeframe (should fail: only 6 left)
-      order2 = Order.new
+      order2 = user.orders.new
       order2 = described_class.new(order2).assign(
         params: order_params.merge(external_reference: 'TWO'),
         unit_type_requests: {
@@ -101,7 +102,7 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      order = Order.new
+      order = user.orders.new
       builder = described_class.new(order)
 
       builder.assign(
@@ -153,7 +154,7 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      order = Order.new
+      order = user.orders.new
       builder = described_class.new(order)
 
       builder.assign(
@@ -175,7 +176,7 @@ RSpec.describe Orders::Builder do
 
       # No rate plan created intentionally
 
-      order = Order.new
+      order = user.orders.new
       builder = described_class.new(order)
 
       builder.assign(

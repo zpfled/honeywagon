@@ -2,6 +2,7 @@
 require 'spec_helper'
 require 'pry'
 require 'timecop'
+require 'devise'
 
 ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
@@ -50,6 +51,7 @@ RSpec.configure do |config|
 
   # Use FactoryBot
   config.include FactoryBot::Syntax::Methods
+  config.include Devise::Test::IntegrationHelpers, type: :request
 
   # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false

@@ -2,13 +2,13 @@ class ServiceEventReportsController < ApplicationController
   before_action :set_service_event, only: [ :new, :create ]
 
   def index
-    @reports = ServiceEventReport.includes(service_event: [ :service_event_type, { order: %i[customer location] } ])
+    @reports = current_user.service_event_reports.includes(service_event: [ :service_event_type, { order: %i[customer location] } ])
       .order(created_at: :desc)
   end
 
   def new
     unless @service_event.report_required?
-      redirect_to root_path, alert: 'This service event does not require a report.'
+      redirect_to authenticated_root_path, alert: 'This service event does not require a report.'
       return
     end
 
@@ -20,6 +20,7 @@ class ServiceEventReportsController < ApplicationController
   def create
     @prefill = default_prefill_data
     report = @service_event.service_event_report || @service_event.build_service_event_report(data: {})
+    report.user ||= current_user
     report.data = report.data.merge(report_params.merge(
       'customer_name' => @prefill[:customer_name],
       'customer_address' => @prefill[:customer_address]
@@ -30,7 +31,7 @@ class ServiceEventReportsController < ApplicationController
       @service_event.update!(status: :completed)
     end
 
-    redirect_to root_path, notice: 'Service event reported and completed.'
+    redirect_to authenticated_root_path, notice: 'Service event reported and completed.'
   rescue ActiveRecord::RecordInvalid => e
     @report = report
     @report_fields = Array(@service_event.service_event_type&.report_fields)
@@ -42,7 +43,8 @@ class ServiceEventReportsController < ApplicationController
   private
 
   def set_service_event
-    @service_event = ServiceEvent.includes(order: [ :customer, :location, :units ]).find(params.permit(:service_event_id).require(:service_event_id))
+    service_event_id = params.permit(:service_event_id).require(:service_event_id)
+    @service_event = current_user.service_events.includes(order: [ :customer, :location, :units ]).find(service_event_id)
   end
 
   def report_params

@@ -1,21 +1,34 @@
 require "rails_helper"
 
-RSpec.describe "Home dashboard", type: :request do
+RSpec.describe "Dashboard and landing", type: :request do
   include ActiveSupport::Testing::TimeHelpers
-  describe "GET /" do
-    it "renders upcoming service events" do
+
+  describe "GET / (unauthenticated)" do
+    it "renders the marketing landing page" do
+      get unauthenticated_root_path
+      expect(response.body).to include("Sign in")
+      expect(response.body).to include("Create account")
+    end
+  end
+
+  describe "GET / (authenticated)" do
+    let(:user) { create(:user) }
+
+    it "shows upcoming service events for the signed-in user" do
       travel_to Date.new(2024, 5, 6) do
         customer = create(:customer, company_name: "ACME Test Co")
         order = create(
           :order,
+          user: user,
           customer: customer,
           start_date: Date.new(2024, 5, 5),
           end_date: Date.new(2024, 5, 10),
           status: "scheduled"
         )
-        event = create(:service_event, order: order, scheduled_on: Date.new(2024, 5, 7), event_type: :service)
+        event = create(:service_event, :service, order: order, scheduled_on: Date.new(2024, 5, 7))
 
-        get root_path
+        sign_in user
+        get authenticated_root_path
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(I18n.l(event.scheduled_on, format: :long))

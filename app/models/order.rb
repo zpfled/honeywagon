@@ -1,6 +1,7 @@
 # Order models the lifecycle of a rental/service order and owns associated line
 # items, units, and generated service events.
 class Order < ApplicationRecord
+  belongs_to :user
   belongs_to :customer
   belongs_to :location
 

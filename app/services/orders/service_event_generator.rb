@@ -22,7 +22,8 @@ module Orders
             attrs.merge(
               status: :scheduled,
               auto_generated: true,
-              service_event_type: type
+              service_event_type: type,
+              user: order.user
             )
           )
         end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_123400) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -87,8 +87,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
     t.integer "tax_cents"
     t.integer "total_cents"
     t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
     t.index ["customer_id"], name: "index_orders_on_customer_id"
     t.index ["location_id"], name: "index_orders_on_location_id"
+    t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
   create_table "rate_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -109,7 +111,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
     t.jsonb "data", default: {}, null: false
     t.uuid "service_event_id", null: false
     t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
     t.index ["service_event_id"], name: "index_service_event_reports_on_service_event_id", unique: true
+    t.index ["user_id"], name: "index_service_event_reports_on_user_id"
   end
 
   create_table "service_event_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -132,9 +136,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
     t.uuid "service_event_type_id", null: false
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
+    t.uuid "user_id", null: false
     t.index ["auto_generated"], name: "index_service_events_on_auto_generated"
     t.index ["order_id"], name: "index_service_events_on_order_id"
     t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
+    t.index ["user_id"], name: "index_service_events_on_user_id"
   end
 
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -179,9 +185,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
   add_foreign_key "order_units", "units"
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
+  add_foreign_key "orders", "users"
   add_foreign_key "rate_plans", "unit_types"
   add_foreign_key "service_event_reports", "service_events"
+  add_foreign_key "service_event_reports", "users"
   add_foreign_key "service_events", "orders"
   add_foreign_key "service_events", "service_event_types"
+  add_foreign_key "service_events", "users"
   add_foreign_key "units", "unit_types"
 end

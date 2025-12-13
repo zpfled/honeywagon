@@ -39,17 +39,32 @@
 
           <!-- Nav links -->
           <nav class="flex items-center gap-6 text-sm font-medium">
-            <%= link_to "Dashboard",
-              root_path,
-              class: "text-gray-700 hover:text-gray-900" %>
+            <% if user_signed_in? %>
+              <%= link_to "Dashboard",
+                authenticated_root_path,
+                class: "text-gray-700 hover:text-gray-900" %>
 
-            <%= link_to "Orders",
-              orders_path,
-              class: "text-gray-700 hover:text-gray-900" %>
+              <%= link_to "Orders",
+                orders_path,
+                class: "text-gray-700 hover:text-gray-900" %>
 
-            <%= link_to "Service Log",
-              service_event_reports_path,
-              class: "text-gray-700 hover:text-gray-900" %>
+              <%= link_to "Service Log",
+                service_event_reports_path,
+                class: "text-gray-700 hover:text-gray-900" %>
+
+              <%= button_to "Sign out",
+                destroy_user_session_path,
+                method: :delete,
+                class: "inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+            <% else %>
+              <%= link_to "Sign in",
+                new_user_session_path,
+                class: "text-gray-700 hover:text-gray-900" %>
+
+              <%= link_to "Sign up",
+                new_user_registration_path,
+                class: "text-gray-700 hover:text-gray-900" %>
+            <% end %>
           </nav>
         </div>
       </div>

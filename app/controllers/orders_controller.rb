@@ -2,7 +2,7 @@ class OrdersController < ApplicationController
   before_action :set_order, only: %i[show edit update destroy schedule]
 
   def index
-    @orders = Order.includes(:customer, :location).order(start_date: :desc)
+    @orders = current_user.orders.includes(:customer, :location).order(start_date: :desc)
   end
 
   def show
@@ -10,7 +10,7 @@ class OrdersController < ApplicationController
   end
 
   def new
-    @order = Order.new(
+    @order = current_user.orders.new(
       start_date: Date.today,
       end_date:   Date.today + 7.days,
       status:     'draft'
@@ -18,8 +18,9 @@ class OrdersController < ApplicationController
   end
 
   def create
-    builder = Orders::Builder.new(Order.new)
-    @order  = builder.assign(
+    @order = current_user.orders.new
+    builder = Orders::Builder.new(@order)
+    builder.assign(
       params:               order_params,
       unit_type_requests: unit_type_requests_params
     )
@@ -61,7 +62,7 @@ class OrdersController < ApplicationController
   private
 
   def set_order
-    @order = Order.find(params[:id])
+    @order = current_user.orders.find(params[:id])
   end
 
   def order_params
