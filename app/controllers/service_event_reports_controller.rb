@@ -37,7 +37,7 @@ class ServiceEventReportsController < ApplicationController
     @report_fields = Array(@service_event.service_event_type&.report_fields)
     @prefill = default_prefill_data
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    render :new, status: :unprocessable_entity
+    render :new, status: :unprocessable_content
   end
 
   private
