@@ -42,6 +42,7 @@ def seed_unit(unit_type:, serial:, manufacturer:, status: "available")
   unit.unit_type    = unit_type
   unit.manufacturer = manufacturer
   unit.status       = status
+  unit.company      = unit_type.company
 
   if unit.new_record? || unit.changed?
     unit.save!
@@ -91,9 +92,19 @@ def apply_final_status(order, final_status)
 end
 
 ActiveRecord::Base.transaction do
+  banner "Ensuring Company"
+  primary_company = Company.find_or_initialize_by(name: "Demo Company")
+  if primary_company.new_record?
+    primary_company.save!
+    created(primary_company)
+  else
+    reused(primary_company)
+  end
+
   banner "Ensuring Default User"
   primary_user = User.find_or_initialize_by(email: "demo@honeywagon.test")
   primary_user.role ||= "dispatcher"
+  primary_user.company ||= primary_company
   if primary_user.new_record?
     primary_user.password = "password123"
     primary_user.password_confirmation = "password123"
@@ -111,6 +122,7 @@ ActiveRecord::Base.transaction do
     ut = UnitType.find_or_initialize_by(slug: attrs[:slug])
     ut.name = attrs[:name]
     ut.prefix = attrs[:prefix]
+    ut.company ||= primary_company
 
     if ut.new_record? || ut.changed?
       ut.save!

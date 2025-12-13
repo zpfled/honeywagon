@@ -1,40 +1,21 @@
 FactoryBot.define do
   factory :unit do
-    unit_type do
-      UnitType.find_or_create_by!(slug: "standard") do |ut|
-        ut.name   = "Standard Unit"
-        ut.prefix = "S"
-      end
-    end
+    company { association(:company) }
+    unit_type { association(:unit_type, :standard, company: company) }
 
     manufacturer { "TestCo" }
     status { "available" }
 
     trait :standard do
-      unit_type do
-        UnitType.find_or_create_by!(slug: "standard") do |ut|
-          ut.name   = "Standard Unit"
-          ut.prefix = "S"
-        end
-      end
+      unit_type { association(:unit_type, :standard, company: company) }
     end
 
     trait :ada do
-      unit_type do
-        UnitType.find_or_create_by!(slug: "ada") do |ut|
-          ut.name   = "ADA Accessible Unit"
-          ut.prefix = "A"
-        end
-      end
+      unit_type { association(:unit_type, :ada, company: company) }
     end
 
     trait :handwash do
-      unit_type do
-        UnitType.find_or_create_by!(slug: "handwash") do |ut|
-          ut.name   = "Handwash Station"
-          ut.prefix = "H"
-        end
-      end
+      unit_type { association(:unit_type, :handwash, company: company) }
     end
   end
 end

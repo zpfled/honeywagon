@@ -1,5 +1,6 @@
 # UnitType defines the categories of rentable assets (standard, ADA, wash).
 class UnitType < ApplicationRecord
+  belongs_to :company
   has_many :units, dependent: :nullify
 
   TYPES = [

@@ -57,6 +57,7 @@
 
   <% unit_types = UnitType.order(:name) %>
   <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
+  <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
   <% existing_line_items_payload = order.order_line_items.map do |li|
        {
          unit_type_id: li.unit_type_id,
@@ -82,6 +83,8 @@
          { id: plan.id, label: label }
        end
      end %>
+  <% rate_plan_payload_json = json_escape(rate_plan_payload.to_json) %>
+  <% existing_line_items_payload_json = json_escape(existing_line_items_payload.to_json) %>
 
   <div class="space-y-4">
     <div>
@@ -89,18 +92,14 @@
       <p class="text-sm text-gray-600">Add each unit type, quantity, and rate plan combination you need.</p>
     </div>
 
-    <% option_tags =
-      unit_types.map do |ut|
-        plans = rate_plan_payload[ut.id] || []
-        tag.option(ut.name, value: ut.id, data: { rate_plans: plans.to_json })
-      end.join.html_safe %>
+    <% option_tags = options_from_collection_for_select(unit_types, :id, :name) %>
 
     <%= tag.div class: "space-y-4",
       data: {
         controller: "order-items",
-        order_items_unit_types_value: unit_type_payload.to_json,
-        order_items_rate_plans_value: rate_plan_payload.to_json,
-        order_items_existing_value: existing_line_items_payload.to_json
+        order_items_unit_types_value: unit_type_payload_json,
+        order_items_rate_plans_value: rate_plan_payload_json,
+        order_items_existing_value: existing_line_items_payload_json
       } do %>
       <div class="space-y-3" data-order-items-target="rows"></div>
       <p class="text-sm text-gray-500" data-order-items-target="emptyState">No line items yet. Add at least one to continue.</p>
