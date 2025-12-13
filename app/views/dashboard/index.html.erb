@@ -61,10 +61,21 @@
 
   <div class="mt-8 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
-      <h1 class="truncate text-2xl font-semibold text-gray-900">Upcoming Service Events</h1>
+      <h1 class="truncate text-2xl font-semibold text-gray-900">Upcoming Routes</h1>
       <p class="mt-1 text-sm text-gray-600">
-        Next 7 days • <%= pluralize(@service_events.size, "event") %>
+        Next 7 days • <%= pluralize(@routes.size, "route") %>
       </p>
+    </div>
+    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+      <%= form_with model: @new_route, url: routes_path, class: "flex items-end gap-3", local: true do |f| %>
+        <div>
+          <%= f.label :route_date, "Route date", class: "text-xs font-medium text-gray-700" %>
+          <%= f.date_field :route_date, class: "mt-1 block rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+        </div>
+        <div>
+          <%= f.submit "Create", class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+        </div>
+      <% end %>
     </div>
   </div>
 
@@ -73,70 +84,31 @@
       <thead class="bg-gray-50">
         <tr>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Event</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Order</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Customer</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Location</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Service events</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Estimated gallons</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Deliveries</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Pickups</th>
           <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
         </tr>
       </thead>
-
       <tbody class="divide-y divide-gray-100 bg-white">
-        <% if @service_events.any? %>
-          <% @service_events.each do |event| %>
-            <% order = event.order %>
+        <% if @routes.any? %>
+          <% @routes.each do |route| %>
             <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 whitespace-nowrap">
-                <div class="text-sm font-semibold text-gray-900"><%= l(event.scheduled_on, format: :long) %></div>
-              </td>
-
-              <td class="px-4 py-3">
-                <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                  <%= event.event_type.humanize %>
-                </span>
-              </td>
-
-              <td class="px-4 py-3">
-                <div class="text-sm font-semibold text-gray-900">
-                  <%= link_to(order.external_reference.presence || "##{order.id}", order_path(order), class: "hover:underline") %>
-                </div>
-                <div class="mt-1 text-xs text-gray-600">
-                  <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
-                </div>
-              </td>
-
-              <td class="px-4 py-3">
-                <div class="text-sm font-medium text-gray-900"><%= order.customer.display_name %></div>
-                <div class="mt-1 text-xs text-gray-600"><%= order.customer.billing_email %></div>
-              </td>
-
-              <td class="px-4 py-3">
-                <div class="text-sm font-medium text-gray-900"><%= order.location.label %></div>
-                <div class="mt-1 text-xs text-gray-600">
-                  <%= [order.location.city, order.location.state].compact.join(", ") %>
-                </div>
-              </td>
-
+              <td class="px-4 py-3 text-sm font-semibold text-gray-900"><%= l(route.route_date, format: :long) %></td>
+              <td class="px-4 py-3 text-sm text-gray-900"><%= route.service_event_count %></td>
+              <td class="px-4 py-3 text-sm text-gray-900"><%= route.estimated_gallons %></td>
+              <td class="px-4 py-3 text-sm text-gray-900"><%= route.deliveries_count %></td>
+              <td class="px-4 py-3 text-sm text-gray-900"><%= route.pickups_count %></td>
               <td class="px-4 py-3 text-right">
-                <% if event.report_required? %>
-                  <%= link_to "Complete",
-                    new_service_event_report_path(service_event_id: event.id),
-                    class: "inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-500" %>
-                <% else %>
-                  <%= button_to "Complete",
-                    service_event_path(event),
-                    method: :patch,
-                    params: { service_event: { status: :completed } },
-                    class: "inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-500",
-                    data: { turbo_confirm: "Mark this event as completed?" } %>
-                <% end %>
+                <%= link_to "View route", route_path(route), class: "inline-flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500" %>
               </td>
             </tr>
           <% end %>
         <% else %>
           <tr>
-            <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-500">
-              No service events scheduled for the upcoming week.
+            <td colspan=\"6\" class=\"px-4 py-10 text-center text-sm text-gray-500\">
+              No routes scheduled for the upcoming week.
             </td>
           </tr>
         <% end %>

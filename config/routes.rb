@@ -5,6 +5,7 @@ Rails.application.routes.draw do
     end
   end
   resources :service_events, only: :update
+  resources :routes, only: [ :index, :show, :create, :update ]
   resources :service_event_reports, only: [ :index, :new, :create ]
   resources :customers, only: [ :new, :create ]
   devise_for :users
