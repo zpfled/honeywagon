@@ -30,6 +30,9 @@
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <p class="text-sm font-medium text-gray-600">Services</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.services_count %></p>
+      <% if @route.serviced_units_count.positive? %>
+        <p class="mt-1 text-xs text-gray-600"><%= pluralize(@route.serviced_units_count, "unit") %> serviced</p>
+      <% end %>
     </div>
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <p class="text-sm font-medium text-gray-600">Pickups</p>
@@ -52,8 +55,7 @@
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Event</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Units</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Order</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Customer</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Location</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
@@ -74,25 +76,30 @@
               </td>
               <td class="px-4 py-3">
                 <div class="text-sm font-semibold text-gray-900">
-                  <%= link_to(order.external_reference.presence || "##{order.id}", order_path(order), class: "hover:underline") %>
+                  <%= link_to(order.customer.display_name, order_path(order), class: "hover:underline") %>
+                </div>
+                <div class="mt-1 text-xs text-gray-600">
+                  <%= order.customer.billing_email %>
+                </div>
+                <div class="mt-1 text-xs text-gray-600">
+                  <%= order.location.label %> — <%= [ order.location.city, order.location.state ].compact.join(', ') %>
                 </div>
                 <div class="mt-1 text-xs text-gray-600">
                   <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
                 </div>
               </td>
-              <td class="px-4 py-3">
-                <div class="text-sm font-medium text-gray-900"><%= order.customer.display_name %></div>
-                <div class="mt-1 text-xs text-gray-600"><%= order.customer.billing_email %></div>
-              </td>
-              <td class="px-4 py-3">
-                <div class="text-sm font-medium text-gray-900"><%= order.location.label %></div>
-                <div class="mt-1 text-xs text-gray-600"><%= [ order.location.city, order.location.state ].compact.join(', ') %></div>
+              <td class="px-4 py-3 text-right">
+                <%= button_to "Postpone",
+                              postpone_route_service_event_path(@route, event),
+                              method: :post,
+                              data: { turbo_confirm: "Move this service event to the next route?" },
+                              class: "inline-flex items-center rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50" %>
               </td>
             </tr>
           <% end %>
         <% else %>
           <tr>
-            <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-500">No service events assigned to this route yet.</td>
+            <td colspan="5" class="px-4 py-10 text-center text-sm text-gray-500">No service events assigned to this route yet.</td>
           </tr>
         <% end %>
       </tbody>

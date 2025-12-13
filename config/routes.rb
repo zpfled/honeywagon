@@ -5,7 +5,11 @@ Rails.application.routes.draw do
     end
   end
   resources :service_events, only: :update
-  resources :routes, only: [ :index, :show, :create, :update ]
+  resources :routes, only: [ :index, :show, :create, :update ] do
+    resources :service_events, only: [], module: :routes do
+      post :postpone, on: :member
+    end
+  end
   resources :service_event_reports, only: [ :index, :new, :create ]
   resources :customers, only: [ :new, :create ]
   devise_for :users

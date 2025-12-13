@@ -17,6 +17,7 @@ class Route < ApplicationRecord
   def pickups_count = service_events.event_type_pickup.count
   def delivery_unit_breakdown = unit_breakdown_for(service_events.event_type_delivery)
   def pickup_unit_breakdown = unit_breakdown_for(service_events.event_type_pickup)
+  def serviced_units_count = units_impacted_for(service_events.event_type_service)
 
   private
 
@@ -54,5 +55,11 @@ class Route < ApplicationRecord
       label = "#{quantity} #{unit_type.name.downcase.pluralize(quantity)}"
       memo << label
     end
+  end
+
+  def units_impacted_for(events_scope)
+    events_scope
+      .joins(order: :order_line_items)
+      .sum('order_line_items.quantity')
   end
 end
