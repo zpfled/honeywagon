@@ -1,7 +1,7 @@
 <div class="mx-auto max-w-6xl px-4 py-8">
   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900">Route for <%= l(@route.route_date) %></h1>
+      <h1 class="text-2xl font-semibold text-gray-900">Route for <%= l(@route.route_date, format: "%A, %B %-d") %></h1>
       <p class="text-sm text-gray-600"><%= pluralize(@route.service_event_count, "service event") %> scheduled</p>
     </div>
     <div>
