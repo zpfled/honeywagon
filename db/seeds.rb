@@ -464,7 +464,8 @@ ActiveRecord::Base.transaction do
     customer = customers.fetch(config[:customer_key])
     location = locations.fetch(config[:location_key])
     order = Order.find_or_initialize_by(external_reference: config[:external_reference])
-    order.user ||= primary_user
+    order.created_by ||= primary_user
+    order.company ||= primary_user.company
 
     if order.persisted?
       order.units.update_all(status: "available") if order.units.any?

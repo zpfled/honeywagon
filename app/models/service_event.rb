@@ -41,7 +41,7 @@ class ServiceEvent < ApplicationRecord
   end
 
   def inherit_user_from_order
-    self.user ||= order&.user
+    self.user ||= order&.created_by || order&.company&.users&.first
   end
 
   # Ensures a ServiceEventReport exists when the event flips to completed.

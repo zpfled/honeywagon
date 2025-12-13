@@ -1,7 +1,7 @@
 FactoryBot.define do
   factory :order do
-    user { association(:user) }
-    company { user.company }
+    company { association(:company) }
+    created_by { association(:user, company: company) }
     customer { association(:customer) }
     location { association(:location, customer: customer) }
 
@@ -49,7 +49,7 @@ FactoryBot.define do
       end
 
       after(:create) do |order, evaluator|
-        units = create_list(:unit, evaluator.unit_count)
+        units = create_list(:unit, evaluator.unit_count, company: order.company)
         units.each do |unit|
           create(:order_unit, order: order, unit: unit, placed_on: order.start_date)
         end

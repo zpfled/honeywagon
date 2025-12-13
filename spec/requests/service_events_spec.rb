@@ -8,7 +8,7 @@ RSpec.describe "ServiceEvents", type: :request do
     it "updates the status, removes it from the dashboard scope, and creates a report when required" do
       travel_to Date.new(2024, 5, 6) do
         type = create(:service_event_type_service)
-        event = create(:service_event, :service, order: create(:order, user: user), service_event_type: type, scheduled_on: Date.new(2024, 5, 7), status: :scheduled)
+        event = create(:service_event, :service, order: create(:order, company: user.company, created_by: user), service_event_type: type, scheduled_on: Date.new(2024, 5, 7), status: :scheduled)
 
         sign_in user
         patch service_event_path(event), params: { service_event: { status: :completed } }

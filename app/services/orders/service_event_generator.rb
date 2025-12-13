@@ -18,12 +18,14 @@ module Orders
         order.service_events.auto_generated.delete_all
         build_events.each do |attrs|
           type = find_or_create_event_type(attrs[:event_type])
+          assigned_user = order.created_by || order.company&.users&.first
+          raise "Order #{order.id} is missing a user to own generated events" unless assigned_user
           order.service_events.create!(
             attrs.merge(
               status: :scheduled,
               auto_generated: true,
               service_event_type: type,
-              user: order.user
+              user: assigned_user
             )
           )
         end

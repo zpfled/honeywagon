@@ -14,12 +14,13 @@ RSpec.describe "Order line item form behaviour", type: :request do
   end
 
   it "keeps existing line items available to the Stimulus controller after a validation error" do
-    order = user.orders.new(
+    order = user.company.orders.new(
       customer: customer,
       location: location,
       start_date: Date.today,
       end_date: Date.today + 7.days,
-      status: 'draft'
+      status: 'draft',
+      created_by: user
     )
 
     Orders::Builder.new(order).assign(

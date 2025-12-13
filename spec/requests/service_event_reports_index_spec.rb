@@ -9,7 +9,7 @@ RSpec.describe "ServiceEventReports index", type: :request do
   end
 
   it "lists completed service reports" do
-    report = create(:service_event_report, user: user, service_event: create(:service_event, order: create(:order, user: user)))
+    report = create(:service_event_report, user: user, service_event: create(:service_event, order: create(:order, company: user.company, created_by: user)))
 
     sign_in user
     get service_event_reports_path

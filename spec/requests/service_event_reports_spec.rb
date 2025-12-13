@@ -5,7 +5,7 @@ RSpec.describe "ServiceEventReports", type: :request do
 
   describe "GET /service_event_reports/new" do
     it "renders the report form for reportable events" do
-      event = create(:service_event, :service, order: create(:order, user: user))
+      event = create(:service_event, :service, order: create(:order, company: user.company, created_by: user))
 
       sign_in user
       get new_service_event_report_path(service_event_id: event.id)
@@ -14,7 +14,7 @@ RSpec.describe "ServiceEventReports", type: :request do
       expect(response.body).to include("Estimated gallons pumped")
     end
     it "redirects for non-reportable events" do
-      event = create(:service_event, :delivery, order: create(:order, user: user))
+      event = create(:service_event, :delivery, order: create(:order, company: user.company, created_by: user))
 
       sign_in user
       get new_service_event_report_path(service_event_id: event.id)
@@ -26,7 +26,7 @@ RSpec.describe "ServiceEventReports", type: :request do
 
   describe "POST /service_event_reports" do
     it "creates a report and completes the event" do
-      event = create(:service_event, :service, status: :scheduled, order: create(:order, user: user))
+      event = create(:service_event, :service, status: :scheduled, order: create(:order, company: user.company, created_by: user))
 
       sign_in user
       post service_event_reports_path, params: {

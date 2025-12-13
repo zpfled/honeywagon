@@ -6,7 +6,7 @@ class User < ApplicationRecord
   devise :database_authenticatable, :registerable,
          :recoverable, :rememberable, :validatable
 
-  has_many :orders, dependent: :destroy
+  has_many :created_orders, class_name: 'Order', foreign_key: :created_by_id, dependent: :nullify
   has_many :service_events, dependent: :destroy
   has_many :service_event_reports, dependent: :destroy
 

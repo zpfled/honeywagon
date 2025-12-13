@@ -65,7 +65,7 @@ RSpec.describe Orders::Builder do
       expect(order1.order_units.count).to eq(4)
 
       # Second order tries to take 9 more in the same timeframe (should fail: only 6 left)
-      order2 = user.orders.new
+      order2 = company.orders.new(created_by: user)
       order2 = described_class.new(order2).assign(
         params: order_params.merge(external_reference: 'TWO'),
         unit_type_requests: [
@@ -103,7 +103,7 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      order = user.orders.new
+      order = company.orders.new(created_by: user)
       builder = described_class.new(order)
 
       builder.assign(
@@ -156,7 +156,7 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      order = user.orders.new
+      order = company.orders.new(created_by: user)
       builder = described_class.new(order)
 
       expect do
@@ -182,7 +182,7 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      order = user.orders.new
+      order = company.orders.new(created_by: user)
       builder = described_class.new(order)
 
       builder.assign(
@@ -204,7 +204,7 @@ RSpec.describe Orders::Builder do
 
       # No rate plan created intentionally
 
-      order = user.orders.new
+      order = company.orders.new(created_by: user)
       builder = described_class.new(order)
 
       builder.assign(
@@ -288,7 +288,7 @@ RSpec.describe Orders::Builder do
         active: true
       )
 
-      order = user.orders.new
+      order = company.orders.new(created_by: user)
       builder = described_class.new(order)
 
       builder.assign(
