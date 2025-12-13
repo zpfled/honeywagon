@@ -106,6 +106,50 @@ ActiveRecord::Base.transaction do
     "handwash" => handwash
   }
 
+  banner "Seeding Service Event Types"
+  service_event_type_configs = [
+    {
+      key: "delivery",
+      name: "Delivery",
+      requires_report: false,
+      report_fields: []
+    },
+    {
+      key: "service",
+      name: "Service",
+      requires_report: true,
+      report_fields: [
+        { key: "customer_name", label: "Customer Name" },
+        { key: "customer_address", label: "Customer Address" },
+        { key: "estimated_gallons_pumped", label: "Estimated Gallons Pumped" },
+        { key: "units_pumped", label: "Units Pumped" }
+      ]
+    },
+    {
+      key: "pickup",
+      name: "Pickup",
+      requires_report: true,
+      report_fields: [
+        { key: "customer_name", label: "Customer Name" },
+        { key: "customer_address", label: "Customer Address" },
+        { key: "estimated_gallons_pumped", label: "Estimated Gallons Pumped" },
+        { key: "units_pumped", label: "Units Picked Up" }
+      ]
+    }
+  ]
+
+  service_event_type_configs.each do |attrs|
+    type = ServiceEventType.find_or_initialize_by(key: attrs[:key])
+    type.assign_attributes(attrs)
+
+    if type.new_record? || type.changed?
+      type.save!
+      created(type)
+    else
+      reused(type)
+    end
+  end
+
   banner "Seeding Units"
   unit_batches = [
     { unit_type: standard, count: 60, manufacturer: ->(idx) { idx < 30 ? "OldCo" : "NiceCo" } },

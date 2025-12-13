@@ -104,6 +104,24 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
     t.index ["unit_type_id"], name: "index_rate_plans_on_unit_type_id"
   end
 
+  create_table "service_event_reports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.jsonb "data", default: {}, null: false
+    t.uuid "service_event_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_event_id"], name: "index_service_event_reports_on_service_event_id", unique: true
+  end
+
+  create_table "service_event_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "key", null: false
+    t.string "name", null: false
+    t.jsonb "report_fields", default: [], null: false
+    t.boolean "requires_report", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_service_event_types_on_key", unique: true
+  end
+
   create_table "service_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "auto_generated", default: false, null: false
     t.datetime "created_at", null: false
@@ -111,10 +129,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
     t.text "notes"
     t.uuid "order_id", null: false
     t.date "scheduled_on"
+    t.uuid "service_event_type_id", null: false
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
     t.index ["auto_generated"], name: "index_service_events_on_auto_generated"
     t.index ["order_id"], name: "index_service_events_on_order_id"
+    t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
   end
 
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -160,6 +180,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_120000) do
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
   add_foreign_key "rate_plans", "unit_types"
+  add_foreign_key "service_event_reports", "service_events"
   add_foreign_key "service_events", "orders"
+  add_foreign_key "service_events", "service_event_types"
   add_foreign_key "units", "unit_types"
 end

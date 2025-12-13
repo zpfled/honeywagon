@@ -2,21 +2,25 @@ FactoryBot.define do
   factory :service_event do
     association :order
     scheduled_on { Date.today }
-    event_type { :delivery }
+    event_type { :service }
     status { :scheduled }
     notes { nil }
     auto_generated { false }
+    association :service_event_type, factory: :service_event_type_service
 
     trait :delivery do
       event_type { :delivery }
+      association :service_event_type, factory: :service_event_type_delivery
     end
 
     trait :service do
       event_type { :service }
+      association :service_event_type, factory: :service_event_type_service
     end
 
     trait :pickup do
       event_type { :pickup }
+      association :service_event_type, factory: :service_event_type_pickup
     end
 
     trait :completed do

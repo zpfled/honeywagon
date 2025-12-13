@@ -14,4 +14,27 @@ RSpec.describe ServiceEvent, type: :model do
       end
     end
   end
+
+  describe "reports" do
+    include ActiveSupport::Testing::TimeHelpers
+
+    it "creates a report when a reportable event is completed" do
+      type = create(:service_event_type_service)
+      event = create(:service_event, :service, service_event_type: type, status: :scheduled)
+
+      event.update!(status: :completed)
+
+      expect(event.service_event_report).to be_present
+      expect(event.service_event_report.data["customer_name"]).to eq(event.order.customer.display_name)
+    end
+
+    it "does not create a report for non-reportable events" do
+      type = create(:service_event_type_delivery)
+      event = create(:service_event, :delivery, service_event_type: type, status: :scheduled)
+
+      event.update!(status: :completed)
+
+      expect(event.service_event_report).to be_nil
+    end
+  end
 end

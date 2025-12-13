@@ -17,8 +17,13 @@ module Orders
       order.with_lock do
         order.service_events.auto_generated.delete_all
         build_events.each do |attrs|
+          type = find_or_create_event_type(attrs[:event_type])
           order.service_events.create!(
-            attrs.merge(status: :scheduled, auto_generated: true)
+            attrs.merge(
+              status: :scheduled,
+              auto_generated: true,
+              service_event_type: type
+            )
           )
         end
       end
@@ -85,6 +90,15 @@ module Orders
     def line_item_with_schedule
       order.order_line_items.detect do |line_item|
         line_item.service_schedule.present? || line_item.rate_plan&.service_schedule.present?
+      end
+    end
+
+    def find_or_create_event_type(event_type_symbol)
+      key = event_type_symbol.to_s
+      ServiceEventType.find_or_create_by!(key: key) do |type|
+        type.name = key.humanize
+        type.requires_report = %w[service pickup].include?(key)
+        type.report_fields = []
       end
     end
   end

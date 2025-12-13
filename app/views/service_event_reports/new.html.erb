@@ -1,0 +1,43 @@
+<div class="mx-auto max-w-2xl px-4 py-8">
+  <div class="mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Complete Service Event</h1>
+    <p class="mt-1 text-sm text-gray-600">
+      <strong>Customer:</strong> <%= @prefill[:customer_name] %><br>
+      <strong>Address:</strong> <%= @prefill[:customer_address] %>
+    </p>
+  </div>
+
+  <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+    <%= form_with model: (@report || ServiceEventReport.new), url: service_event_reports_path, method: :post do |f| %>
+      <%= hidden_field_tag :service_event_id, @service_event.id %>
+
+      <div class="space-y-6">
+        <div>
+          <%= f.label :estimated_gallons_pumped, "Estimated gallons pumped", class: "text-sm font-medium text-gray-700" %>
+          <%= f.number_field :estimated_gallons_pumped,
+            value: @report&.data&.dig("estimated_gallons_pumped"),
+            step: 1,
+            min: 0,
+            autofocus: true,
+            class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        </div>
+
+        <div>
+          <%= f.label :units_pumped, "Units serviced", class: "text-sm font-medium text-gray-700" %>
+          <%= f.number_field :units_pumped,
+            value: @report&.data&.dig("units_pumped") || @prefill[:units_pumped],
+            step: 1,
+            min: 0,
+            class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-2">
+        <%= link_to "Cancel", root_path,
+          class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
+        <%= f.submit "Submit report",
+          class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+      </div>
+    <% end %>
+  </div>
+</div>

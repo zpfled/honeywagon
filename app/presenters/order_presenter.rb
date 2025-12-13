@@ -89,23 +89,11 @@ class OrderPresenter
   end
 
   def line_item_unit_price(line_item)
-    if line_item.respond_to?(:unit_price_cents) && line_item.unit_price_cents.present?
-      format_currency(line_item.unit_price_cents, from_cents: true)
-    elsif line_item.respond_to?(:unit_price) && line_item.unit_price.present?
-      format_currency(line_item.unit_price)
-    else
-      '—'
-    end
+    format_money_from(line_item, :unit_price_cents, :unit_price)
   end
 
   def line_item_subtotal(line_item)
-    if line_item.respond_to?(:subtotal_cents) && line_item.subtotal_cents.present?
-      format_currency(line_item.subtotal_cents, from_cents: true)
-    elsif line_item.respond_to?(:subtotal) && line_item.subtotal.present?
-      format_currency(line_item.subtotal)
-    else
-      '—'
-    end
+    format_money_from(line_item, :subtotal_cents, :subtotal)
   end
 
   def location_name
@@ -114,18 +102,10 @@ class OrderPresenter
 
   def location_address_line
     loc = order.location
-    return nil if loc.blank?
-    return nil unless loc.respond_to?(:address_line1)
-    return nil if loc.address_line1.blank?
+    return nil if loc.blank? || loc.street.blank?
 
-    city =
-      if loc.respond_to?(:city) && loc.city.present?
-        ", #{loc.city}"
-      else
-        ''
-      end
-
-    "#{loc.address_line1}#{city}"
+    city_state = [ loc.city, loc.state ].compact.join(', ').presence
+    [ loc.street, city_state ].compact.join(' ')
   end
 
   def unit_title(unit)
@@ -212,12 +192,10 @@ class OrderPresenter
     line_items = order.order_line_items
     return nil if line_items.blank?
 
-    if supports_subtotal_cents?(line_items)
-      sum_subtotal_cents(line_items)
-    elsif supports_subtotal_amount?(line_items)
-      sum_subtotal_amount(line_items)
-    else
-      nil
+    if subtotal_cents_supported?(line_items)
+      calculate_subtotal(line_items, :subtotal_cents)
+    elsif subtotal_amount_supported?(line_items)
+      (calculate_subtotal(line_items, :subtotal) * 100).to_i
     end
   end
 
@@ -257,36 +235,41 @@ class OrderPresenter
     cents.to_f / 100
   end
 
-  def supports_subtotal_cents?(line_items)
-    relation_supports_column?(line_items, :subtotal_cents) || collection_supports?(line_items, :subtotal_cents)
-  end
+  def format_money_from(record, cents_attr, amount_attr)
+    cents_value = record.respond_to?(cents_attr) ? record.public_send(cents_attr) : nil
+    amount_value = record.respond_to?(amount_attr) ? record.public_send(amount_attr) : nil
 
-  def supports_subtotal_amount?(line_items)
-    relation_supports_column?(line_items, :subtotal) || collection_supports?(line_items, :subtotal)
-  end
-
-  def relation_supports_column?(collection, column_name)
-    collection.respond_to?(:klass) && collection.klass.column_names.include?(column_name.to_s)
-  end
-
-  def collection_supports?(collection, method_name)
-    first_item = collection.respond_to?(:first) ? collection.first : nil
-    first_item.respond_to?(method_name)
-  end
-
-  def sum_subtotal_cents(line_items)
-    if line_items.respond_to?(:loaded?) && !line_items.loaded? && relation_supports_column?(line_items, :subtotal_cents)
-      line_items.sum(:subtotal_cents).to_i
+    if cents_value.present?
+      format_currency(cents_value, from_cents: true)
+    elsif amount_value.present?
+      format_currency(amount_value)
     else
-      Array(line_items).sum { |li| li.subtotal_cents.to_i }
+      '—'
     end
   end
 
-  def sum_subtotal_amount(line_items)
-    if line_items.respond_to?(:loaded?) && !line_items.loaded? && relation_supports_column?(line_items, :subtotal)
-      (line_items.sum(:subtotal).to_f * 100).to_i
+  def subtotal_cents_supported?(line_items)
+    column_present?(line_items, :subtotal_cents) || first_item_responds?(line_items, :subtotal_cents)
+  end
+
+  def subtotal_amount_supported?(line_items)
+    column_present?(line_items, :subtotal) || first_item_responds?(line_items, :subtotal)
+  end
+
+  def column_present?(collection, column_name)
+    collection.respond_to?(:klass) && collection.klass.column_names.include?(column_name.to_s)
+  end
+
+  def first_item_responds?(collection, method_name)
+    item = collection.respond_to?(:first) ? collection.first : nil
+    item.respond_to?(method_name)
+  end
+
+  def calculate_subtotal(line_items, attribute)
+    if line_items.respond_to?(:loaded?) && !line_items.loaded? && column_present?(line_items, attribute)
+      line_items.sum(attribute).to_f
     else
-      (Array(line_items).sum { |li| li.subtotal.to_f } * 100).to_i
+      Array(line_items).sum { |li| li.public_send(attribute).to_f }
     end
   end
 end
