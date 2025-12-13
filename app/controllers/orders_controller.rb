@@ -13,7 +13,8 @@ class OrdersController < ApplicationController
     @order = current_user.orders.new(
       start_date: Date.today,
       end_date:   Date.today + 7.days,
-      status:     'draft'
+      status:     'draft',
+      customer_id: params[:customer_id]
     )
   end
 
