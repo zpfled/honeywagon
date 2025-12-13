@@ -15,6 +15,8 @@ class Route < ApplicationRecord
   def deliveries_count = service_events.event_type_delivery.count
   def services_count = service_events.event_type_service.count
   def pickups_count = service_events.event_type_pickup.count
+  def delivery_unit_breakdown = unit_breakdown_for(service_events.event_type_delivery)
+  def pickup_unit_breakdown = unit_breakdown_for(service_events.event_type_pickup)
 
   private
 
@@ -35,5 +37,22 @@ class Route < ApplicationRecord
 
   def propagate_route_date
     service_events.update_all(route_date: route_date)
+  end
+
+  def unit_breakdown_for(events_scope)
+    counts = events_scope
+             .joins(order: :order_line_items)
+             .group('order_line_items.unit_type_id')
+             .sum('order_line_items.quantity')
+
+    unit_types = UnitType.where(id: counts.keys).index_by(&:id)
+
+    counts.each_with_object([]) do |(unit_type_id, quantity), memo|
+      unit_type = unit_types[unit_type_id]
+      next unless unit_type
+
+      label = "#{quantity} #{unit_type.name.downcase.pluralize(quantity)}"
+      memo << label
+    end
   end
 end

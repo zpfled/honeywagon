@@ -23,6 +23,9 @@
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <p class="text-sm font-medium text-gray-600">Deliveries</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.deliveries_count %></p>
+      <% if @route.delivery_unit_breakdown.any? %>
+        <p class="mt-1 text-xs text-gray-600"><%= @route.delivery_unit_breakdown.join(', ') %></p>
+      <% end %>
     </div>
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <p class="text-sm font-medium text-gray-600">Services</p>
@@ -31,6 +34,9 @@
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <p class="text-sm font-medium text-gray-600">Pickups</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.pickups_count %></p>
+      <% if @route.pickup_unit_breakdown.any? %>
+        <p class="mt-1 text-xs text-gray-600"><%= @route.pickup_unit_breakdown.join(', ') %></p>
+      <% end %>
     </div>
     <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
       <p class="text-sm font-medium text-gray-600">Estimated gallons</p>
