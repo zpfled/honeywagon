@@ -1,3 +1,4 @@
+# UnitType defines the categories of rentable assets (standard, ADA, wash).
 class UnitType < ApplicationRecord
   has_many :units, dependent: :nullify
 
@@ -9,5 +10,6 @@ class UnitType < ApplicationRecord
 
   validates :prefix, presence: true, format: { with: /\A[A-Z]\z/ }
 
+  # Returns the human-friendly name when interpolated.
   def to_s = name
 end

@@ -24,7 +24,9 @@ class Order < ApplicationRecord
     define_method("#{status_name}?") { status == status_name }
   end
 
+  # Scope returning orders that start today or later.
   scope :upcoming, -> { where('start_date >= ?', Date.today) }
+  # Scope returning orders active on the supplied date.
   scope :active_on, ->(date) { where('start_date <= ? AND end_date >= ?', date, date) }
 
   # Marks the order status as active and persists the change.

@@ -15,7 +15,7 @@ This is not a generic rental app — it models how portable sanitation businesse
 - Devise (authentication)
 - Pundit (authorization, partial)
 - RSpec
-- PicoCSS (semantic HTML, minimal JS)
+- Tailwind CSS (via tailwindcss-rails 4, semantic HTML-first UI)
 
 ---
 
@@ -108,41 +108,38 @@ The builder does not rely on order.valid?.
 
 ---
 
-## Service Events (In Progress)
+## Service Events & Field Work
 
-Service events track actual work performed:
-- pump
-- clean
-- delivery
-- pickup
+Service events now drive the day-to-day workflow.
 
-Events may be associated with:
-- a unit
-- an order
-- a location
+### Auto-generated lifecycle
+- When an order transitions to `scheduled`, `Orders::ServiceEventGenerator` rebuilds delivery, recurring service, and pickup events.
+- Events are stored with `ServiceEventType` records so new categories can be added (requires report, custom fields, etc.).
+- Weekly and biweekly plans inject midpoint service visits; event rows are marked `auto_generated` so the generator can safely rerun.
 
-The data model exists; UI wiring is ongoing.
+### Dispatch dashboard
+- The root path lists the next seven days of service events with customer/location context.
+- Drivers or dispatchers can mark delivery-only events complete in one click or jump into the reporting flow for events that require data capture.
+
+### Reporting & compliance
+- Service and pickup events require a `ServiceEventReport`. The form is prefilled with customer/address + assigned unit counts and captures pump-specific metrics (estimated gallons, units serviced).
+- Submitting a report both persists the JSON payload and marks the event completed in a transaction.
+- The “Service Log” nav links to `/service_event_reports`, giving accounting/compliance a reverse-chronological audit of submitted reports.
 
 ---
 
 ## Development Setup
 
-bundle install  
-bin/rails db:setup  
-bin/rails server
+1. `bin/setup` – installs gems, prepares the DB, and clears tmp/logs.
+2. `bin/rails db:seed` – loads the opinionated demo data so the dashboard has upcoming events and service history to show.
+3. `bin/dev` – runs the Rails server and Tailwind 4 watcher via `Procfile.dev`. (If you prefer, run `bin/rails server` and `bin/rails tailwindcss:watch` in separate shells.)
 
 ---
 
 ## Testing
 
-bin/rails test  
-bin/rails test test/system/**/*_test.rb
-
-CI runs:
-- Brakeman
-- Bundler Audit
-- RuboCop
-- Unit and system tests with Postgres
+- `bundle exec rspec` – primary test suite (models, services, requests, presenters).
+- `bin/ci` – runs `bin/setup --skip-server`, RuboCop, Bundler Audit, Importmap audit, Brakeman, Rails test + system test tasks, and a seed replant to prove demo data still loads.
 
 ---
 
@@ -151,9 +148,10 @@ CI runs:
 - Core rental logic: complete
 - Inventory overbooking prevention: complete
 - Pricing engine: complete for standard units
-- UI: functional, intentionally minimal
-- Service event UI: pending
-- Driver workflow: pending
+- Tailwind UI: functional, intentionally minimal
+- Service event dashboard + reporting: shipped
+- Service log / compliance export: shipped
+- Driver- or route-specific workflow: pending (current UI is global for dispatch)
 
 ---
 

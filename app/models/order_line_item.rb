@@ -1,3 +1,4 @@
+# OrderLineItem captures the pricing snapshot for each unit type on an order.
 class OrderLineItem < ApplicationRecord
   belongs_to :order
   belongs_to :unit_type

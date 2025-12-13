@@ -1,7 +1,10 @@
 module Orders
+  # Builder orchestrates converting the order form input into concrete units and
+  # pricing line items while validating availability and rate plans.
   class Builder
     attr_reader :order
 
+    # Stores the order being mutated during the assignment flow.
     def initialize(order)
       @order = order
     end
@@ -11,6 +14,8 @@ module Orders
     #   "1" => { quantity: 3, service_schedule: "weekly" },
     #   "2" => { quantity: 1, service_schedule: "event" }
     # }
+    # Applies params/unit-type requests to the order, enforcing availability and
+    # populating order_units + order_line_items.
     def assign(params:, unit_type_requests:)
       order.assign_attributes(params)
 
@@ -43,6 +48,7 @@ module Orders
 
     private
 
+    # Builds in-memory order_units and order_line_items for the request payload.
     def build_units_and_line_items(unit_type_requests)
       order_units = []
       line_items  = []
@@ -109,6 +115,7 @@ module Orders
     # For now:
     # - monthly: charge one month
     # - per_event: charge once
+    # Calculates the subtotal in cents for a line item given its rate plan.
     def compute_subtotal(rate_plan:, quantity:)
       case rate_plan.billing_period
       when 'monthly'

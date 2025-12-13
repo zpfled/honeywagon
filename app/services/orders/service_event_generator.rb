@@ -4,7 +4,7 @@ module Orders
   # previously auto-generated events for the order, then rebuild them so rerunning
   # the generator stays idempotent.
   class ServiceEventGenerator
-    # @param order [Order] the order whose events should be generated
+    # Stores the order whose lifecycle events should be regenerated.
     def initialize(order)
       @order = order
     end
@@ -93,6 +93,7 @@ module Orders
       end
     end
 
+    # Ensures a ServiceEventType exists for the provided enum symbol.
     def find_or_create_event_type(event_type_symbol)
       key = event_type_symbol.to_s
       ServiceEventType.find_or_create_by!(key: key) do |type|

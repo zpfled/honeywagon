@@ -1,3 +1,4 @@
+# RatePlan stores the billing parameters (price, cadence) for each unit type.
 class RatePlan < ApplicationRecord
   SERVICE_SCHEDULES = {
     none:     'none',
@@ -14,9 +15,11 @@ class RatePlan < ApplicationRecord
   validates :service_schedule, inclusion: { in: SERVICE_SCHEDULES.values }
   validates :price_cents, numericality: { greater_than_or_equal_to: 0 }
 
+  # Scope returning rate plans flagged as active.
   scope :active, -> { where(active: true) }
 
 
+  # Returns a quick label combining billing period, schedule, and price.
   def label
     "#{billing_period}: #{service_schedule} -- #{price_cents}"
   end
