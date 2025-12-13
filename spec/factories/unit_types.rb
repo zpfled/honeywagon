@@ -1,6 +1,5 @@
 FactoryBot.define do
   factory :unit_type do
-    association :company
     sequence(:name) { |n| "Unit Type #{n}" }
     sequence(:slug) { |n| "unit-type-#{n}" }
     prefix { "X" }

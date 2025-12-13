@@ -115,8 +115,7 @@ module Orders
           order_units << OrderUnit.new(
             order: order,
             unit: unit,
-            placed_on: order.start_date,
-            billing_period: rate_plan.billing_period
+            placed_on: order.start_date
           )
           used_unit_ids << unit.id
         end

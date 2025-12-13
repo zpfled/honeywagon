@@ -1,8 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Orders::Builder do
-  let(:company) { create(:company) }
-  let(:user) { create(:user, company: company) }
+  let(:user) { create(:user) }
   let(:customer) { create(:customer, company_name: 'ACME Events') }
   let(:location) { create(:location, label: 'ACME Wedding Site') }
 
@@ -23,10 +22,10 @@ RSpec.describe Orders::Builder do
 
   describe '#assign' do
     it 'prevents allocating units that are already assigned to overlapping orders' do
-      standard = create(:unit_type, :standard, company: company)
+      standard = create(:unit_type, :standard)
 
       # 10 standard units in inventory
-      create_list(:unit, 10, unit_type: standard, company: company, status: 'available')
+      create_list(:unit, 10, unit_type: standard, status: 'available')
 
       standard_weekly = create(
         :rate_plan,
@@ -79,11 +78,11 @@ RSpec.describe Orders::Builder do
     end
 
     it 'builds order_units and order_line_items and sets rental_subtotal_cents' do
-      standard = create(:unit_type, :standard, company: company)
-      ada      = create(:unit_type, :ada, company: company)
+      standard = create(:unit_type, :standard)
+      ada      = create(:unit_type, :ada)
 
-      create_list(:unit, 3, unit_type: standard, company: company, status: 'available')
-      create_list(:unit, 1, unit_type: ada,      company: company, status: 'available')
+      create_list(:unit, 3, unit_type: standard, status: 'available')
+      create_list(:unit, 1, unit_type: ada,      status: 'available')
 
       standard_weekly = create(
         :rate_plan,
@@ -121,7 +120,6 @@ RSpec.describe Orders::Builder do
       order.save
       order.reload
       expect(order.units.count).to eq(3)
-      expect(order.order_units.map(&:billing_period).uniq).to eq([ 'monthly' ])
 
       # line items created
       expect(order.order_line_items.size).to eq(2)
@@ -170,8 +168,8 @@ RSpec.describe Orders::Builder do
     end
 
     it 'adds a helpful error when requesting more units than available' do
-      standard = create(:unit_type, :standard, company: company)
-      create_list(:unit, 1, unit_type: standard, company: company, status: 'available')
+      standard = create(:unit_type, :standard)
+      create_list(:unit, 1, unit_type: standard, status: 'available')
 
       standard_weekly = create(
         :rate_plan,
@@ -199,8 +197,8 @@ RSpec.describe Orders::Builder do
     end
 
     it 'adds a helpful error when no rate plan exists for the chosen schedule' do
-      standard = create(:unit_type, :standard, company: company)
-      create_list(:unit, 2, unit_type: standard, company: company, status: 'available')
+      standard = create(:unit_type, :standard)
+      create_list(:unit, 2, unit_type: standard, status: 'available')
 
       # No rate plan created intentionally
 
@@ -220,8 +218,8 @@ RSpec.describe Orders::Builder do
     end
 
     it 'replaces existing units and line items on update' do
-      standard = create(:unit_type, :standard, company: company)
-      create_list(:unit, 5, unit_type: standard, company: company, status: 'available')
+      standard = create(:unit_type, :standard)
+      create_list(:unit, 5, unit_type: standard, status: 'available')
 
       standard_weekly = create(
         :rate_plan,
@@ -273,33 +271,6 @@ RSpec.describe Orders::Builder do
       expect(order.order_line_items.size).to eq(1)
       expect(order.order_line_items.first.quantity).to eq(3)
       expect(order.rental_subtotal_cents).to eq(42_000)
-    end
-
-    it 'applies the rate plan billing period to created order units' do
-      standard = create(:unit_type, :standard, company: company)
-      create_list(:unit, 1, unit_type: standard, company: company, status: 'available')
-
-      event_plan = create(
-        :rate_plan,
-        unit_type: standard,
-        service_schedule: RatePlan::SERVICE_SCHEDULES[:event],
-        billing_period: 'per_event',
-        price_cents: 8_000,
-        active: true
-      )
-
-      order = user.orders.new
-      builder = described_class.new(order)
-
-      builder.assign(
-        params: order_params,
-        unit_type_requests: [
-          { unit_type_id: standard.id, rate_plan_id: event_plan.id, quantity: 1 }
-        ]
-      )
-
-      expect(order.order_units.size).to eq(1)
-      expect(order.order_units.first.billing_period).to eq('per_event')
     end
   end
 end

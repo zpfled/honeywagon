@@ -1,9 +1,8 @@
 FactoryBot.define do
   factory :order do
-    user { association(:user) }
-    company { user.company }
-    customer { association(:customer) }
-    location { association(:location, customer: customer) }
+    association :user
+    association :customer
+    association :location
 
     external_reference { nil }
     status { "draft" }

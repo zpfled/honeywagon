@@ -6,7 +6,6 @@ class RatePlan < ApplicationRecord
     biweekly: 'biweekly',
     event:    'event'
   }.freeze
-  BILLING_PERIODS = %w[monthly per_event].freeze
 
   belongs_to :unit_type
 
@@ -14,7 +13,6 @@ class RatePlan < ApplicationRecord
 
   validates :service_schedule, :billing_period, presence: true
   validates :service_schedule, inclusion: { in: SERVICE_SCHEDULES.values }
-  validates :billing_period, inclusion: { in: BILLING_PERIODS }
   validates :price_cents, numericality: { greater_than_or_equal_to: 0 }
 
   # Scope returning rate plans flagged as active.

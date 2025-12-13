@@ -10,15 +10,9 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_124010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
-
-  create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.string "name", null: false
-    t.datetime "updated_at", null: false
-  end
 
   create_table "customers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "billing_email"
@@ -68,7 +62,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   end
 
   create_table "order_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "billing_period", null: false
     t.datetime "created_at", null: false
     t.integer "daily_rate_cents"
     t.uuid "order_id", null: false
@@ -76,13 +69,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
     t.date "removed_on"
     t.uuid "unit_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["billing_period"], name: "index_order_units_on_billing_period"
     t.index ["order_id"], name: "index_order_units_on_order_id"
     t.index ["unit_id"], name: "index_order_units_on_unit_id"
   end
 
   create_table "orders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.uuid "customer_id", null: false
     t.integer "delivery_fee_cents"
@@ -99,7 +90,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
     t.integer "total_cents"
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
-    t.index ["company_id"], name: "index_orders_on_company_id"
     t.index ["customer_id"], name: "index_orders_on_customer_id"
     t.index ["location_id"], name: "index_orders_on_location_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
@@ -156,32 +146,27 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   end
 
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.string "name"
     t.integer "next_serial", default: 1, null: false
     t.string "prefix"
     t.string "slug"
     t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_unit_types_on_company_id"
   end
 
   create_table "units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.string "manufacturer", null: false
     t.string "serial"
     t.string "status"
     t.uuid "unit_type_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_units_on_company_id"
     t.index ["serial"], name: "index_units_on_serial", unique: true
     t.index ["status"], name: "index_units_on_status"
     t.index ["unit_type_id"], name: "index_units_on_unit_type_id"
   end
 
   create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -190,7 +175,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
     t.string "reset_password_token"
     t.string "role", default: "driver", null: false
     t.datetime "updated_at", null: false
-    t.index ["company_id"], name: "index_users_on_company_id"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -201,7 +185,6 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   add_foreign_key "order_line_items", "unit_types"
   add_foreign_key "order_units", "orders"
   add_foreign_key "order_units", "units"
-  add_foreign_key "orders", "companies"
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
   add_foreign_key "orders", "users"
@@ -211,8 +194,5 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   add_foreign_key "service_events", "orders"
   add_foreign_key "service_events", "service_event_types"
   add_foreign_key "service_events", "users"
-  add_foreign_key "unit_types", "companies"
-  add_foreign_key "units", "companies"
   add_foreign_key "units", "unit_types"
-  add_foreign_key "users", "companies"
 end

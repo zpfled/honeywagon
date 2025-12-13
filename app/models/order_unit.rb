@@ -3,7 +3,6 @@ class OrderUnit < ApplicationRecord
   belongs_to :order
   belongs_to :unit
 
-  validates :billing_period, presence: true, inclusion: { in: RatePlan::BILLING_PERIODS }
   validates :placed_on, presence: true
   validate  :removed_on_after_placed_on, if: -> { removed_on.present? }
   validate :unit_available_for_order_dates

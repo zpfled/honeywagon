@@ -1,8 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Unit, type: :model do
-  let(:company) { create(:company) }
-  let(:unit_type) { create(:unit_type, :standard, company: company) }
+  let(:unit_type) { create(:unit_type, :standard) }
 
   describe "associations" do
     it "belongs to a unit_type" do
@@ -14,8 +13,8 @@ RSpec.describe Unit, type: :model do
 
   describe "before_validation" do
     describe "serial assignment" do
-      let!(:standard_type) { create(:unit_type, :standard, next_serial: 1, company: company) }
-      let!(:ada_type)      { create(:unit_type, :ada,      next_serial: 1, company: company) }
+      let!(:standard_type) { create(:unit_type, :standard, next_serial: 1) }
+      let!(:ada_type)      { create(:unit_type, :ada,      next_serial: 1) }
 
       it "assigns serial with prefix and increments per type" do
         u1 = create(:unit, unit_type: standard_type)
@@ -28,10 +27,10 @@ RSpec.describe Unit, type: :model do
       end
 
       it "keeps sequences independent per unit_type" do
-        s1 = create(:unit, unit_type: standard_type, company: company)
-        a1 = create(:unit, unit_type: ada_type, company: company)
-        s2 = create(:unit, unit_type: standard_type, company: company)
-        a2 = create(:unit, unit_type: ada_type, company: company)
+        s1 = create(:unit, :standard)
+        a1 = create(:unit, :ada)
+        s2 = create(:unit, :standard)
+        a2 = create(:unit, :ada)
 
         expect(s1.serial).to eq("S-1")
         expect(s2.serial).to eq("S-2")
@@ -74,10 +73,10 @@ RSpec.describe Unit, type: :model do
 
       it "returns units that are available and not booked by overlapping blocking orders" do
         # u1: available, no orders → should be included
-        u1 = create(:unit, status: "available", company: company, unit_type: unit_type)
+        u1 = create(:unit, status: "available")
 
         # u2: available, on a scheduled order overlapping the window → should be excluded
-        u2 = create(:unit, status: "available", company: company, unit_type: unit_type)
+        u2 = create(:unit, status: "available")
         blocking_order = create(
           :order,
           start_date: start_date - 1.day,
@@ -87,7 +86,7 @@ RSpec.describe Unit, type: :model do
         create(:order_unit, order: blocking_order, unit: u2, placed_on: blocking_order.start_date)
 
         # u3: available, on an order that ends before window → should be included
-        u3 = create(:unit, status: "available", company: company, unit_type: unit_type)
+        u3 = create(:unit, status: "available")
         past_order = create(
           :order,
           start_date: start_date - 10.days,
@@ -97,7 +96,7 @@ RSpec.describe Unit, type: :model do
         create(:order_unit, order: past_order, unit: u3, placed_on: past_order.start_date)
 
         # u4: available, on an order that starts after window → should be included
-        u4 = create(:unit, status: "available", company: company, unit_type: unit_type)
+        u4 = create(:unit, status: "available")
         future_order = create(
           :order,
           start_date: end_date + 1.day,
@@ -107,7 +106,7 @@ RSpec.describe Unit, type: :model do
         create(:order_unit, order: future_order, unit: u4, placed_on: future_order.start_date)
 
         # u5: retired, no orders → excluded because of status
-        u5 = create(:unit, status: "retired", company: company, unit_type: unit_type)
+        u5 = create(:unit, status: "retired")
 
         result = Unit.available_between(start_date, end_date)
 

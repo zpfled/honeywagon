@@ -1,6 +1,5 @@
 # Unit represents an individual rentable asset (toilet, ADA unit, sink, etc.).
 class Unit < ApplicationRecord
-  belongs_to :company
   belongs_to :unit_type
 
   has_many :order_units, dependent: :nullify
@@ -8,7 +7,6 @@ class Unit < ApplicationRecord
 
   STATUSES = %w[available rented maintenance retired].freeze
 
-  before_validation :assign_company_from_unit_type
   before_validation :assign_serial, on: :create
   validates :serial, presence: true, uniqueness: true
 
@@ -43,9 +41,5 @@ class Unit < ApplicationRecord
       self.serial = "#{ut.prefix}-#{number}"
       ut.update!(next_serial: number + 1)
     end
-  end
-
-  def assign_company_from_unit_type
-    self.company ||= unit_type&.company
   end
 end
