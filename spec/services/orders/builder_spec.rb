@@ -28,7 +28,7 @@ RSpec.describe Orders::Builder do
       # 10 standard units in inventory
       create_list(:unit, 10, unit_type: standard, company: company, status: 'available')
 
-      create(
+      standard_weekly = create(
         :rate_plan,
         unit_type: standard,
         service_schedule: weekly_schedule,
@@ -57,9 +57,9 @@ RSpec.describe Orders::Builder do
           status: 'draft',
           external_reference: 'ONE'
         },
-        unit_type_requests: {
-          standard.id.to_s => { quantity: 4, service_schedule: weekly_schedule }
-        }
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: standard_weekly.id, quantity: 4 }
+        ]
       )
       order1.save!
       expect(order1.order_units.count).to eq(4)
@@ -68,9 +68,9 @@ RSpec.describe Orders::Builder do
       order2 = user.orders.new
       order2 = described_class.new(order2).assign(
         params: order_params.merge(external_reference: 'TWO'),
-        unit_type_requests: {
-          standard.id.to_s => { quantity: 9, service_schedule: weekly_schedule }
-        }
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: standard_weekly.id, quantity: 9 }
+        ]
       )
 
       expect(order2.errors[:base]).to include(
@@ -108,10 +108,10 @@ RSpec.describe Orders::Builder do
 
       builder.assign(
         params: order_params,
-        unit_type_requests: {
-          standard.id.to_s => { quantity: 2, service_schedule: weekly_schedule },
-          ada.id.to_s      => { quantity: 1, service_schedule: weekly_schedule }
-        }
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: standard_weekly.id, quantity: 2 },
+          { unit_type_id: ada.id, rate_plan_id: ada_weekly.id, quantity: 1 }
+        ]
       )
 
       expect(order.errors).to be_empty
@@ -142,11 +142,37 @@ RSpec.describe Orders::Builder do
       expect(order.rental_subtotal_cents).to eq(46_000)
     end
 
+    it 'handles building the first line item without previously used units' do
+      standard = create(:unit_type, :standard)
+      create_list(:unit, 2, unit_type: standard, status: 'available')
+
+      standard_weekly = create(
+        :rate_plan,
+        unit_type: standard,
+        service_schedule: weekly_schedule,
+        billing_period: 'monthly',
+        price_cents: 10_000,
+        active: true
+      )
+
+      order = user.orders.new
+      builder = described_class.new(order)
+
+      expect do
+        builder.assign(
+          params: order_params,
+          unit_type_requests: [
+            { unit_type_id: standard.id, rate_plan_id: standard_weekly.id, quantity: 1 }
+          ]
+        )
+      end.not_to raise_error
+    end
+
     it 'adds a helpful error when requesting more units than available' do
       standard = create(:unit_type, :standard, company: company)
       create_list(:unit, 1, unit_type: standard, company: company, status: 'available')
 
-      create(
+      standard_weekly = create(
         :rate_plan,
         unit_type: standard,
         service_schedule: weekly_schedule,
@@ -160,9 +186,9 @@ RSpec.describe Orders::Builder do
 
       builder.assign(
         params: order_params,
-        unit_type_requests: {
-          standard.id.to_s => { quantity: 3, service_schedule: weekly_schedule }
-        }
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: standard_weekly.id, quantity: 3 }
+        ]
       )
 
       expect(order.errors.full_messages.join(' ')).to match(/Only 1 .* available/i)
@@ -182,12 +208,12 @@ RSpec.describe Orders::Builder do
 
       builder.assign(
         params: order_params,
-        unit_type_requests: {
-          standard.id.to_s => { quantity: 1, service_schedule: weekly_schedule }
-        }
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: nil, quantity: 1 }
+        ]
       )
 
-      expect(order.errors.full_messages.join(' ')).to match(/No active rate plan/i)
+      expect(order.errors.full_messages.join(' ')).to match(/rate plan/i)
       expect(order.order_units).to be_empty
       expect(order.order_line_items).to be_empty
     end
@@ -196,7 +222,7 @@ RSpec.describe Orders::Builder do
       standard = create(:unit_type, :standard, company: company)
       create_list(:unit, 5, unit_type: standard, company: company, status: 'available')
 
-      create(
+      standard_weekly = create(
         :rate_plan,
         unit_type: standard,
         service_schedule: weekly_schedule,
@@ -217,7 +243,17 @@ RSpec.describe Orders::Builder do
 
       # Existing assignment (simulate older state)
       create(:order_unit, order: order, unit: Unit.available_between(start_date, end_date).where(unit_type_id: standard.id).first, placed_on: start_date)
-      create(:order_line_item, order: order, unit_type: standard, service_schedule: weekly_schedule, billing_period: 'monthly', quantity: 1, unit_price_cents: 14_000, subtotal_cents: 14_000)
+      create(
+        :order_line_item,
+        order: order,
+        unit_type: standard,
+        rate_plan: standard_weekly,
+        service_schedule: weekly_schedule,
+        billing_period: 'monthly',
+        quantity: 1,
+        unit_price_cents: 14_000,
+        subtotal_cents: 14_000
+      )
 
       expect(order.order_units.count).to eq(1)
       expect(order.order_line_items.count).to eq(1)
@@ -226,9 +262,9 @@ RSpec.describe Orders::Builder do
 
       builder.assign(
         params: order_params,
-        unit_type_requests: {
-          standard.id.to_s => { quantity: 3, service_schedule: weekly_schedule }
-        }
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: standard_weekly.id, quantity: 3 }
+        ]
       )
 
       expect(order.errors).to be_empty

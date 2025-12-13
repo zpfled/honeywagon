@@ -85,12 +85,32 @@ class OrdersController < ApplicationController
   end
 
   def unit_type_requests_params
-    raw = params.dig(:order, :unit_type_requests) || {}
+    raw = params.dig(:order, :unit_type_requests)
+    return [] unless raw.present?
 
-    raw.transform_values do |h|
+    entries =
+      if raw.is_a?(Array)
+        raw
+      else
+        raw.respond_to?(:values) ? raw.values : Array(raw)
+      end
+
+    entries.map do |entry|
+      source =
+        if entry.respond_to?(:to_unsafe_h)
+          entry.to_unsafe_h
+        elsif entry.respond_to?(:to_h)
+          entry.to_h
+        else
+          entry
+        end
+
+      attrs = source.respond_to?(:with_indifferent_access) ? source.with_indifferent_access : source
+
       {
-        quantity: h[:quantity].to_i,
-        service_schedule: h[:service_schedule].to_s
+        unit_type_id: attrs[:unit_type_id],
+        rate_plan_id: attrs[:rate_plan_id],
+        quantity: attrs[:quantity].to_i
       }
     end
   end
