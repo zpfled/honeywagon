@@ -20,12 +20,12 @@ RSpec.describe Dashboard::InventoryMetrics do
 
       units = Unit.where(unit_type: standard).limit(3)
       units.first(2).each do |unit|
-        create(:order_unit, order: order, unit: unit, placed_on: order.start_date)
+        create(:order_unit, order: order, unit: unit, placed_on: order.start_date, billing_period: 'monthly')
       end
 
       event_order = create(:order, user: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 3.days)
       create(:order_line_item, order: event_order, unit_type: standard, rate_plan: rate_plan_event, billing_period: 'per_event', quantity: 1)
-      create(:order_unit, order: event_order, unit: units.third, placed_on: event_order.start_date)
+      create(:order_unit, order: event_order, unit: units.third, placed_on: event_order.start_date, billing_period: 'per_event')
 
       orphan_order = create(:order, user: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 4.days)
       create(:order_line_item, order: orphan_order, unit_type: standard, rate_plan: rate_plan_monthly, billing_period: 'monthly', quantity: 5)

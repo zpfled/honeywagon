@@ -29,6 +29,20 @@ RSpec.describe OrderUnit, type: :model do
       expect(order_unit.errors[:removed_on]).to include("must be on or after placed_on")
     end
 
+    it "is invalid without a billing_period" do
+      order_unit = build(:order_unit, billing_period: nil)
+
+      expect(order_unit).not_to be_valid
+      expect(order_unit.errors[:billing_period]).to include("can't be blank")
+    end
+
+    it "is invalid with an unsupported billing_period" do
+      order_unit = build(:order_unit, billing_period: 'weekly')
+
+      expect(order_unit).not_to be_valid
+      expect(order_unit.errors[:billing_period]).to include("is not included in the list")
+    end
+
     describe "unit availability validation" do
       let(:start_date) { Date.today }
       let(:end_date)   { Date.today + 3.days }

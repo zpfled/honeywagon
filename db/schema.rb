@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_130000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -68,6 +68,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_130000) do
   end
 
   create_table "order_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "billing_period", null: false
     t.datetime "created_at", null: false
     t.integer "daily_rate_cents"
     t.uuid "order_id", null: false
@@ -75,6 +76,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_130000) do
     t.date "removed_on"
     t.uuid "unit_id", null: false
     t.datetime "updated_at", null: false
+    t.index ["billing_period"], name: "index_order_units_on_billing_period"
     t.index ["order_id"], name: "index_order_units_on_order_id"
     t.index ["unit_id"], name: "index_order_units_on_unit_id"
   end

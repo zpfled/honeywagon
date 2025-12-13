@@ -121,6 +121,7 @@ RSpec.describe Orders::Builder do
       order.save
       order.reload
       expect(order.units.count).to eq(3)
+      expect(order.order_units.map(&:billing_period).uniq).to eq([ 'monthly' ])
 
       # line items created
       expect(order.order_line_items.size).to eq(2)
@@ -272,6 +273,33 @@ RSpec.describe Orders::Builder do
       expect(order.order_line_items.size).to eq(1)
       expect(order.order_line_items.first.quantity).to eq(3)
       expect(order.rental_subtotal_cents).to eq(42_000)
+    end
+
+    it 'applies the rate plan billing period to created order units' do
+      standard = create(:unit_type, :standard, company: company)
+      create_list(:unit, 1, unit_type: standard, company: company, status: 'available')
+
+      event_plan = create(
+        :rate_plan,
+        unit_type: standard,
+        service_schedule: RatePlan::SERVICE_SCHEDULES[:event],
+        billing_period: 'per_event',
+        price_cents: 8_000,
+        active: true
+      )
+
+      order = user.orders.new
+      builder = described_class.new(order)
+
+      builder.assign(
+        params: order_params,
+        unit_type_requests: [
+          { unit_type_id: standard.id, rate_plan_id: event_plan.id, quantity: 1 }
+        ]
+      )
+
+      expect(order.order_units.size).to eq(1)
+      expect(order.order_units.first.billing_period).to eq('per_event')
     end
   end
 end

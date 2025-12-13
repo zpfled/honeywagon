@@ -17,17 +17,16 @@ module Dashboard
     attr_reader :company
 
     def inventory_stats
-      monthly_counts = company.rental_counts_for_period('monthly')
-      event_counts = company.rental_counts_for_period('per_event')
+      inventory = company.inventory
 
       company.unit_types.order(:name).map do |unit_type|
         {
           unit_type: unit_type,
-          total_units: company.total_units_count(unit_type),
-          available_units: company.units_available_count(unit_type),
-          rented_units: company.units_rented_count(unit_type),
-          monthly_out: monthly_counts[unit_type.id] || 0,
-          event_out: event_counts[unit_type.id] || 0
+          total_units: inventory.total_units(unit_type: unit_type),
+          available_units: inventory.available_count(unit_type: unit_type),
+          rented_units: inventory.rented_count(unit_type: unit_type),
+          monthly_out: inventory.rental_count_for_period(unit_type: unit_type, billing_period: 'monthly'),
+          event_out: inventory.rental_count_for_period(unit_type: unit_type, billing_period: 'per_event')
         }
       end
     end
