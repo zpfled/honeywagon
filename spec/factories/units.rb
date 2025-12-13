@@ -6,6 +6,7 @@ FactoryBot.define do
         ut.prefix = "S"
       end
     end
+    company { unit_type.company || association(:company) }
 
     manufacturer { "TestCo" }
     status { "available" }
@@ -17,6 +18,7 @@ FactoryBot.define do
           ut.prefix = "S"
         end
       end
+      company { unit_type.company }
     end
 
     trait :ada do
@@ -26,6 +28,7 @@ FactoryBot.define do
           ut.prefix = "A"
         end
       end
+      company { unit_type.company }
     end
 
     trait :handwash do
@@ -35,6 +38,7 @@ FactoryBot.define do
           ut.prefix = "H"
         end
       end
+      company { unit_type.company }
     end
   end
 end

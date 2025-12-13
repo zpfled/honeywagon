@@ -42,6 +42,7 @@ def seed_unit(unit_type:, serial:, manufacturer:, status: "available")
   unit.unit_type    = unit_type
   unit.manufacturer = manufacturer
   unit.status       = status
+  unit.company      = unit_type.company
 
   if unit.new_record? || unit.changed?
     unit.save!
@@ -52,11 +53,19 @@ def seed_unit(unit_type:, serial:, manufacturer:, status: "available")
 end
 
 def build_unit_type_requests(requests, unit_types)
-  Array(requests).each_with_object({}) do |req, memo|
+  Array(requests).map do |req|
     unit_type = unit_types.fetch(req[:unit_type_slug].to_s)
-    memo[unit_type.id.to_s] = {
-      quantity: req[:quantity],
-      service_schedule: RatePlan::SERVICE_SCHEDULES.fetch(req[:schedule])
+    schedule  = RatePlan::SERVICE_SCHEDULES.fetch(req[:schedule])
+    rate_plan = RatePlan.find_by(unit_type: unit_type, service_schedule: schedule)
+
+    unless rate_plan
+      raise "Missing rate plan for #{unit_type.slug} / #{schedule}"
+    end
+
+    {
+      unit_type_id: unit_type.id,
+      rate_plan_id: rate_plan.id,
+      quantity: req[:quantity]
     }
   end
 end
@@ -83,9 +92,19 @@ def apply_final_status(order, final_status)
 end
 
 ActiveRecord::Base.transaction do
+  banner "Ensuring Company"
+  primary_company = Company.find_or_initialize_by(name: "Demo Company")
+  if primary_company.new_record?
+    primary_company.save!
+    created(primary_company)
+  else
+    reused(primary_company)
+  end
+
   banner "Ensuring Default User"
   primary_user = User.find_or_initialize_by(email: "demo@honeywagon.test")
   primary_user.role ||= "dispatcher"
+  primary_user.company ||= primary_company
   if primary_user.new_record?
     primary_user.password = "password123"
     primary_user.password_confirmation = "password123"
@@ -103,6 +122,7 @@ ActiveRecord::Base.transaction do
     ut = UnitType.find_or_initialize_by(slug: attrs[:slug])
     ut.name = attrs[:name]
     ut.prefix = attrs[:prefix]
+    ut.company ||= primary_company
 
     if ut.new_record? || ut.changed?
       ut.save!

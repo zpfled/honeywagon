@@ -1,7 +1,8 @@
 require 'rails_helper'
 
 RSpec.describe Orders::Builder do
-  let(:user) { create(:user) }
+  let(:company) { create(:company) }
+  let(:user) { create(:user, company: company) }
   let(:customer) { create(:customer, company_name: 'ACME Events') }
   let(:location) { create(:location, label: 'ACME Wedding Site') }
 
@@ -22,10 +23,10 @@ RSpec.describe Orders::Builder do
 
   describe '#assign' do
     it 'prevents allocating units that are already assigned to overlapping orders' do
-      standard = create(:unit_type, :standard)
+      standard = create(:unit_type, :standard, company: company)
 
       # 10 standard units in inventory
-      create_list(:unit, 10, unit_type: standard, status: 'available')
+      create_list(:unit, 10, unit_type: standard, company: company, status: 'available')
 
       create(
         :rate_plan,
@@ -78,11 +79,11 @@ RSpec.describe Orders::Builder do
     end
 
     it 'builds order_units and order_line_items and sets rental_subtotal_cents' do
-      standard = create(:unit_type, :standard)
-      ada      = create(:unit_type, :ada)
+      standard = create(:unit_type, :standard, company: company)
+      ada      = create(:unit_type, :ada, company: company)
 
-      create_list(:unit, 3, unit_type: standard, status: 'available')
-      create_list(:unit, 1, unit_type: ada,      status: 'available')
+      create_list(:unit, 3, unit_type: standard, company: company, status: 'available')
+      create_list(:unit, 1, unit_type: ada,      company: company, status: 'available')
 
       standard_weekly = create(
         :rate_plan,
@@ -142,8 +143,8 @@ RSpec.describe Orders::Builder do
     end
 
     it 'adds a helpful error when requesting more units than available' do
-      standard = create(:unit_type, :standard)
-      create_list(:unit, 1, unit_type: standard, status: 'available')
+      standard = create(:unit_type, :standard, company: company)
+      create_list(:unit, 1, unit_type: standard, company: company, status: 'available')
 
       create(
         :rate_plan,
@@ -171,8 +172,8 @@ RSpec.describe Orders::Builder do
     end
 
     it 'adds a helpful error when no rate plan exists for the chosen schedule' do
-      standard = create(:unit_type, :standard)
-      create_list(:unit, 2, unit_type: standard, status: 'available')
+      standard = create(:unit_type, :standard, company: company)
+      create_list(:unit, 2, unit_type: standard, company: company, status: 'available')
 
       # No rate plan created intentionally
 
@@ -192,8 +193,8 @@ RSpec.describe Orders::Builder do
     end
 
     it 'replaces existing units and line items on update' do
-      standard = create(:unit_type, :standard)
-      create_list(:unit, 5, unit_type: standard, status: 'available')
+      standard = create(:unit_type, :standard, company: company)
+      create_list(:unit, 5, unit_type: standard, company: company, status: 'available')
 
       create(
         :rate_plan,
