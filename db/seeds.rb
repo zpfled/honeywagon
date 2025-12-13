@@ -52,11 +52,19 @@ def seed_unit(unit_type:, serial:, manufacturer:, status: "available")
 end
 
 def build_unit_type_requests(requests, unit_types)
-  Array(requests).each_with_object({}) do |req, memo|
+  Array(requests).map do |req|
     unit_type = unit_types.fetch(req[:unit_type_slug].to_s)
-    memo[unit_type.id.to_s] = {
-      quantity: req[:quantity],
-      service_schedule: RatePlan::SERVICE_SCHEDULES.fetch(req[:schedule])
+    schedule  = RatePlan::SERVICE_SCHEDULES.fetch(req[:schedule])
+    rate_plan = RatePlan.find_by(unit_type: unit_type, service_schedule: schedule)
+
+    unless rate_plan
+      raise "Missing rate plan for #{unit_type.slug} / #{schedule}"
+    end
+
+    {
+      unit_type_id: unit_type.id,
+      rate_plan_id: rate_plan.id,
+      quantity: req[:quantity]
     }
   end
 end
