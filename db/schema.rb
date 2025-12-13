@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_133000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -118,6 +118,14 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_133000) do
     t.index ["unit_type_id"], name: "index_rate_plans_on_unit_type_id"
   end
 
+  create_table "routes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.date "route_date", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "route_date"], name: "index_routes_on_company_id_and_route_date"
+  end
+
   create_table "service_event_reports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.jsonb "data", default: {}, null: false
@@ -140,10 +148,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_133000) do
 
   create_table "service_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "auto_generated", default: false, null: false
+    t.date "completed_on"
     t.datetime "created_at", null: false
     t.integer "event_type"
     t.text "notes"
     t.uuid "order_id", null: false
+    t.date "route_date"
+    t.uuid "route_id"
     t.date "scheduled_on"
     t.uuid "service_event_type_id", null: false
     t.integer "status", default: 0
@@ -151,6 +162,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_133000) do
     t.uuid "user_id", null: false
     t.index ["auto_generated"], name: "index_service_events_on_auto_generated"
     t.index ["order_id"], name: "index_service_events_on_order_id"
+    t.index ["route_id"], name: "index_service_events_on_route_id"
     t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
     t.index ["user_id"], name: "index_service_events_on_user_id"
   end
@@ -206,9 +218,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_133000) do
   add_foreign_key "orders", "locations"
   add_foreign_key "orders", "users", column: "created_by_id"
   add_foreign_key "rate_plans", "unit_types"
+  add_foreign_key "routes", "companies"
   add_foreign_key "service_event_reports", "service_events"
   add_foreign_key "service_event_reports", "users"
   add_foreign_key "service_events", "orders"
+  add_foreign_key "service_events", "routes"
   add_foreign_key "service_events", "service_event_types"
   add_foreign_key "service_events", "users"
   add_foreign_key "unit_types", "companies"

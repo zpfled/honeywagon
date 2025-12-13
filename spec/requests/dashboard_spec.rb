@@ -14,7 +14,7 @@ RSpec.describe "Dashboard and landing", type: :request do
   describe "GET / (authenticated)" do
     let(:user) { create(:user) }
 
-    it "shows upcoming service events for the signed-in user" do
+    it "shows upcoming routes for the signed-in user" do
       travel_to Date.new(2024, 5, 6) do
         customer = create(:customer, company_name: "ACME Test Co")
         order = create(
@@ -26,15 +26,16 @@ RSpec.describe "Dashboard and landing", type: :request do
           end_date: Date.new(2024, 5, 10),
           status: "scheduled"
         )
-        event = create(:service_event, :service, order: order, scheduled_on: Date.new(2024, 5, 7))
+        create(:service_event, :service, order: order, scheduled_on: Date.new(2024, 5, 7))
+        route = create(:route, company: user.company, route_date: Date.new(2024, 5, 7))
 
         sign_in user
         get authenticated_root_path
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include(I18n.l(event.scheduled_on, format: :long))
-        expect(response.body).to include(customer.display_name)
-        expect(response.body).to include("Complete")
+        expect(response.body).to include(I18n.l(route.route_date, format: :long))
+        expect(response.body).to include("Upcoming Routes")
+        expect(response.body).to include("route")
       end
     end
   end

@@ -37,4 +37,32 @@ RSpec.describe ServiceEvent, type: :model do
       expect(event.service_event_report).to be_nil
     end
   end
+
+  describe 'completed_on tracking' do
+    it 'stamps completed_on when event is completed' do
+      event = create(:service_event, status: :scheduled)
+      freeze_time do
+        event.update!(status: :completed)
+        expect(event.completed_on).to eq(Date.current)
+      end
+    end
+  end
+
+  describe '#estimated_gallons_pumped' do
+    it 'returns zero for delivery events' do
+      event = create(:service_event, :delivery)
+      expect(event.estimated_gallons_pumped).to eq(0)
+    end
+
+    it 'returns 10 gallons per ADA/standard unit for service/pickup events' do
+      order = create(:order, status: 'scheduled')
+      unit_type = create(:unit_type, :standard, company: order.company)
+      rate_plan = create(:rate_plan, unit_type: unit_type)
+      create(:order_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 3)
+
+      event = create(:service_event, :service, order: order)
+
+      expect(event.estimated_gallons_pumped).to eq(30)
+    end
+  end
 end

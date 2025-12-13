@@ -9,6 +9,7 @@ FactoryBot.define do
     association :service_event_type, factory: :service_event_type_service
     after(:build) do |event|
       event.user ||= event.order&.created_by || create(:user)
+      event.route_date ||= event.route&.route_date || event.scheduled_on
     end
 
     trait :delivery do
