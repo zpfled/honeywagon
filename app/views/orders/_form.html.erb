@@ -15,39 +15,39 @@
       <%= f.label :customer_id, "Customer", class: "text-sm font-medium text-gray-700" %>
       <%= f.collection_select :customer_id, Customer.order(:company_name), :id, :company_name,
         { include_blank: "Select customer" },
-        class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
     </div>
 
     <div>
       <%= f.label :location_id, "Location", class: "text-sm font-medium text-gray-700" %>
       <%= f.collection_select :location_id, Location.order(:label), :id, :label,
         { include_blank: "Select location" },
-        class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
     </div>
 
     <div>
       <%= f.label :external_reference, "Internal ref / PO #", class: "text-sm font-medium text-gray-700" %>
       <%= f.text_field :external_reference,
-        class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
     </div>
 
     <div>
       <%= f.label :status, class: "text-sm font-medium text-gray-700" %>
       <%= f.select :status, Order::STATUSES,
         {},
-        class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
     </div>
 
     <div>
       <%= f.label :start_date, class: "text-sm font-medium text-gray-700" %>
       <%= f.date_field :start_date,
-        class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
     </div>
 
     <div>
       <%= f.label :end_date, class: "text-sm font-medium text-gray-700" %>
       <%= f.date_field :end_date,
-        class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
     </div>
   </div>
 
@@ -98,14 +98,14 @@
               <%= number_field_tag qty_name, qty_value,
                 min: 0,
                 step: 1,
-                class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+                class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
             </div>
 
             <div>
               <%= label_tag sched_name, "Service schedule", class: "text-xs font-medium text-gray-700" %>
               <%= select_tag sched_name,
                 options_for_select(schedule_options, sched_value),
-                class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+                class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
             </div>
           </div>
         </div>
@@ -117,7 +117,7 @@
     <%= f.label :notes, class: "text-sm font-medium text-gray-700" %>
     <%= f.text_area :notes,
       rows: 4,
-      class: "mt-1 w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-gray-900 focus:ring-gray-900" %>
+      class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
   </div>
 
   <div class="flex justify-end">
