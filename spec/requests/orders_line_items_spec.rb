@@ -5,11 +5,11 @@ RSpec.describe "Order line item form behaviour", type: :request do
   let(:user) { create(:user) }
   let(:customer) { create(:customer) }
   let(:location) { create(:location, customer: customer) }
-  let(:unit_type) { create(:unit_type, :standard) }
+  let(:unit_type) { create(:unit_type, :standard, company: user.company) }
   let(:rate_plan) { create(:rate_plan, unit_type: unit_type, price_cents: 12_500) }
 
   before do
-    create_list(:unit, 2, unit_type: unit_type, status: 'available')
+    create_list(:unit, 2, unit_type: unit_type, company: user.company, status: 'available')
     sign_in user
   end
 

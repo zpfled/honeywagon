@@ -2,6 +2,7 @@ require "rails_helper"
 
 RSpec.describe Unit, type: :model do
   let(:company) { create(:company) }
+  let(:dispatcher) { create(:user, company: company) }
   let(:unit_type) { create(:unit_type, :standard, company: company) }
 
   describe "associations" do
@@ -68,45 +69,118 @@ RSpec.describe Unit, type: :model do
   end
 
   describe 'scopes' do
+    describe ".overlapping_between" do
+      let(:start_date) { Date.today }
+      let(:end_date)   { Date.today + 3.days }
+
+      it "returns units with assignments that overlap the supplied window" do
+        overlapping_unit = create(:unit, status: "available", company: company, unit_type: unit_type)
+        other_unit = create(:unit, status: "available", company: company, unit_type: unit_type)
+
+        blocking_order = create(
+          :order,
+          company: company,
+          created_by: dispatcher,
+          start_date: start_date - 1.day,
+          end_date: end_date + 1.day,
+          status: "scheduled"
+        )
+        create(:order_unit, order: blocking_order, unit: overlapping_unit, placed_on: blocking_order.start_date)
+
+        result = Unit.overlapping_between(start_date, end_date)
+
+        expect(result).to include(overlapping_unit)
+        expect(result).not_to include(other_unit)
+      end
+
+      it "respects blocking statuses and inclusive boundaries" do
+        scheduled_unit = create(:unit, status: "available", company: company, unit_type: unit_type)
+        draft_unit = create(:unit, status: "available", company: company, unit_type: unit_type)
+        completed_unit = create(:unit, status: "available", company: company, unit_type: unit_type)
+
+        scheduled_order = create(
+          :order,
+          company: company,
+          created_by: dispatcher,
+          start_date: start_date,
+          end_date: end_date,
+          status: "scheduled"
+        )
+        create(:order_unit, order: scheduled_order, unit: scheduled_unit, placed_on: scheduled_order.start_date)
+
+        draft_order = create(
+          :order,
+          company: company,
+          created_by: dispatcher,
+          start_date: start_date - 2.days,
+          end_date: end_date + 2.days,
+          status: "draft"
+        )
+        create(:order_unit, order: draft_order, unit: draft_unit, placed_on: draft_order.start_date)
+
+        completed_order = create(
+          :order,
+          company: company,
+          created_by: dispatcher,
+          start_date: start_date - 4.days,
+          end_date: start_date - 1.day,
+          status: "completed"
+        )
+        create(:order_unit, order: completed_order, unit: completed_unit, placed_on: completed_order.start_date)
+
+        result = Unit.overlapping_between(start_date, end_date)
+
+        expect(result).to include(scheduled_unit)
+        expect(result).not_to include(draft_unit)
+        expect(result).not_to include(completed_unit)
+      end
+    end
+
     describe ".available_between" do
       let(:start_date) { Date.today }
       let(:end_date)   { Date.today + 3.days }
 
-      it "returns units that are available and not booked by overlapping blocking orders" do
-        # u1: available, no orders → should be included
-        u1 = create(:unit, status: "available", company: company, unit_type: unit_type)
+      it "returns units that have no blocking overlap and are not retired" do
+        # u1: maintenance, no orders → should still be included (status shouldn't lie)
+        u1 = create(:unit, status: "maintenance", company: company, unit_type: unit_type)
 
-        # u2: available, on a scheduled order overlapping the window → should be excluded
+        # u2: available, on a scheduled order overlapping the window → excluded
         u2 = create(:unit, status: "available", company: company, unit_type: unit_type)
         blocking_order = create(
           :order,
+          company: company,
+          created_by: dispatcher,
           start_date: start_date - 1.day,
           end_date:   end_date + 1.day,
           status:     "scheduled"
         )
         create(:order_unit, order: blocking_order, unit: u2, placed_on: blocking_order.start_date)
 
-        # u3: available, on an order that ends before window → should be included
+        # u3: available, order ends before window → included
         u3 = create(:unit, status: "available", company: company, unit_type: unit_type)
         past_order = create(
           :order,
+          company: company,
+          created_by: dispatcher,
           start_date: start_date - 10.days,
           end_date:   start_date - 5.days,
           status:     "completed"
         )
         create(:order_unit, order: past_order, unit: u3, placed_on: past_order.start_date)
 
-        # u4: available, on an order that starts after window → should be included
+        # u4: available, draft order overlapping → still available
         u4 = create(:unit, status: "available", company: company, unit_type: unit_type)
-        future_order = create(
+        draft_order = create(
           :order,
-          start_date: end_date + 1.day,
-          end_date:   end_date + 5.days,
-          status:     "scheduled"
+          company: company,
+          created_by: dispatcher,
+          start_date: start_date,
+          end_date:   end_date,
+          status:     "draft"
         )
-        create(:order_unit, order: future_order, unit: u4, placed_on: future_order.start_date)
+        create(:order_unit, order: draft_order, unit: u4, placed_on: draft_order.start_date)
 
-        # u5: retired, no orders → excluded because of status
+        # u5: retired, no orders → excluded because retired
         u5 = create(:unit, status: "retired", company: company, unit_type: unit_type)
 
         result = Unit.available_between(start_date, end_date)

@@ -15,13 +15,12 @@ class Company::Inventory
 
   # Returns how many units of this type are assigned to blocking orders overlapping the window.
   def rented_count(unit_type:, start_date: Date.current, end_date: Date.current, statuses: BLOCKING_STATUSES)
-    rented_units_for_window(start_date: start_date, end_date: end_date, statuses: statuses)[unit_type.id] || 0
+    overlapping_units_for_window(start_date: start_date, end_date: end_date, statuses: statuses)[unit_type.id] || 0
   end
 
   # Returns how many units could be assigned within the provided window.
   def available_count(unit_type:, start_date: Date.current, end_date: Date.current, statuses: BLOCKING_STATUSES)
-    [ total_units(unit_type: unit_type) -
-      rented_count(unit_type: unit_type, start_date: start_date, end_date: end_date, statuses: statuses), 0 ].max
+    available_units_for_window(start_date: start_date, end_date: end_date, statuses: statuses)[unit_type.id] || 0
   end
 
   # Counts units out on the provided billing period (e.g., monthly or per_event).
@@ -31,15 +30,21 @@ class Company::Inventory
 
   private
 
-  def rented_units_for_window(start_date:, end_date:, statuses:)
-    cached_window_query(:rented_units, start_date, end_date, statuses) do
-      OrderUnit
-        .joins(:order, :unit)
-        .where(orders: { company_id: company.id, status: statuses })
-        .where('orders.start_date <= ? AND orders.end_date >= ?', end_date, start_date)
-        .group('units.unit_type_id')
-        .distinct
-        .count('order_units.unit_id')
+  def overlapping_units_for_window(start_date:, end_date:, statuses:)
+    cached_window_query(:overlapping_units, start_date, end_date, statuses) do
+      company.units
+             .merge(Unit.overlapping_between(start_date, end_date, statuses))
+             .group(:unit_type_id)
+             .count
+    end
+  end
+
+  def available_units_for_window(start_date:, end_date:, statuses:)
+    cached_window_query(:available_units, start_date, end_date, statuses) do
+      company.units
+             .merge(Unit.available_between(start_date, end_date, statuses))
+             .group(:unit_type_id)
+             .count
     end
   end
 

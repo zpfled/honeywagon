@@ -80,4 +80,17 @@ RSpec.describe Company::Inventory do
       expect(inventory.rental_count_for_period(unit_type: standard_type, billing_period: :per_event)).to eq(1)
     end
   end
+
+  describe 'availability counts' do
+    it 'includes non-retired statuses and excludes retired units' do
+      maintenance_unit = create(:unit, company: company, unit_type: standard_type, status: 'maintenance')
+      retired_unit = create(:unit, company: company, unit_type: standard_type, status: 'retired')
+
+      expect(inventory.available_count(unit_type: standard_type)).to eq(units.size + 1) # maintenance + base units
+      expect(
+        company.units.assignable
+               .merge(Unit.available_between(Date.current, Date.current))
+      ).not_to include(retired_unit)
+    end
+  end
 end
