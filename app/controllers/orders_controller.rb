@@ -29,7 +29,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order created.'
     else
-      render :new, status: :unprocessable_entity
+      render :new, status: :unprocessable_content
     end
   end
 
@@ -45,7 +45,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order updated.'
     else
-      render :edit, status: :unprocessable_entity
+      render :edit, status: :unprocessable_content
     end
   end
 

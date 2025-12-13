@@ -17,7 +17,7 @@ class RoutesController < ApplicationController
       redirect_to @route, notice: 'Route created.'
     else
       @routes = current_user.company.routes.order(route_date: :desc)
-      render :index, status: :unprocessable_entity
+      render :index, status: :unprocessable_content
     end
   end
 
@@ -26,7 +26,7 @@ class RoutesController < ApplicationController
       redirect_to @route, notice: 'Route updated.'
     else
       @service_events = @route.service_events.includes(order: [ :customer, :location ])
-      render :show, status: :unprocessable_entity
+      render :show, status: :unprocessable_content
     end
   end
 
