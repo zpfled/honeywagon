@@ -15,7 +15,7 @@ RSpec.describe Dashboard::InventoryMetrics do
     end
 
     it 'counts only actual units assigned to active orders for monthly and event rentals' do
-      order = create(:order, user: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 7.days)
+      order = create(:order, company: company, created_by: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 7.days)
       create(:order_line_item, order: order, unit_type: standard, rate_plan: rate_plan_monthly, billing_period: 'monthly', quantity: 2)
 
       units = Unit.where(unit_type: standard).limit(3)
@@ -23,11 +23,11 @@ RSpec.describe Dashboard::InventoryMetrics do
         create(:order_unit, order: order, unit: unit, placed_on: order.start_date, billing_period: 'monthly')
       end
 
-      event_order = create(:order, user: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 3.days)
+      event_order = create(:order, company: company, created_by: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 3.days)
       create(:order_line_item, order: event_order, unit_type: standard, rate_plan: rate_plan_event, billing_period: 'per_event', quantity: 1)
       create(:order_unit, order: event_order, unit: units.third, placed_on: event_order.start_date, billing_period: 'per_event')
 
-      orphan_order = create(:order, user: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 4.days)
+      orphan_order = create(:order, company: company, created_by: user, status: 'scheduled', start_date: Date.today, end_date: Date.today + 4.days)
       create(:order_line_item, order: orphan_order, unit_type: standard, rate_plan: rate_plan_monthly, billing_period: 'monthly', quantity: 5)
 
       metrics = described_class.new(company: company).call

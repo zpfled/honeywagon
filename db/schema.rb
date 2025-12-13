@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_133000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -84,6 +84,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   create_table "orders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "company_id", null: false
     t.datetime "created_at", null: false
+    t.uuid "created_by_id"
     t.uuid "customer_id", null: false
     t.integer "delivery_fee_cents"
     t.integer "discount_cents"
@@ -98,11 +99,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
     t.integer "tax_cents"
     t.integer "total_cents"
     t.datetime "updated_at", null: false
-    t.uuid "user_id", null: false
     t.index ["company_id"], name: "index_orders_on_company_id"
+    t.index ["created_by_id"], name: "index_orders_on_created_by_id"
     t.index ["customer_id"], name: "index_orders_on_customer_id"
     t.index ["location_id"], name: "index_orders_on_location_id"
-    t.index ["user_id"], name: "index_orders_on_user_id"
   end
 
   create_table "rate_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -204,7 +204,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_132000) do
   add_foreign_key "orders", "companies"
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
-  add_foreign_key "orders", "users"
+  add_foreign_key "orders", "users", column: "created_by_id"
   add_foreign_key "rate_plans", "unit_types"
   add_foreign_key "service_event_reports", "service_events"
   add_foreign_key "service_event_reports", "users"

@@ -2,7 +2,7 @@
 # items, units, and generated service events.
 class Order < ApplicationRecord
   belongs_to :company
-  belongs_to :user
+  belongs_to :created_by, class_name: 'User', optional: true
   belongs_to :customer
   belongs_to :location
 
@@ -18,7 +18,7 @@ class Order < ApplicationRecord
   validates :start_date, :end_date, presence: true
   validate :end_date_after_start_date
 
-  before_validation :assign_company_from_user
+  before_validation :assign_company_from_creator
   before_save :recalculate_totals
   after_save  :sync_unit_statuses, if: :saved_change_to_status?
   after_commit :generate_service_events, if: :trigger_service_event_generation?
@@ -113,8 +113,8 @@ class Order < ApplicationRecord
     end
   end
 
-  def assign_company_from_user
-    self.company ||= user&.company
+  def assign_company_from_creator
+    self.company ||= created_by&.company
   end
 
   # Whether the current change should enqueue service-event generation.

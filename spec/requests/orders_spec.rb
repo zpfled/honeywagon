@@ -14,8 +14,8 @@ RSpec.describe "/orders", type: :request do
     before { sign_in user }
 
     it "lists only the signed-in user's orders" do
-      own_order = create(:order, user: user)
-      other_order = create(:order, customer: create(:customer, company_name: "Other Co"))
+      own_order = create(:order, created_by: user, company: user.company)
+      other_order = create(:order, company: create(:company), customer: create(:customer, company_name: "Other Co"))
 
       get orders_path
 

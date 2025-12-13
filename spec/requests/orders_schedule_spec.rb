@@ -6,7 +6,7 @@ RSpec.describe "Orders schedule action", type: :request do
   describe "POST /orders/:id/schedule" do
     it "transitions a draft order to scheduled and generates service events even if types missing" do
       ServiceEventType.delete_all
-      order = create(:order, user: user, status: "draft", start_date: Date.today, end_date: Date.today + 7.days)
+      order = create(:order, company: user.company, created_by: user, status: "draft", start_date: Date.today, end_date: Date.today + 7.days)
 
       sign_in user
       post schedule_order_path(order)

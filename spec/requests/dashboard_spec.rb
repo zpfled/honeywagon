@@ -19,7 +19,8 @@ RSpec.describe "Dashboard and landing", type: :request do
         customer = create(:customer, company_name: "ACME Test Co")
         order = create(
           :order,
-          user: user,
+          company: user.company,
+          created_by: user,
           customer: customer,
           start_date: Date.new(2024, 5, 5),
           end_date: Date.new(2024, 5, 10),
