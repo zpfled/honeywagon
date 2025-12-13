@@ -6,6 +6,7 @@ Rails.application.routes.draw do
   end
   resources :service_events, only: :update
   resources :service_event_reports, only: [ :index, :new, :create ]
+  resources :customers, only: [ :new, :create ]
   devise_for :users
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_123400) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_124010) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -18,11 +18,13 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_123400) do
     t.string "billing_email"
     t.string "company_name"
     t.datetime "created_at", null: false
+    t.string "display_name", null: false
     t.string "first_name"
     t.string "last_name"
     t.string "phone"
     t.datetime "updated_at", null: false
     t.index ["company_name"], name: "index_customers_on_company_name"
+    t.index ["display_name"], name: "index_customers_on_display_name"
     t.index ["last_name"], name: "index_customers_on_last_name"
   end
 

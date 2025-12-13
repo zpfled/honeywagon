@@ -19,4 +19,9 @@ class User < ApplicationRecord
   def dispatcher? = role == 'dispatcher'
   # Returns true for the driver/mobile workflow.
   def driver?     = role == 'driver'
+
+  # Allow Devise test helpers (e.g., sign_in user) to infer the proper scope.
+  def devise_scope
+    :user
+  end
 end

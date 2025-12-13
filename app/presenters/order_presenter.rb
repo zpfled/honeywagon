@@ -70,7 +70,7 @@ class OrderPresenter
   #
   # Returns a friendly label for the customer to display in tables/cards.
   def customer_name
-    order.customer&.company_name.presence || order.customer&.display_name.presence || '—'
+    order.customer&.display_name.presence || '—'
   end
 
   # Returns the name of the unit type associated with a line item.

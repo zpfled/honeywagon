@@ -1,0 +1,6 @@
+<%= turbo_stream.update "order_customer_id" do %>
+  <%= options_for_select([["Select customer", ""]]) +
+      options_from_collection_for_select(Customer.order(:display_name), :id, :display_name, @customer.id) %>
+<% end %>
+
+<%= turbo_stream.update "customer_modal", "" %>

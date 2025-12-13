@@ -21,7 +21,7 @@ RSpec.describe Customer, type: :model do
     end
   end
 
-  describe "#display_name" do
+  describe "#computed_display_name" do
     it "prefers company_name when present" do
       customer = Customer.new(
         first_name: "John",
@@ -30,7 +30,7 @@ RSpec.describe Customer, type: :model do
         billing_email: "john@example.com"
       )
 
-      expect(customer.display_name).to eq("Acme Construction")
+      expect(customer.computed_display_name).to eq("Acme Construction")
     end
 
     it "falls back to full_name when no company_name" do
@@ -41,7 +41,7 @@ RSpec.describe Customer, type: :model do
         billing_email: "john@example.com"
       )
 
-      expect(customer.display_name).to eq("John Doe")
+      expect(customer.computed_display_name).to eq("John Doe")
     end
 
     it "falls back to billing_email when no names present" do
@@ -52,7 +52,30 @@ RSpec.describe Customer, type: :model do
         billing_email: "no-name@example.com"
       )
 
-      expect(customer.display_name).to eq("no-name@example.com")
+      expect(customer.computed_display_name).to eq("no-name@example.com")
+    end
+  end
+
+  describe "callbacks" do
+    it "populates display_name before validation" do
+      customer = Customer.new(
+        first_name: "Jane",
+        last_name: "Smith",
+        company_name: nil,
+        billing_email: "jane@example.com"
+      )
+
+      customer.valid?
+
+      expect(customer.display_name).to eq("Jane Smith")
+    end
+
+    it "updates display_name when an attribute changes" do
+      customer = create(:customer, company_name: "Acme")
+
+      customer.update!(company_name: nil, first_name: "Mary", last_name: "Major")
+
+      expect(customer.display_name).to eq("Mary Major")
     end
   end
 end
