@@ -33,7 +33,7 @@ RSpec.describe "Dashboard and landing", type: :request do
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(I18n.l(event.scheduled_on, format: :long))
         expect(response.body).to include(customer.display_name)
-        expect(response.body).to include("Mark completed")
+        expect(response.body).to include("Complete")
       end
     end
   end

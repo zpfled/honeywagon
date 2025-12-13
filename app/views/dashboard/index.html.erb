@@ -60,11 +60,11 @@
 
               <td class="px-4 py-3 text-right">
                 <% if event.report_required? %>
-                  <%= link_to "Complete & Report",
+                  <%= link_to "Complete",
                     new_service_event_report_path(service_event_id: event.id),
                     class: "inline-flex items-center rounded-lg bg-green-600 px-3 py-2 text-xs font-semibold text-white hover:bg-green-500" %>
                 <% else %>
-                  <%= button_to "Mark completed",
+                  <%= button_to "Complete",
                     service_event_path(event),
                     method: :patch,
                     params: { service_event: { status: :completed } },

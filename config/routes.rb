@@ -7,6 +7,7 @@ Rails.application.routes.draw do
   resources :service_events, only: :update
   resources :service_event_reports, only: [ :index, :new, :create ]
   devise_for :users
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
