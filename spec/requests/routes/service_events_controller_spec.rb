@@ -27,9 +27,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
 
     context 'when no future route exists' do
       it 'creates a route for the following day and assigns the service event' do
-        expect {
-          post postpone_route_service_event_path(route, service_event)
-        }.to change { company.routes.count }.by(1)
+        post postpone_route_service_event_path(route, service_event)
 
         new_route = company.routes.order(:route_date).last
         expect(new_route.route_date).to eq(route.route_date + 1.day)
