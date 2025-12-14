@@ -16,6 +16,7 @@ class OrdersController < ApplicationController
       end_date:   Date.today + 7.days,
       status:     'draft',
       customer_id: params[:customer_id],
+      location_id: params[:location_id],
       created_by: current_user
     )
   end
@@ -71,6 +72,7 @@ class OrdersController < ApplicationController
   def load_form_options
     @unit_types = current_user.company.unit_types.order(:name)
     @customers = current_user.company.customers.order(:display_name)
+    @locations = current_user.company.locations.includes(:customer).order(:label)
   end
 
   def order_params

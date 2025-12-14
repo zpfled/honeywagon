@@ -11,4 +11,8 @@ class Location < ApplicationRecord
   def full_address
     [ street, city, state, zip ].compact.join(', ')
   end
+
+  def display_label
+    label.presence || full_address.presence || 'Unnamed location'
+  end
 end

@@ -54,5 +54,15 @@ RSpec.describe "/orders", type: :request do
       expect(response.body).to include(own_customer.display_name)
       expect(response.body).not_to include(other_customer.display_name)
     end
+
+    it "only lists the current company's locations in the location dropdown" do
+      own_location = create(:location, label: "Own Site", customer: create(:customer, company: user.company))
+      other_location = create(:location, label: "Other Site")
+
+      get new_order_path
+
+      expect(response.body).to include(own_location.display_label)
+      expect(response.body).not_to include(other_location.display_label)
+    end
   end
 end
