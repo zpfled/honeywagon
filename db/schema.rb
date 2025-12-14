@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_140000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_141000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -122,8 +122,12 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_140000) do
     t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.date "route_date", null: false
+    t.uuid "trailer_id"
+    t.uuid "truck_id"
     t.datetime "updated_at", null: false
     t.index ["company_id", "route_date"], name: "index_routes_on_company_id_and_route_date"
+    t.index ["trailer_id"], name: "index_routes_on_trailer_id"
+    t.index ["truck_id"], name: "index_routes_on_truck_id"
   end
 
   create_table "service_event_reports", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -165,6 +169,29 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_140000) do
     t.index ["route_id"], name: "index_service_events_on_route_id"
     t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
     t.index ["user_id"], name: "index_service_events_on_user_id"
+  end
+
+  create_table "trailers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "capacity_spots", default: 0, null: false
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.string "identifier", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "identifier"], name: "index_trailers_on_company_id_and_identifier", unique: true
+    t.index ["company_id"], name: "index_trailers_on_company_id"
+  end
+
+  create_table "trucks", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "clean_water_capacity_gal", default: 0, null: false
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.string "number", null: false
+    t.integer "septage_capacity_gal", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "number"], name: "index_trucks_on_company_id_and_number", unique: true
+    t.index ["company_id"], name: "index_trucks_on_company_id"
   end
 
   create_table "unit_types", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -219,12 +246,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_140000) do
   add_foreign_key "orders", "users", column: "created_by_id"
   add_foreign_key "rate_plans", "unit_types"
   add_foreign_key "routes", "companies"
+  add_foreign_key "routes", "trailers"
+  add_foreign_key "routes", "trucks"
   add_foreign_key "service_event_reports", "service_events"
   add_foreign_key "service_event_reports", "users"
   add_foreign_key "service_events", "orders"
   add_foreign_key "service_events", "routes"
   add_foreign_key "service_events", "service_event_types"
   add_foreign_key "service_events", "users"
+  add_foreign_key "trailers", "companies"
+  add_foreign_key "trucks", "companies"
   add_foreign_key "unit_types", "companies"
   add_foreign_key "units", "companies"
   add_foreign_key "units", "unit_types"

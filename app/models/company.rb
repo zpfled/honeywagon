@@ -5,6 +5,8 @@ class Company < ApplicationRecord
   has_many :units, dependent: :destroy
   has_many :orders, dependent: :destroy
   has_many :routes, dependent: :destroy
+  has_many :trucks, dependent: :destroy
+  has_many :trailers, dependent: :destroy
   has_many :service_events, through: :orders
 
   validates :name, presence: true
