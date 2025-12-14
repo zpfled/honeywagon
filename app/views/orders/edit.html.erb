@@ -1,12 +1,23 @@
-<% content_for :title, "Editing order" %>
+<% content_for :title, "Edit order" %>
 
-<h1>Editing order</h1>
+<div class="mx-auto max-w-4xl px-4 py-8">
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <div class="min-w-0">
+      <h1 class="truncate text-2xl font-semibold text-gray-900">Edit order</h1>
+      <p class="mt-1 text-sm text-gray-600">Update customer, timing, and unit details.</p>
+    </div>
 
-<%= render "form", order: @order %>
+    <div class="flex gap-3">
+      <%= link_to "Back to orders",
+        orders_path,
+        class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-900 ring-1 ring-gray-300 hover:bg-gray-50" %>
+      <%= link_to "View order",
+        @order,
+        class: "inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800" %>
+    </div>
+  </div>
 
-<br>
-
-<div>
-  <%= link_to "Show this order", @order %> |
-  <%= link_to "Back to orders", orders_path %>
+  <div class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+    <%= render "form", order: @order %>
+  </div>
 </div>
