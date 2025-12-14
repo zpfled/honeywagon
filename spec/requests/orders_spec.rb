@@ -15,7 +15,7 @@ RSpec.describe "/orders", type: :request do
 
     it "lists only the signed-in user's orders" do
       own_order = create(:order, created_by: user, company: user.company)
-      other_order = create(:order, company: create(:company), customer: create(:customer, company_name: "Other Co"))
+      other_order = create(:order, company: create(:company), customer: create(:customer, business_name: "Other Co"))
 
       get orders_path
 
@@ -29,6 +29,20 @@ RSpec.describe "/orders", type: :request do
       get order_path(other_order)
 
       expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "new order form scoping" do
+    before { sign_in user }
+
+    it "only lists the current company's unit types in the line item selector" do
+      own_type   = create(:unit_type, name: "Own Type", company: user.company)
+      other_type = create(:unit_type, name: "Other Type")
+
+      get new_order_path
+
+      expect(response.body).to include(own_type.name)
+      expect(response.body).not_to include(other_type.name)
     end
   end
 end

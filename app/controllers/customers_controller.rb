@@ -1,11 +1,11 @@
 class CustomersController < ApplicationController
   def new
-    @customer = Customer.new
+    @customer = current_user.company.customers.new
     render layout: false if turbo_frame_request?
   end
 
   def create
-    @customer = Customer.new(customer_params)
+    @customer = current_user.company.customers.new(customer_params)
 
     respond_to do |format|
       if @customer.save
@@ -21,6 +21,6 @@ class CustomersController < ApplicationController
   private
 
   def customer_params
-    params.require(:customer).permit(:company_name, :first_name, :last_name, :billing_email, :phone)
+    params.require(:customer).permit(:business_name, :first_name, :last_name, :billing_email, :phone)
   end
 end

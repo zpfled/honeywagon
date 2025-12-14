@@ -55,7 +55,7 @@
     </div>
   </div>
 
-  <% unit_types = UnitType.order(:name) %>
+  <% unit_types = @unit_types || (order.company ? order.company.unit_types.order(:name) : UnitType.none) %>
   <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
   <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
   <% existing_line_items_payload = order.order_line_items.map do |li|

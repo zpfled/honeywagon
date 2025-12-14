@@ -1,0 +1,200 @@
+<%= page_shell do %>
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Company profile</h1>
+      <p class="mt-1 text-sm text-gray-600">Manage your company details, fleet, and customers.</p>
+    </div>
+    <%= link_to "Back to dashboard", authenticated_root_path, class: button_classes(variant: :outline, size: :sm) %>
+  </div>
+
+  <div class="mt-6">
+    <%= card do %>
+      <%= form_with model: @company, url: company_path, method: :put, local: true do |f| %>
+        <div class="space-y-4">
+          <div>
+            <%= f.label :name, "Company name", class: "text-sm font-medium text-gray-700" %>
+            <%= f.text_field :name, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div>
+            <%= f.submit "Update company", class: button_classes(variant: :primary) %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+
+  <div class="mt-8 space-y-4">
+    <div>
+      <h2 class="text-xl font-semibold text-gray-900">Fleet</h2>
+      <p class="text-sm text-gray-600">Manage trucks and trailers used on routes.</p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      <%= card do %>
+        <div data-controller="toggle">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Trucks</h3>
+            <button type="button" class="<%= button_classes(variant: :outline, size: :sm) %>" data-action="toggle#toggle">Add truck</button>
+          </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="<%= table_header_class %>">Name</th>
+                <th class="<%= table_header_class %>">Number</th>
+                <th class="<%= table_header_class('text-right') %>">Clean (gal)</th>
+                <th class="<%= table_header_class('text-right') %>">Septage (gal)</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <% if current_user.company.trucks.any? %>
+                <% current_user.company.trucks.each do |truck| %>
+                  <tr>
+                    <td class="<%= table_cell_class %>"><%= truck.name %></td>
+                    <td class="<%= table_cell_class %>"><%= truck.number %></td>
+                    <td class="<%= table_cell_class('', align: :right) %>"><%= truck.clean_water_capacity_gal %></td>
+                    <td class="<%= table_cell_class('', align: :right) %>"><%= truck.septage_capacity_gal %></td>
+                  </tr>
+                <% end %>
+              <% else %>
+                <tr>
+                  <td colspan="4" class="<%= table_cell_class('text-center', tone: :muted) %>">No trucks added yet.</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-4 hidden" data-toggle-target="content">
+          <%= form_with model: @truck, url: company_path, method: :put, local: true do |_f| %>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div>
+                <%= label_tag :truck_name, "Name", class: "text-xs font-medium text-gray-600" %>
+                <%= text_field_tag "truck[name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+              <div>
+                <%= label_tag :truck_number, "Number", class: "text-xs font-medium text-gray-600" %>
+                <%= text_field_tag "truck[number]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+              <div>
+                <%= label_tag :truck_clean_water_capacity_gal, "Clean water (gal)", class: "text-xs font-medium text-gray-600" %>
+                <%= number_field_tag "truck[clean_water_capacity_gal]", nil, min: 0, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+              <div>
+                <%= label_tag :truck_septage_capacity_gal, "Septage (gal)", class: "text-xs font-medium text-gray-600" %>
+                <%= number_field_tag "truck[septage_capacity_gal]", nil, min: 0, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+            </div>
+            <div class="mt-3">
+              <%= submit_tag "Save truck", class: button_classes(variant: :secondary, size: :sm) %>
+            </div>
+          <% end %>
+        </div>
+        </div>
+      <% end %>
+
+      <%= card do %>
+        <div data-controller="toggle">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900">Trailers</h3>
+            <button type="button" class="<%= button_classes(variant: :outline, size: :sm) %>" data-action="toggle#toggle">Add trailer</button>
+          </div>
+        <div class="mt-3 overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="<%= table_header_class %>">Name</th>
+                <th class="<%= table_header_class %>">Identifier</th>
+                <th class="<%= table_header_class('text-right') %>">Capacity</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <% if current_user.company.trailers.any? %>
+                <% current_user.company.trailers.each do |trailer| %>
+                  <tr>
+                    <td class="<%= table_cell_class %>"><%= trailer.name %></td>
+                    <td class="<%= table_cell_class %>"><%= trailer.identifier %></td>
+                    <td class="<%= table_cell_class('', align: :right) %>"><%= trailer.capacity_spots %> spots</td>
+                  </tr>
+                <% end %>
+              <% else %>
+                <tr>
+                  <td colspan="3" class="<%= table_cell_class('text-center', tone: :muted) %>">No trailers added yet.</td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-4 hidden" data-toggle-target="content">
+          <%= form_with model: @trailer, url: company_path, method: :put, local: true do |_f| %>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div>
+                <%= label_tag :trailer_name, "Name", class: "text-xs font-medium text-gray-600" %>
+                <%= text_field_tag "trailer[name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+              <div>
+                <%= label_tag :trailer_identifier, "Identifier", class: "text-xs font-medium text-gray-600" %>
+                <%= text_field_tag "trailer[identifier]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+              <div>
+                <%= label_tag :trailer_capacity_spots, "Capacity (spots)", class: "text-xs font-medium text-gray-600" %>
+                <%= number_field_tag "trailer[capacity_spots]", nil, min: 0, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+              </div>
+            </div>
+            <div class="mt-3">
+              <%= submit_tag "Save trailer", class: button_classes(variant: :secondary, size: :sm) %>
+            </div>
+          <% end %>
+        </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-6 grid gap-6 md:grid-cols-2">
+    <%= card do %>
+      <h2 class="text-lg font-semibold text-gray-900">Add customer</h2>
+      <p class="text-sm text-gray-600">Capture billing information for new clients.</p>
+      <%= form_with model: @customer, url: company_path, method: :put, local: true do |_f| %>
+        <div class="mt-3 grid gap-3">
+          <div>
+            <%= label_tag :customer_business_name, "Business name", class: "text-xs font-medium text-gray-600" %>
+            <%= text_field_tag "customer[business_name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div>
+              <%= label_tag :customer_first_name, "First name", class: "text-xs font-medium text-gray-600" %>
+              <%= text_field_tag "customer[first_name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= label_tag :customer_last_name, "Last name", class: "text-xs font-medium text-gray-600" %>
+              <%= text_field_tag "customer[last_name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+          </div>
+          <div>
+            <%= label_tag :customer_billing_email, "Billing email", class: "text-xs font-medium text-gray-600" %>
+            <%= email_field_tag "customer[billing_email]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div>
+            <%= label_tag :customer_phone, "Phone", class: "text-xs font-medium text-gray-600" %>
+            <%= telephone_field_tag "customer[phone]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div>
+            <%= submit_tag "Add customer", class: button_classes(variant: :secondary, size: :sm) %>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="mt-4">
+        <h3 class="text-sm font-semibold text-gray-700">Customers</h3>
+        <ul class="mt-2 divide-y divide-gray-200 text-sm text-gray-700">
+          <% Customer.order(:display_name).each do |customer| %>
+            <li class="py-2">
+              <span class="font-medium"><%= customer.display_name %></span>
+              <span class="text-gray-500">• <%= customer.billing_email %></span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+  </div>
+<% end %>

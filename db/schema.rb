@@ -10,26 +10,29 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_13_141000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_13_145000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
+    t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
   end
 
   create_table "customers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "billing_email"
-    t.string "company_name"
+    t.string "business_name"
+    t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.string "display_name", null: false
     t.string "first_name"
     t.string "last_name"
     t.string "phone"
     t.datetime "updated_at", null: false
-    t.index ["company_name"], name: "index_customers_on_company_name"
+    t.index ["business_name"], name: "index_customers_on_business_name"
+    t.index ["company_id"], name: "index_customers_on_company_id"
     t.index ["display_name"], name: "index_customers_on_display_name"
     t.index ["last_name"], name: "index_customers_on_last_name"
   end
@@ -234,6 +237,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_13_141000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  add_foreign_key "customers", "companies"
   add_foreign_key "locations", "customers"
   add_foreign_key "order_line_items", "orders"
   add_foreign_key "order_line_items", "rate_plans"

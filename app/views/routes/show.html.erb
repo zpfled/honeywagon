@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-6xl px-4 py-8">
+<%= page_shell do %>
   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900">Route for <%= l(@route.route_date, format: "%A, %B %-d") %></h1>
@@ -27,7 +27,7 @@
                   class: "mt-1 block w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
           </div>
           <div>
-            <%= f.submit "Update", class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800", disabled: @trucks.empty? %>
+            <%= f.submit "Update", class: button_classes(variant: :secondary), disabled: @trucks.empty? %>
           </div>
         </div>
       <% end %>
@@ -39,7 +39,7 @@
   <% clean_usage = capacity.clean_water_usage %>
   <% septage_usage = capacity.septage_usage %>
 
-  <div class="mt-4 space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+  <%= card classes: "mt-4 space-y-2" do %>
     <% if @route.over_capacity? %>
       <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
         <p class="font-semibold">Over capacity</p>
@@ -71,45 +71,45 @@
         </span>
       </span>
     </div>
-  </div>
+  <% end %>
 
   <div class="mt-6 grid gap-4 md:grid-cols-4">
-    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <%= card do %>
       <p class="text-sm font-medium text-gray-600">Deliveries</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.deliveries_count %></p>
       <% if @route.delivery_unit_breakdown.any? %>
         <p class="mt-1 text-xs text-gray-600"><%= @route.delivery_unit_breakdown.join(', ') %></p>
       <% end %>
-    </div>
-    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <% end %>
+    <%= card do %>
       <p class="text-sm font-medium text-gray-600">Services</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.services_count %></p>
       <% if @route.serviced_units_count.positive? %>
         <p class="mt-1 text-xs text-gray-600"><%= pluralize(@route.serviced_units_count, "unit") %> serviced</p>
       <% end %>
-    </div>
-    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <% end %>
+    <%= card do %>
       <p class="text-sm font-medium text-gray-600">Pickups</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.pickups_count %></p>
       <% if @route.pickup_unit_breakdown.any? %>
         <p class="mt-1 text-xs text-gray-600"><%= @route.pickup_unit_breakdown.join(', ') %></p>
       <% end %>
-    </div>
-    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <% end %>
+    <%= card do %>
       <p class="text-sm font-medium text-gray-600">Estimated gallons</p>
       <p class="mt-2 text-2xl font-semibold text-gray-900"><%= @route.estimated_gallons %></p>
-    </div>
+    <% end %>
   </div>
 
-  <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+  <%= card classes: "mt-6 overflow-hidden" do %>
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Event</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Units</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Order</th>
-          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
+          <th class="<%= table_header_class %>">Date</th>
+          <th class="<%= table_header_class %>">Event</th>
+          <th class="<%= table_header_class %>">Units</th>
+          <th class="<%= table_header_class %>">Order</th>
+          <th class="<%= table_header_class('text-right') %>">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
@@ -121,11 +121,9 @@
                 <div class="text-sm font-semibold text-gray-900"><%= l(event.scheduled_on, format: :long) %></div>
               </td>
               <td class="px-4 py-3">
-                <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                  <%= event.event_type.humanize %>
-                </span>
+                <%= badge(event.event_type.humanize, tone: :info) %>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-900">
+              <td class="<%= table_cell_class %>">
                 <%= event.units_impacted_count %>
               </td>
               <td class="px-4 py-3">
@@ -147,16 +145,16 @@
                               postpone_route_service_event_path(@route, event),
                               method: :post,
                               data: { turbo_confirm: "Move this service event to the next route?" },
-                              class: "inline-flex items-center rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50" %>
+                              class: button_classes(variant: :outline, size: :sm) %>
               </td>
             </tr>
           <% end %>
         <% else %>
           <tr>
-            <td colspan="5" class="px-4 py-10 text-center text-sm text-gray-500">No service events assigned to this route yet.</td>
+            <td colspan="5" class="<%= table_cell_class('text-center', tone: :muted) %>">No service events assigned to this route yet.</td>
           </tr>
         <% end %>
       </tbody>
     </table>
-  </div>
-</div>
+  <% end %>
+<% end %>

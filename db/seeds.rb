@@ -14,7 +14,7 @@ end
 def label(record)
   [
     record.try(:label),
-    record.try(:company_name),
+    record.try(:business_name),
     record.try(:external_reference),
     record.try(:serial),
     record.try(:name)
@@ -207,7 +207,7 @@ ActiveRecord::Base.transaction do
   customers_data = [
     {
       key: :acme,
-      company_name: "ACME Events",
+      business_name: "ACME Events",
       first_name: "Alice",
       last_name: "Manager",
       billing_email: "billing@acme.com",
@@ -215,7 +215,7 @@ ActiveRecord::Base.transaction do
     },
     {
       key: :buildit,
-      company_name: "BuildIt Contractors",
+      business_name: "BuildIt Contractors",
       first_name: "Ben",
       last_name: "Foreman",
       billing_email: "ap@buildit.example",
@@ -223,7 +223,7 @@ ActiveRecord::Base.transaction do
     },
     {
       key: :skyline,
-      company_name: "Skyline Productions",
+      business_name: "Skyline Productions",
       first_name: "Sasha",
       last_name: "Lopez",
       billing_email: "accounting@skyline.example",
@@ -233,7 +233,7 @@ ActiveRecord::Base.transaction do
 
   customers = {}
   customers_data.each do |attrs|
-    customer = Customer.find_or_initialize_by(company_name: attrs[:company_name])
+    customer = Customer.find_or_initialize_by(business_name: attrs[:business_name])
     customer.assign_attributes(attrs.except(:key))
 
     if customer.new_record? || customer.changed?

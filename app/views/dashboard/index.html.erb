@@ -1,54 +1,46 @@
-<div class="mx-auto max-w-6xl px-4 py-8">
-  <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+<%= page_shell do %>
+  <%= card classes: "mt-6 overflow-hidden" do %>
     <div class="border-b border-gray-200 px-4 py-3">
       <h2 class="text-base font-semibold text-gray-900">Operational overview</h2>
       <p class="text-sm text-gray-600">Year-to-date revenue and live inventory snapshot.</p>
     </div>
     <div class="grid gap-6 p-4 lg:grid-cols-4">
-      <div class="rounded-2xl bg-gray-50 p-4 shadow-sm ring-1 ring-gray-200">
+      <%= card variant: :muted do %>
         <p class="text-sm font-medium text-gray-600">Order revenue (YTD)</p>
         <p class="mt-2 text-2xl font-semibold text-gray-900">
           <%= number_to_currency(@ytd_order_total_cents.to_i / 100.0) %>
         </p>
         <p class="mt-1 text-xs text-gray-500">Start of year → <%= l(Date.current) %></p>
-      </div>
+      <% end %>
       <div class="lg:col-span-3 overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Unit type</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Total units</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Available</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Rented</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Monthly rentals</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Event rentals</th>
+              <th class="<%= table_header_class %>">Unit type</th>
+              <th class="<%= table_header_class('text-right') %>">Total units</th>
+              <th class="<%= table_header_class('text-right') %>">Available</th>
+              <th class="<%= table_header_class('text-right') %>">Rented</th>
+              <th class="<%= table_header_class('text-right') %>">Monthly rentals</th>
+              <th class="<%= table_header_class('text-right') %>">Event rentals</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <% if @inventory_stats.any? %>
               <% @inventory_stats.each do |row| %>
                 <tr>
-                  <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                  <td class="<%= table_cell_class('font-medium') %>">
                     <%= row[:unit_type].name %>
                   </td>
-                  <td class="px-4 py-3 text-right text-sm text-gray-900"><%= row[:total_units] %></td>
-                  <td class="px-4 py-3 text-right text-sm text-emerald-700">
-                    <%= row[:available_units] %>
-                  </td>
-                  <td class="px-4 py-3 text-right text-sm text-rose-700">
-                    <%= row[:rented_units] %>
-                  </td>
-                  <td class="px-4 py-3 text-right text-sm text-blue-700">
-                    <%= row[:monthly_out] %>
-                  </td>
-                  <td class="px-4 py-3 text-right text-sm text-indigo-700">
-                    <%= row[:event_out] %>
-                  </td>
+                  <td class="<%= table_cell_class('', align: :right) %>"><%= row[:total_units] %></td>
+                  <td class="<%= table_cell_class('', align: :right, tone: :success) %>"><%= row[:available_units] %></td>
+                  <td class="<%= table_cell_class('', align: :right, tone: :danger) %>"><%= row[:rented_units] %></td>
+                  <td class="<%= table_cell_class('', align: :right, tone: :info) %>"><%= row[:monthly_out] %></td>
+                  <td class="<%= table_cell_class('', align: :right, tone: :info) %>"><%= row[:event_out] %></td>
                 </tr>
               <% end %>
             <% else %>
               <tr>
-                <td colspan="6" class="px-4 py-6 text-center text-sm text-gray-500">
+                <td colspan="6" class="<%= table_cell_class('text-center', tone: :muted) %>">
                   No unit types defined yet.
                 </td>
               </tr>
@@ -57,7 +49,7 @@
         </table>
       </div>
     </div>
-  </div>
+  <% end %>
 
   <div class="mt-8 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
     <div class="min-w-0">
@@ -66,7 +58,7 @@
         Next 7 days • <%= pluralize(@routes.size, "route") %>
       </p>
     </div>
-    <div class="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <%= card do %>
       <%= form_with model: @new_route, url: routes_path, class: "grid gap-3 sm:flex sm:items-end", local: true do |f| %>
         <div>
           <%= f.label :route_date, "Route date", class: "text-xs font-medium text-gray-700" %>
@@ -88,13 +80,13 @@
                 class: "mt-1 block w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
         </div>
         <div>
-          <%= f.submit "Create", class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800", disabled: @trucks.empty? %>
+          <%= f.submit "Create", class: button_classes(variant: :secondary), disabled: @trucks.empty? %>
         </div>
       <% end %>
-    </div>
+    <% end %>
   </div>
 
-  <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+  <%= card classes: "mt-6 overflow-hidden" do %>
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
@@ -102,9 +94,9 @@
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Service events</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Estimated gallons</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Deliveries</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Pickups</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Truck • Trailer</th>
-          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
+          <th class="<%= table_header_class %>">Pickups</th>
+          <th class="<%= table_header_class %>">Truck • Trailer</th>
+          <th class="<%= table_header_class('text-right') %>">Actions</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
@@ -113,32 +105,30 @@
             <tr class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm font-semibold text-gray-900"><%= l(route.route_date, format: :long) %></td>
               <td class="px-4 py-3 text-sm text-gray-900"><%= route.service_event_count %></td>
-              <td class="px-4 py-3 text-sm text-gray-900"><%= route.estimated_gallons %></td>
-              <td class="px-4 py-3 text-sm text-gray-900"><%= route.deliveries_count %></td>
-              <td class="px-4 py-3 text-sm text-gray-900"><%= route.pickups_count %></td>
-              <td class="px-4 py-3 text-sm text-gray-900">
+              <td class="<%= table_cell_class %>"><%= route.estimated_gallons %></td>
+              <td class="<%= table_cell_class %>"><%= route.deliveries_count %></td>
+              <td class="<%= table_cell_class %>"><%= route.pickups_count %></td>
+              <td class="<%= table_cell_class %>">
                 <div><%= route.truck&.label || "—" %></div>
                 <div class="text-xs text-gray-500"><%= route.trailer&.label || "No trailer" %></div>
               </td>
-              <td class="px-4 py-3 text-right">
+              <td class="<%= table_cell_class('', align: :right) %>">
                 <% if route.over_capacity? %>
                   <% dims = route.over_capacity_dimensions.map { |dim| dim.to_s.humanize.downcase }.join(', ') %>
-                  <span class="mr-3 inline-flex items-center rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
-                    Over capacity (<%= dims %>)
-                  </span>
+                  <%= badge("Over capacity (#{dims})", tone: :danger) %>
                 <% end %>
-                <%= link_to "View route", route_path(route), class: "inline-flex items-center rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500" %>
+                <%= link_to "View route", route_path(route), class: "#{button_classes size: :sm}" %>
               </td>
             </tr>
           <% end %>
         <% else %>
           <tr>
-            <td colspan="7" class="px-4 py-10 text-center text-sm text-gray-500">
+            <td colspan="7" class="<%= table_cell_class('text-center', tone: :muted) %>">
               No routes scheduled for the upcoming week.
             </td>
           </tr>
         <% end %>
       </tbody>
     </table>
-  </div>
-</div>
+  <% end %>
+<% end %>

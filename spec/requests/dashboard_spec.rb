@@ -18,7 +18,7 @@ RSpec.describe "Dashboard and landing", type: :request do
 
     it "shows upcoming routes for the signed-in user" do
       travel_to Date.new(2024, 5, 6) do
-        customer = create(:customer, company_name: "ACME Test Co")
+        customer = create(:customer, business_name: "ACME Test Co")
         order = create(
           :order,
           company: user.company,
