@@ -44,5 +44,15 @@ RSpec.describe "/orders", type: :request do
       expect(response.body).to include(own_type.name)
       expect(response.body).not_to include(other_type.name)
     end
+
+    it "only lists the current company's customers in the customer dropdown" do
+      own_customer = create(:customer, business_name: "Own Customer", company: user.company)
+      other_customer = create(:customer, business_name: "Other Customer")
+
+      get new_order_path
+
+      expect(response.body).to include(own_customer.display_name)
+      expect(response.body).not_to include(other_customer.display_name)
+    end
   end
 end

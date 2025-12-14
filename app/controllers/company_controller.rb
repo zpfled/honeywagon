@@ -12,6 +12,8 @@ class CompanyController < ApplicationController
       create_truck!
       create_trailer!
       create_customer!
+      create_unit_type!
+      create_rate_plan!
     end
 
     redirect_to edit_company_path, notice: 'Company profile updated.'
@@ -39,10 +41,20 @@ class CompanyController < ApplicationController
     params.fetch(:customer, {}).permit(:business_name, :first_name, :last_name, :billing_email, :phone)
   end
 
+  def unit_type_params
+    params.fetch(:unit_type, {}).permit(:name, :slug, :prefix)
+  end
+
+  def rate_plan_params
+    params.fetch(:rate_plan, {}).permit(:unit_type_id, :service_schedule, :billing_period, :price_cents, :effective_on, :expires_on, :active)
+  end
+
   def build_forms
-    @truck = current_user.company.trucks.new
-    @trailer = current_user.company.trailers.new
-    @customer = Customer.new
+    @truck ||= current_user.company.trucks.new
+    @trailer ||= current_user.company.trailers.new
+    @customer ||= current_user.company.customers.new
+    @unit_type ||= current_user.company.unit_types.new
+    @rate_plan ||= RatePlan.new
   end
 
   def update_company_details!
@@ -71,5 +83,37 @@ class CompanyController < ApplicationController
     return if attrs.values.all?(&:blank?)
 
     current_user.company.customers.create!(attrs)
+  end
+
+  def create_unit_type!
+    attrs = unit_type_params
+    return if attrs.values.all?(&:blank?)
+
+    attrs[:slug] = attrs[:name].to_s.parameterize.presence || attrs[:slug]
+    attrs[:prefix] = attrs[:prefix].to_s.upcase if attrs[:prefix].present?
+    attrs[:next_serial] = 1
+
+    @unit_type = current_user.company.unit_types.new(attrs.compact)
+    @unit_type.save!
+  end
+
+  def create_rate_plan!
+    attrs = rate_plan_params
+    return if attrs.values.all?(&:blank?) || attrs[:unit_type_id].blank?
+
+    unit_type = current_user.company.unit_types.find(attrs.delete(:unit_type_id))
+    attrs[:price_cents] = normalize_price(attrs[:price_cents])
+    attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
+
+    @rate_plan = unit_type.rate_plans.new(attrs.compact)
+    @rate_plan.save!
+  end
+
+  def normalize_price(value)
+    return if value.blank?
+
+    (BigDecimal(value.to_s) * 100).to_i
+  rescue ArgumentError, TypeError
+    nil
   end
 end

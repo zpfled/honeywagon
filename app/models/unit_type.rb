@@ -2,6 +2,7 @@
 class UnitType < ApplicationRecord
   belongs_to :company
   has_many :units, dependent: :nullify
+  has_many :rate_plans, dependent: :destroy
 
   TYPES = [
     { name: 'Standard Unit', slug: 'standard', prefix: 'S' },

@@ -118,6 +118,7 @@ class Order < ApplicationRecord
   end
 
   # Whether the current change should enqueue service-event generation.
+  # TODO: this should return true if the order is active as well
   def trigger_service_event_generation?
     saved_change_to_status? && scheduled?
   end
