@@ -1,9 +1,11 @@
 # frozen_string_literal: true
 
 module Routes
-  # ServiceEventRouter assigns an individual service event to a nearby route or
-  # creates a new route on the event's scheduled date when none exists.
+  # ServiceEventRouter finds or creates an appropriate route for a service event,
+  # auto-assigning the smallest trailer that can satisfy delivery/pickup needs.
   class ServiceEventRouter
+    WINDOW = 2.days
+
     class << self
       def without_auto_assignment
         previous = Thread.current[:service_event_router_disabled]
@@ -18,8 +20,6 @@ module Routes
       end
     end
 
-    WINDOW = 2.days
-
     def initialize(event)
       @event = event
       @company = event.order&.company
@@ -32,6 +32,7 @@ module Routes
 
       route = find_matching_route || create_route
       event.update!(route: route, route_date: route.route_date)
+      route
     end
 
     private
@@ -47,7 +48,26 @@ module Routes
     end
 
     def create_route
-      company.routes.create!(route_date: event.scheduled_on)
+      company.routes.create!(
+        route_date: event.scheduled_on,
+        truck: company.trucks.order(:created_at).first,
+        trailer: default_trailer
+      )
+    end
+
+    def default_trailer
+      return nil unless requires_trailer?
+
+      trailers = company.trailers.order(:capacity_spots)
+      trailers.find { |trailer| trailer.capacity_spots >= required_trailer_spots } || trailers.last
+    end
+
+    def requires_trailer?
+      required_trailer_spots.positive?
+    end
+
+    def required_trailer_spots
+      @required_trailer_spots ||= ServiceEvents::ResourceCalculator.new(event).usage[:trailer_spots]
     end
   end
 end
