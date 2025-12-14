@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe Orders::Builder do
   let(:company) { create(:company) }
   let(:user) { create(:user, company: company) }
-  let(:customer) { create(:customer, company_name: 'ACME Events') }
+  let(:customer) { create(:customer, business_name: 'ACME Events') }
   let(:location) { create(:location, label: 'ACME Wedding Site') }
 
   let(:start_date) { Date.today }

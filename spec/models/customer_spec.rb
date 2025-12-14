@@ -22,22 +22,22 @@ RSpec.describe Customer, type: :model do
   end
 
   describe "#computed_display_name" do
-    it "prefers company_name when present" do
+    it "prefers business_name when present" do
       customer = Customer.new(
         first_name: "John",
         last_name: "Doe",
-        company_name: "Acme Construction",
+        business_name: "Acme Construction",
         billing_email: "john@example.com"
       )
 
       expect(customer.computed_display_name).to eq("Acme Construction")
     end
 
-    it "falls back to full_name when no company_name" do
+    it "falls back to full_name when no business_name" do
       customer = Customer.new(
         first_name: "John",
         last_name: "Doe",
-        company_name: nil,
+        business_name: nil,
         billing_email: "john@example.com"
       )
 
@@ -48,7 +48,7 @@ RSpec.describe Customer, type: :model do
       customer = Customer.new(
         first_name: nil,
         last_name: nil,
-        company_name: nil,
+        business_name: nil,
         billing_email: "no-name@example.com"
       )
 
@@ -61,7 +61,7 @@ RSpec.describe Customer, type: :model do
       customer = Customer.new(
         first_name: "Jane",
         last_name: "Smith",
-        company_name: nil,
+        business_name: nil,
         billing_email: "jane@example.com"
       )
 
@@ -71,9 +71,9 @@ RSpec.describe Customer, type: :model do
     end
 
     it "updates display_name when an attribute changes" do
-      customer = create(:customer, company_name: "Acme")
+      customer = create(:customer, business_name: "Acme")
 
-      customer.update!(company_name: nil, first_name: "Mary", last_name: "Major")
+      customer.update!(business_name: nil, first_name: "Mary", last_name: "Major")
 
       expect(customer.display_name).to eq("Mary Major")
     end

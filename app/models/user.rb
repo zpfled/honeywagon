@@ -1,5 +1,7 @@
 # User represents an internal Honeywagon account with a specific role.
 class User < ApplicationRecord
+  attr_accessor :company_name
+
   belongs_to :company
   # Include default devise modules. Others available are:
   # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable

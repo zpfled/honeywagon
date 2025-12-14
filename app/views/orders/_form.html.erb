@@ -13,7 +13,8 @@
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     <div>
       <%= f.label :customer_id, "Customer", class: "text-sm font-medium text-gray-700" %>
-      <%= f.collection_select :customer_id, Customer.order(:display_name), :id, :display_name,
+      <% customers = @customers || Customer.none %>
+      <%= f.collection_select :customer_id, customers, :id, :display_name,
         { include_blank: "Select customer" },
         class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
       <%= link_to "+ Add customer",
@@ -55,7 +56,7 @@
     </div>
   </div>
 
-  <% unit_types = UnitType.order(:name) %>
+  <% unit_types = @unit_types || (order.company ? order.company.unit_types.order(:name) : UnitType.none) %>
   <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
   <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
   <% existing_line_items_payload = order.order_line_items.map do |li|

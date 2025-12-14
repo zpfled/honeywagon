@@ -1,5 +1,6 @@
 # Customer represents the billing entity that rents units and owns locations.
 class Customer < ApplicationRecord
+  belongs_to :company
   has_many :locations, dependent: :destroy
 
   before_validation :refresh_display_name
@@ -14,7 +15,7 @@ class Customer < ApplicationRecord
   # Returns the derived label used throughout the UI, preferring company name,
   # then personal name, then billing email.
   def computed_display_name
-    company_name.presence || full_name.presence || billing_email
+    business_name.presence || full_name.presence || billing_email
   end
 
   private

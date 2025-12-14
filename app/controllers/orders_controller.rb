@@ -1,5 +1,6 @@
 class OrdersController < ApplicationController
   before_action :set_order, only: %i[show edit update destroy schedule]
+  before_action :load_form_options, only: %i[new create edit update]
 
   def index
     @orders = current_user.company.orders.includes(:customer, :location).order(start_date: :desc)
@@ -65,6 +66,11 @@ class OrdersController < ApplicationController
 
   def set_order
     @order = current_user.company.orders.find(params[:id])
+  end
+
+  def load_form_options
+    @unit_types = current_user.company.unit_types.order(:name)
+    @customers = current_user.company.customers.order(:display_name)
   end
 
   def order_params

@@ -6,6 +6,11 @@ RSpec.describe UnitType, type: :model do
       assoc = described_class.reflect_on_association(:units)
       expect(assoc.macro).to eq(:has_many)
     end
+
+    it "has many rate_plans" do
+      assoc = described_class.reflect_on_association(:rate_plans)
+      expect(assoc.macro).to eq(:has_many)
+    end
   end
 
   describe "#to_s" do
