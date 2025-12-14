@@ -5,8 +5,9 @@ module Orders
   # the generator stays idempotent.
   class ServiceEventGenerator
     # Stores the order whose lifecycle events should be regenerated.
-    def initialize(order)
+    def initialize(order, from_date: nil)
       @order = order
+      @from_date = from_date
     end
 
     # Builds the required service events for the order, replacing existing
@@ -15,8 +16,13 @@ module Orders
       return if order.start_date.blank? || order.end_date.blank?
 
       order.with_lock do
-        order.service_events.auto_generated.delete_all
+        delete_scope = order.service_events.auto_generated
+        delete_scope = delete_scope.where(ServiceEvent.arel_table[:scheduled_on].gteq(from_date)) if from_date
+        delete_scope.delete_all
+
         build_events.each do |attrs|
+          next if from_date && attrs[:scheduled_on] < from_date
+
           type = find_or_create_event_type(attrs[:event_type])
           assigned_user = order.created_by || order.company&.users&.first
           raise "Order #{order.id} is missing a user to own generated events" unless assigned_user
@@ -34,7 +40,7 @@ module Orders
 
     private
 
-    attr_reader :order
+    attr_reader :order, :from_date
 
     # Returns the full ordered list of event attribute hashes that should exist.
     def build_events

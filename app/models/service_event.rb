@@ -17,6 +17,7 @@ class ServiceEvent < ApplicationRecord
   before_validation :default_route_date
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
+  after_commit :auto_assign_route, on: :create
 
   # Scope returning only auto-generated events that can be safely regenerated.
   scope :auto_generated, -> { where(auto_generated: true) }
@@ -98,5 +99,11 @@ class ServiceEvent < ApplicationRecord
 
   def default_route_date
     self.route_date ||= route&.route_date || scheduled_on
+  end
+
+  def auto_assign_route
+    return if route_id.present? || order.blank?
+
+    Routes::ServiceEventRouter.new(self).call
   end
 end
