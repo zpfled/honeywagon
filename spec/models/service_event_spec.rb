@@ -65,4 +65,17 @@ RSpec.describe ServiceEvent, type: :model do
       expect(event.estimated_gallons_pumped).to eq(30)
     end
   end
+  describe "route auto-assignment" do
+    it "assigns a newly created event to a nearby route" do
+      company = create(:company)
+      create(:truck, company: company)
+      create(:trailer, company: company)
+      route = create(:route, company: company, route_date: Date.today + 1.day)
+      order = create(:order, company: company)
+
+      event = create(:service_event, :service, order: order, scheduled_on: route.route_date, route: nil)
+
+      expect(event.reload.route).to eq(route)
+    end
+  end
 end

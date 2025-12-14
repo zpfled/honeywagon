@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe Order, type: :model do
+  include ActiveSupport::Testing::TimeHelpers
   describe "associations" do
     it "belongs to a customer" do
       order = create(:order)
@@ -175,6 +176,20 @@ RSpec.describe Order, type: :model do
 
       expect { order.schedule! }.to change { order.service_events.count }.from(0).to(2)
       expect(order.service_events.order(:scheduled_on).pluck(:event_type)).to eq(%w[delivery pickup])
+    end
+
+    it "generates only future events when created as active" do
+      travel_to Date.new(2024, 9, 15) do
+        order = create(
+          :order,
+          status: "active",
+          start_date: Date.new(2024, 9, 1),
+          end_date: Date.new(2024, 9, 25)
+        )
+
+        expect(order.service_events).not_to be_empty
+        expect(order.service_events.pluck(:scheduled_on)).to all(be >= Date.current)
+      end
     end
   end
 
