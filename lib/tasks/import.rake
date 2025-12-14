@@ -36,3 +36,23 @@ namespace :import do
     abort e.message
   end
 end
+
+namespace :routes do
+  desc 'Assign un-routed service events to nearby routes (requires COMPANY_ID when multiple companies exist)'
+  task backfill_service_events: :environment do
+    company = if ENV['COMPANY_ID'].present?
+      Company.find(ENV['COMPANY_ID'])
+    else
+      abort 'Multiple companies exist. Specify COMPANY_ID.' if Company.count != 1
+      Company.first!
+    end
+
+    assigned, created_routes = Routes::BackfillServiceEvents.new(company: company).call
+
+    puts "Routes updated for #{company.name}"
+    puts "Service events assigned: #{assigned}"
+    puts "Routes created: #{created_routes}"
+  rescue ActiveRecord::RecordNotFound => e
+    abort e.message
+  end
+end

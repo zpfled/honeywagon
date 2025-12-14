@@ -1,11 +1,16 @@
 require "rails_helper"
 
 RSpec.describe Orders::ServiceEventGenerator do
-  subject(:generate) { described_class.new(order).call }
+  subject(:generate) { described_class.new(order, from_date: from_date).call }
 
   let(:none_schedule) { RatePlan::SERVICE_SCHEDULES[:none] }
   let(:weekly_schedule) { RatePlan::SERVICE_SCHEDULES[:weekly] }
   let(:biweekly_schedule) { RatePlan::SERVICE_SCHEDULES[:biweekly] }
+  let(:from_date) { nil }
+
+  around do |example|
+    Routes::ServiceEventRouter.without_auto_assignment { example.run }
+  end
 
   describe "weekend order with no recurring service" do
     let(:order) { create(:order, start_date: Date.new(2024, 7, 5), end_date: Date.new(2024, 7, 7)) }
@@ -72,6 +77,49 @@ RSpec.describe Orders::ServiceEventGenerator do
 
       unique_dates = order.service_events.pluck(:scheduled_on)
       expect(unique_dates).to eq(unique_dates.uniq)
+    end
+  end
+
+  describe "future-only generation" do
+    let(:from_date) { Date.new(2024, 1, 15) }
+    let(:order) { create(:order, start_date: Date.new(2024, 1, 1), end_date: Date.new(2024, 2, 1)) }
+    let!(:rate_plan) { create(:rate_plan, :weekly) }
+
+    before do
+      create(:order_line_item, order: order, rate_plan: rate_plan, service_schedule: weekly_schedule)
+      service_type = ServiceEventType.find_or_create_by!(key: "service") do |t|
+        t.name = "Service"
+        t.requires_report = true
+        t.report_fields = []
+      end
+
+      order.service_events.create!(
+        event_type: :service,
+        scheduled_on: Date.new(2024, 1, 5),
+        status: :scheduled,
+        auto_generated: true,
+        service_event_type: service_type,
+        user: order.created_by
+      )
+    end
+
+    it "only generates events on or after the provided date" do
+      existing_ids = order.service_events.auto_generated.pluck(:id)
+
+      generate
+
+      new_dates = order.service_events.auto_generated.where.not(id: existing_ids).pluck(:scheduled_on)
+      expect(new_dates).to all(be >= from_date)
+      expect(new_dates).to include(order.end_date)
+    end
+
+    it "does not delete auto-generated events before the provided date" do
+      past_event_ids = order.service_events.auto_generated.where("scheduled_on < ?", from_date).pluck(:id)
+
+      generate
+
+      remaining_ids = order.service_events.auto_generated.where(id: past_event_ids).pluck(:id)
+      expect(remaining_ids).to match_array(past_event_ids)
     end
   end
 end
