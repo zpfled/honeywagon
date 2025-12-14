@@ -15,6 +15,7 @@ Rails.application.routes.draw do
     resource :company, only: %i[show update]
   end
   resource :company, only: %i[edit update], controller: 'company'
+  resources :locations, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
   devise_for :users, controllers: { registrations: 'users/registrations' }
 

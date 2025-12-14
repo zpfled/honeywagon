@@ -25,9 +25,14 @@
 
     <div>
       <%= f.label :location_id, "Location", class: "text-sm font-medium text-gray-700" %>
-      <%= f.collection_select :location_id, Location.order(:label), :id, :label,
+      <% locations = @locations || Location.none %>
+      <%= f.collection_select :location_id, locations, :id, :display_label,
         { include_blank: "Select location" },
         class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+      <%= link_to "+ Add location",
+        new_location_path(customer_id: order.customer_id),
+        data: { turbo_frame: "location_modal" },
+        class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500" %>
     </div>
 
     <div>
