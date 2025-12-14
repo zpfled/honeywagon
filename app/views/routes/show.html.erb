@@ -6,16 +6,70 @@
     </div>
     <div>
       <%= form_with model: @route, local: true do |f| %>
-        <div class="flex items-end gap-3">
+        <div class="grid gap-3 sm:flex sm:items-end">
           <div>
             <%= f.label :route_date, "Route date", class: "text-xs font-medium text-gray-700" %>
             <%= f.date_field :route_date, class: "mt-1 block rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
           </div>
           <div>
-            <%= f.submit "Update", class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+            <%= f.label :truck_id, "Truck", class: "text-xs font-medium text-gray-700" %>
+            <% if @trucks.any? %>
+              <%= f.collection_select :truck_id, @trucks, :id, :label, {},
+                    class: "mt-1 block w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+            <% else %>
+              <p class="mt-1 text-xs text-rose-600">Add a truck to assign this route.</p>
+            <% end %>
+          </div>
+          <div>
+            <%= f.label :trailer_id, "Trailer", class: "text-xs font-medium text-gray-700" %>
+            <%= f.collection_select :trailer_id, @trailers, :id, :label,
+                  { include_blank: "No trailer" },
+                  class: "mt-1 block w-48 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+          </div>
+          <div>
+            <%= f.submit "Update", class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800", disabled: @trucks.empty? %>
           </div>
         </div>
       <% end %>
+    </div>
+  </div>
+
+  <% capacity = @route.capacity_summary %>
+  <% trailer_usage = capacity.trailer_usage %>
+  <% clean_usage = capacity.clean_water_usage %>
+  <% septage_usage = capacity.septage_usage %>
+
+  <div class="mt-4 space-y-2 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-200">
+    <% if @route.over_capacity? %>
+      <div class="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+        <p class="font-semibold">Over capacity</p>
+        <p class="mt-1">
+          <%= @route.over_capacity_dimensions.map { |dim| dim.to_s.humanize }.to_sentence %>.
+          Consider postponing or reassigning events.
+        </p>
+      </div>
+    <% end %>
+    <div class="flex flex-wrap gap-4 text-sm text-gray-700">
+      <span><span class="font-semibold text-gray-900">Truck:</span> <%= @route.truck&.label || "Unassigned" %></span>
+      <span><span class="font-semibold text-gray-900">Trailer:</span> <%= @route.trailer&.label || "None" %></span>
+      <span>
+        <span class="font-semibold text-gray-900">Trailer spots:</span>
+        <span class="<%= trailer_usage[:capacity] && trailer_usage[:used] > trailer_usage[:capacity] ? 'text-rose-700' : '' %>">
+          <%= trailer_usage[:used] %> / <%= trailer_usage[:capacity] || '—' %>
+        </span>
+      </span>
+      <span>
+        <span class="font-semibold text-gray-900">Clean water:</span>
+        <span class="<%= clean_usage[:capacity] && clean_usage[:used] > clean_usage[:capacity] ? 'text-rose-700' : '' %>">
+          <%= clean_usage[:used] %> / <%= clean_usage[:capacity] || '—' %> gal
+        </span>
+      </span>
+      <span>
+        <span class="font-semibold text-gray-900">Septage:</span>
+        <span class="<%= septage_usage[:capacity] && septage_usage[:used] > septage_usage[:capacity] ? 'text-rose-700' : '' %>">
+          <%= septage_usage[:used] %> / <%= septage_usage[:capacity] || '—' %> gal
+        </span>
+      </span>
     </div>
   </div>
 

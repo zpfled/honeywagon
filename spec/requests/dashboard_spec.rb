@@ -13,6 +13,8 @@ RSpec.describe "Dashboard and landing", type: :request do
 
   describe "GET / (authenticated)" do
     let(:user) { create(:user) }
+    let!(:truck) { create(:truck, company: user.company) }
+    let!(:trailer) { create(:trailer, company: user.company) }
 
     it "shows upcoming routes for the signed-in user" do
       travel_to Date.new(2024, 5, 6) do

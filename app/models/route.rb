@@ -1,10 +1,32 @@
 class Route < ApplicationRecord
+  attr_accessor :skip_auto_assign
+
   belongs_to :company
+  belongs_to :truck
+  belongs_to :trailer, optional: true
   has_many :service_events, dependent: :nullify
 
   validates :route_date, presence: true
+  validates :truck, presence: true
+  validate :truck_belongs_to_company
+  validate :trailer_belongs_to_company
+
+  class << self
+    def without_auto_assignment
+      previous = Thread.current[:route_skip_auto_assign]
+      Thread.current[:route_skip_auto_assign] = true
+      yield
+    ensure
+      Thread.current[:route_skip_auto_assign] = previous
+    end
+
+    def auto_assignment_disabled?
+      Thread.current[:route_skip_auto_assign]
+    end
+  end
 
   after_initialize :set_default_date
+  before_validation :assign_default_assets
   after_create :assign_service_events
   after_update_commit :propagate_route_date, if: -> { saved_change_to_route_date? }
 
@@ -18,6 +40,9 @@ class Route < ApplicationRecord
   def delivery_unit_breakdown = unit_breakdown_for(service_events.event_type_delivery)
   def pickup_unit_breakdown = unit_breakdown_for(service_events.event_type_pickup)
   def serviced_units_count = units_impacted_for(service_events.event_type_service)
+  def capacity_summary = Routes::CapacitySummary.new(route: self)
+  delegate :over_capacity?, :over_capacity_dimensions, :trailer_usage, :clean_water_usage, :septage_usage,
+           to: :capacity_summary
 
   private
 
@@ -25,7 +50,14 @@ class Route < ApplicationRecord
     self.route_date ||= Date.current
   end
 
+  def assign_default_assets
+    return unless company
+    self.truck ||= company.trucks.first
+    self.trailer ||= company.trailers.first
+  end
+
   def assign_service_events
+    return if skip_auto_assign || self.class.auto_assignment_disabled?
     window = route_date.beginning_of_week..route_date.end_of_week
     company.service_events
            .scheduled
@@ -38,6 +70,16 @@ class Route < ApplicationRecord
 
   def propagate_route_date
     service_events.update_all(route_date: route_date)
+  end
+
+  def truck_belongs_to_company
+    return if truck.nil? || truck.company_id == company_id
+    errors.add(:truck_id, 'must belong to the same company')
+  end
+
+  def trailer_belongs_to_company
+    return if trailer.nil? || trailer.company_id == company_id
+    errors.add(:trailer_id, 'must belong to the same company')
   end
 
   def unit_breakdown_for(events_scope)
