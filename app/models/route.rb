@@ -53,7 +53,7 @@ class Route < ApplicationRecord
   def assign_default_assets
     return unless company
     self.truck ||= company.trucks.first
-    self.trailer ||= company.trailers.first
+    self.trailer = nil if new_record? && trailer.nil?
   end
 
   def assign_service_events
