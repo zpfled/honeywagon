@@ -39,4 +39,32 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
       end
     end
   end
+
+  describe 'POST /routes/:route_id/service_events/:id/advance' do
+    let(:route) { create(:route, company: company, route_date: Date.current + 5.days) }
+    let(:order) { create(:order, company: company, created_by: user) }
+    let(:service_event) { create(:service_event, order: order, route: route, route_date: route.route_date) }
+
+    context 'when an earlier eligible route exists' do
+      let!(:previous_route) { create(:route, company: company, route_date: Date.current + 2.days) }
+
+      it 'moves the service event to the previous route' do
+        post advance_route_service_event_path(route, service_event)
+
+        expect(response).to redirect_to(route_path(previous_route))
+        service_event.reload
+        expect(service_event.route).to eq(previous_route)
+        expect(flash[:notice]).to eq('Service event moved to the previous route.')
+      end
+    end
+
+    context 'when no earlier eligible route exists' do
+      it 'shows an alert' do
+        post advance_route_service_event_path(route, service_event)
+
+        expect(response).to redirect_to(route_path(route))
+        expect(flash[:alert]).to be_present
+      end
+    end
+  end
 end
