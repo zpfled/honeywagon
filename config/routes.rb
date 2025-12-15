@@ -3,6 +3,8 @@ Rails.application.routes.draw do
     member do
       post :schedule
     end
+
+    resources :service_events, only: :destroy, module: :orders
   end
   resources :service_events, only: :update
   resources :routes, only: [ :index, :show, :create, :update ] do
