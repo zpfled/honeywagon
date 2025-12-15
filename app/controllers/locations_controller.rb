@@ -52,9 +52,7 @@ class LocationsController < ApplicationController
   def render_missing_customer
     respond_to do |format|
       format.turbo_stream { render plain: 'Select a customer before adding a location.', status: :unprocessable_content }
-      format.html do
-        redirect_to new_order_path, alert: 'Select a customer before adding a location.'
-      end
+      format.html { render plain: 'Select a customer before adding a location.', status: :unprocessable_content }
     end
   end
 

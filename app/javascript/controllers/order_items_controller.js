@@ -11,22 +11,34 @@ export default class extends Controller {
     "addButton",
     "rowTemplate",
     "error",
-    "emptyState"
+    "emptyState",
+    "ratePlanLink"
   ]
 
   static values = {
     unitTypes: Array,
     ratePlans: Object,
     existing: Array,
-    nextIndex: Number
+    nextIndex: Number,
+    newRatePlanUrl: String
   }
 
   connect() {
     if (!this.hasNextIndexValue) this.nextIndexValue = 0
+    this.ratePlanCreatedHandler = (event) => this.ratePlanCreated(event)
+    window.addEventListener("rate-plan-created", this.ratePlanCreatedHandler)
+
     this.hideForm()
     this.populateRatePlanOptions()
     this.populateExistingRows()
     this.updateEmptyState()
+    this.updateRatePlanLink()
+  }
+
+  disconnect() {
+    if (this.ratePlanCreatedHandler) {
+      window.removeEventListener("rate-plan-created", this.ratePlanCreatedHandler)
+    }
   }
 
   showForm(event) {
@@ -45,6 +57,7 @@ export default class extends Controller {
 
   unitTypeChanged() {
     this.populateRatePlanOptions()
+    this.updateRatePlanLink()
   }
 
   addItem(event) {
@@ -129,6 +142,7 @@ export default class extends Controller {
     this.ratePlanTarget.innerHTML = ""
     this.ratePlanTarget.appendChild(fragment)
     this.ratePlanTarget.disabled = plans.length === 0
+    this.updateRatePlanLink()
   }
 
   populateExistingRows() {
@@ -228,5 +242,53 @@ export default class extends Controller {
     }
 
     return plans || []
+  }
+
+  updateRatePlanLink() {
+    if (!this.hasRatePlanLinkTarget) return
+
+    const hasUnitType = Boolean(this.unitTypeTarget?.value)
+    this.ratePlanLinkTarget.classList.toggle("opacity-50", !hasUnitType)
+    this.ratePlanLinkTarget.classList.toggle("pointer-events-none", !hasUnitType)
+  }
+
+  openRatePlanModal(event) {
+    event.preventDefault()
+    const unitTypeId = this.unitTypeTarget.value
+    if (!unitTypeId) {
+      this.showError("Select a unit type before adding a rate plan.")
+      return
+    }
+
+    const frame = document.getElementById("rate_plan_modal")
+    if (!frame) return
+
+    const url = new URL(this.newRatePlanUrlValue, window.location.origin)
+    url.searchParams.set("unit_type_id", unitTypeId)
+
+    frame.src = url.toString()
+    frame.reload()
+  }
+
+  ratePlanCreated(event) {
+    const data = event.detail || {}
+    const unitTypeId = data.unit_type_id || data.unitTypeId
+    const planId = data.id
+    const label = data.label
+
+    if (!unitTypeId || !planId || !label) return
+
+    const updated = { ...(this.ratePlansValue || {}) }
+    const unitPlans = updated[unitTypeId] ? [ ...updated[unitTypeId] ] : []
+    unitPlans.push({ id: planId, label })
+    updated[unitTypeId] = unitPlans
+    this.ratePlansValue = updated
+
+    if (this.unitTypeTarget.value === String(unitTypeId)) {
+      this.populateRatePlanOptions()
+      if (this.hasRatePlanTarget) {
+        this.ratePlanTarget.value = String(planId)
+      }
+    }
   }
 }

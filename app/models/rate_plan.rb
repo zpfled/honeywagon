@@ -1,5 +1,6 @@
 # RatePlan stores the billing parameters (price, cadence) for each unit type.
 class RatePlan < ApplicationRecord
+  include ActionView::Helpers::NumberHelper
   SERVICE_SCHEDULES = {
     none:     'none',
     weekly:   'weekly',
@@ -21,8 +22,11 @@ class RatePlan < ApplicationRecord
   scope :active, -> { where(active: true) }
 
 
-  # Returns a quick label combining billing period, schedule, and price.
-  def label
-    "#{billing_period}: #{service_schedule} -- #{price_cents}"
+  # Returns a human-friendly label combining schedule, billing period, and price.
+  def display_label
+    schedule_label = service_schedule.to_s.humanize.presence || 'Service schedule'
+    billing_label = billing_period.to_s.humanize.presence || 'Billing period'
+    price = number_to_currency(price_cents.to_i / 100.0)
+    "#{schedule_label} (#{billing_label}) • #{price}"
   end
 end

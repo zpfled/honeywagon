@@ -1,0 +1,9 @@
+<%= turbo_stream.replace "rate_plan_modal", "" %>
+<%= turbo_stream_action_tag "dispatch_event",
+      target: "body",
+      event: "rate-plan-created",
+      payload: {
+        unit_type_id: @rate_plan.unit_type_id,
+        id: @rate_plan.id,
+        label: @rate_plan.display_label
+      }.to_json %>

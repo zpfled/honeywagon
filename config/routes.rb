@@ -20,6 +20,7 @@ Rails.application.routes.draw do
     get 'places/details', to: 'places#details', as: :places_details
   end
   resources :locations, only: [ :new, :create ]
+  resources :rate_plans, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
   devise_for :users, controllers: { registrations: 'users/registrations' }
 
