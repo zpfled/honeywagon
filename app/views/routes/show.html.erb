@@ -121,7 +121,12 @@
                 <div class="text-sm font-semibold text-gray-900"><%= l(event.scheduled_on, format: :long) %></div>
               </td>
               <td class="px-4 py-3">
-                <%= badge(event.event_type.humanize, tone: :info) %>
+                <div class="flex flex-col gap-1">
+                  <%= badge(event.event_type.humanize, tone: :info) %>
+                  <% if (status_badge = service_event_status_badge(event)) %>
+                    <%= status_badge %>
+                  <% end %>
+                </div>
               </td>
               <td class="<%= table_cell_class %>">
                 <%= event.units_impacted_count %>
