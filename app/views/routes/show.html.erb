@@ -145,12 +145,19 @@
                   <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
                 </div>
               </td>
-              <td class="px-4 py-3 text-right">
-                <%= button_to "Postpone",
-                              postpone_route_service_event_path(@route, event),
-                              method: :post,
-                              data: { turbo_confirm: "Move this service event to the next route?" },
-                              class: button_classes(variant: :outline, size: :sm) %>
+              <td class="px-4 py-3">
+                <div class="flex flex-col items-end gap-2">
+                  <%= button_to "Postpone",
+                                postpone_route_service_event_path(@route, event),
+                                method: :post,
+                                data: { turbo_confirm: "Move this service event to the next route?" },
+                                class: button_classes(variant: :outline, size: :sm) %>
+                  <%= button_to "Delete",
+                                order_service_event_path(order, event),
+                                method: :delete,
+                                data: { turbo_confirm: "Delete this service event? This cannot be undone." },
+                                class: button_classes(variant: :danger, size: :sm) %>
+                </div>
               </td>
             </tr>
           <% end %>

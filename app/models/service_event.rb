@@ -1,10 +1,13 @@
 # ServiceEvent represents a scheduled operational task for an order (delivery,
 # recurring service, pickup) and tracks its completion state.
 class ServiceEvent < ApplicationRecord
+  default_scope { where(deleted_at: nil) }
+
   belongs_to :order
   belongs_to :service_event_type
   belongs_to :user
   belongs_to :route, optional: true
+  belongs_to :deleted_by, class_name: 'User', optional: true
   has_one :service_event_report, dependent: :destroy
 
   enum :event_type, { delivery: 0, service: 1, pickup: 2 }, prefix: true
@@ -48,6 +51,13 @@ class ServiceEvent < ApplicationRecord
 
   def units_impacted_count
     order.rental_line_items.sum(:quantity)
+  end
+
+  scope :with_deleted, -> { unscope(where: :deleted_at) }
+  scope :deleted, -> { with_deleted.where.not(deleted_at: nil) }
+
+  def soft_delete!(user:)
+    update!(deleted_at: Time.current, deleted_by: user)
   end
 
   private

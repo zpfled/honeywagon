@@ -159,6 +159,16 @@ class OrderPresenter
     end
   end
 
+  def service_events
+    @service_events ||= order.service_events
+                              .includes(:service_event_type, :route)
+                              .order(:scheduled_on, :event_type)
+  end
+
+  def service_events_count
+    service_events.size
+  end
+
 
 
   #

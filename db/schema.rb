@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_15_130000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_15_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -157,6 +157,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_130000) do
     t.boolean "auto_generated", default: false, null: false
     t.date "completed_on"
     t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.uuid "deleted_by_id"
     t.integer "event_type"
     t.text "notes"
     t.uuid "order_id", null: false
@@ -168,6 +170,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_130000) do
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
     t.index ["auto_generated"], name: "index_service_events_on_auto_generated"
+    t.index ["deleted_at"], name: "index_service_events_on_deleted_at"
+    t.index ["deleted_by_id"], name: "index_service_events_on_deleted_by_id"
     t.index ["order_id"], name: "index_service_events_on_order_id"
     t.index ["route_id"], name: "index_service_events_on_route_id"
     t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
@@ -268,6 +272,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_130000) do
   add_foreign_key "service_events", "routes"
   add_foreign_key "service_events", "service_event_types"
   add_foreign_key "service_events", "users"
+  add_foreign_key "service_events", "users", column: "deleted_by_id"
   add_foreign_key "service_line_items", "orders"
   add_foreign_key "trailers", "companies"
   add_foreign_key "trucks", "companies"
