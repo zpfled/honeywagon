@@ -96,4 +96,30 @@ RSpec.describe Location, type: :model do
       expect(location.lat).to be_nil
     end
   end
+
+  describe "#display_label" do
+    it "uses the saved label when present" do
+      location = Location.new(label: "Custom Job Site", street: "123 Main")
+
+      expect(location.display_label).to eq("Custom Job Site")
+    end
+
+    it "builds a label from street and city" do
+      location = Location.new(street: "123 Main St", city: "La Farge", state: "WI")
+
+      expect(location.display_label).to eq("123 Main St, La Farge")
+    end
+
+    it "falls back to state when city missing" do
+      location = Location.new(street: "123 Main St", state: "WI")
+
+      expect(location.display_label).to eq("123 Main St, WI")
+    end
+
+    it "uses the full address or fallback" do
+      location = Location.new(state: "WI")
+
+      expect(location.display_label).to eq("WI")
+    end
+  end
 end

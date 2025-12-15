@@ -15,7 +15,13 @@ class Location < ApplicationRecord
   end
 
   def display_label
-    label.presence || full_address.presence || 'Unnamed location'
+    return label if label.present?
+
+    street_part = street.presence
+    locality = city.presence || state.presence
+    generated = [ street_part, locality ].compact.join(', ')
+
+    generated.presence || full_address.presence || 'Unnamed location'
   end
 
   private
