@@ -58,7 +58,7 @@ RSpec.describe ServiceEvent, type: :model do
       order = create(:order, status: 'scheduled')
       unit_type = create(:unit_type, :standard, company: order.company)
       rate_plan = create(:rate_plan, unit_type: unit_type)
-      create(:order_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 3)
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 3)
 
       event = create(:service_event, :service, order: order)
 

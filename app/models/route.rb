@@ -84,9 +84,9 @@ class Route < ApplicationRecord
 
   def unit_breakdown_for(events_scope)
     counts = events_scope
-             .joins(order: :order_line_items)
-             .group('order_line_items.unit_type_id')
-             .sum('order_line_items.quantity')
+             .joins(order: :rental_line_items)
+             .group('rental_line_items.unit_type_id')
+             .sum('rental_line_items.quantity')
 
     unit_types = UnitType.where(id: counts.keys).index_by(&:id)
 
@@ -101,7 +101,7 @@ class Route < ApplicationRecord
 
   def units_impacted_for(events_scope)
     events_scope
-      .joins(order: :order_line_items)
-      .sum('order_line_items.quantity')
+      .joins(order: :rental_line_items)
+      .sum('rental_line_items.quantity')
   end
 end

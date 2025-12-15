@@ -1,5 +1,5 @@
 FactoryBot.define do
-  factory :order_line_item do
+  factory :rental_line_item do
     association :order
     association :unit_type
     association :rate_plan

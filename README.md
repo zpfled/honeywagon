@@ -79,6 +79,14 @@ Pricing is fully data-driven.
 - price
 - active windows
 
+---
+
+## Integrations
+
+- **Google Maps Places / Geocoding**  
+  Address fields in the order/location forms use Google Places Autocomplete, and locations are geocoded automatically for route planning.  
+  Configure via `Rails.application.credentials.google_maps.api_key` or `GOOGLE_MAPS_API_KEY` (restrict the key to trusted domains/IPs).
+
 ### Order Line Items
 Orders snapshot pricing into line items at build time:
 - quantity

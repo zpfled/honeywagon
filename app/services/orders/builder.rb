@@ -15,8 +15,8 @@ module Orders
     #   { unit_type_id: 2, rate_plan_id: 7, quantity: 1 }
     # ]
     # Applies params/unit-type requests to the order, enforcing availability and
-    # populating order_units + order_line_items.
-    def assign(params:, unit_type_requests:)
+    # populating order_units + rental_line_items.
+    def assign(params:, unit_type_requests:, service_item_requests: [])
       order.assign_attributes(params)
 
       if order.start_date.blank? || order.end_date.blank?
@@ -24,7 +24,7 @@ module Orders
         return order
       end
 
-      existing_rate_plan_ids = order.order_line_items.map(&:rate_plan_id).compact
+      existing_rate_plan_ids = order.rental_line_items.map(&:rate_plan_id).compact
 
       new_order_units, new_line_items = build_units_and_line_items(
         unit_type_requests,
@@ -33,14 +33,22 @@ module Orders
 
       return order if order.errors.any?
 
+      new_service_items = build_service_line_items(service_item_requests)
+
+      return order if order.errors.any?
+
       # Replace assignments only after validation passes
       if order.persisted?
         order.order_units.destroy_all
-        order.order_line_items.destroy_all
+        order.rental_line_items.destroy_all
+        order.service_line_items.destroy_all
+      else
+        order.service_line_items = []
       end
 
       new_order_units.each { |ou| order.order_units << ou }
-      new_line_items.each  { |li| order.order_line_items << li }
+      new_line_items.each  { |li| order.rental_line_items << li }
+      new_service_items.each { |item| order.service_line_items << item }
 
       # Basic subtotal from line items (no proration yet)
       order.rental_subtotal_cents = new_line_items.sum(&:subtotal_cents)
@@ -53,7 +61,7 @@ module Orders
 
     private
 
-    # Builds in-memory order_units and order_line_items for the request payload.
+    # Builds in-memory order_units and rental_line_items for the request payload.
     def build_units_and_line_items(unit_type_requests, existing_rate_plan_ids:)
       order_units = []
       line_items  = []
@@ -124,7 +132,7 @@ module Orders
         unit_price_cents = rate_plan.price_cents
         subtotal_cents   = compute_subtotal(rate_plan: rate_plan, quantity: qty)
 
-        line_items << OrderLineItem.new(
+        line_items << RentalLineItem.new(
           order: order,
           unit_type: unit_type,
           rate_plan: rate_plan,
@@ -137,6 +145,55 @@ module Orders
       end
 
       [ order_units, line_items ]
+    end
+
+    def build_service_line_items(service_item_requests)
+      items = []
+      Array(service_item_requests).each do |entry|
+        attrs = normalize_payload(entry)
+        next if attrs.blank?
+
+        description = attrs[:description].to_s.strip
+        schedule    = attrs[:service_schedule].presence || RatePlan::SERVICE_SCHEDULES[:none]
+        units       = attrs[:units_serviced].to_i
+
+        if description.blank?
+          order.errors.add(:base, 'Service line items require a description.')
+          return []
+        end
+
+        unless RatePlan::SERVICE_SCHEDULES.values.include?(schedule)
+          order.errors.add(:base, 'Select a valid service cadence.')
+          return []
+        end
+
+        if units <= 0
+          order.errors.add(:base, 'Units serviced must be at least 1.')
+          return []
+        end
+
+        items << ServiceLineItem.new(
+          order: order,
+          description: description,
+          service_schedule: schedule,
+          units_serviced: units
+        )
+      end
+      items
+    end
+
+    def normalize_payload(entry)
+      source =
+        if entry.respond_to?(:to_unsafe_h)
+          entry.to_unsafe_h
+        elsif entry.respond_to?(:to_h)
+          entry.to_h
+        else
+          entry
+        end
+
+      attrs = source.respond_to?(:with_indifferent_access) ? source.with_indifferent_access : source
+      attrs&.presence
     end
 
     # For now:

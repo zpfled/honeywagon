@@ -1,8 +1,11 @@
 class LocationsController < ApplicationController
-  before_action :load_customers
+  before_action :set_customer_scope
 
   def new
-    @location = Location.new(customer_id: params[:customer_id])
+    @customer = find_customer_from_params
+    return render_missing_customer unless @customer
+
+    @location = Location.new(customer: @customer)
     render layout: false if turbo_frame_request?
   end
 
@@ -34,8 +37,23 @@ class LocationsController < ApplicationController
 
   private
 
-  def load_customers
-    @customers = current_user.company.customers.order(:display_name)
+  def set_customer_scope
+    @customer_scope = current_user.company.customers
+  end
+
+  def find_customer_from_params
+    return if params[:customer_id].blank?
+
+    @customer_scope.find(params[:customer_id])
+  rescue ActiveRecord::RecordNotFound
+    nil
+  end
+
+  def render_missing_customer
+    respond_to do |format|
+      format.turbo_stream { render plain: 'Select a customer before adding a location.', status: :unprocessable_content }
+      format.html { render plain: 'Select a customer before adding a location.', status: :unprocessable_content }
+    end
   end
 
   def assign_customer!
@@ -45,12 +63,12 @@ class LocationsController < ApplicationController
       return
     end
 
-    @location.customer = @customers.find(customer_id)
+    @location.customer = @customer_scope.find(customer_id)
   rescue ActiveRecord::RecordNotFound
     @location.errors.add(:customer, 'must belong to your company')
   end
 
   def location_params
-    params.require(:location).permit(:customer_id, :label, :street, :city, :state, :zip, :access_notes)
+    params.require(:location).permit(:customer_id, :label, :street, :city, :state, :zip, :access_notes, :lat, :lng)
   end
 end

@@ -8,7 +8,6 @@
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    
     <!-- Tailwind -->
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= yield :head %>
@@ -111,5 +110,6 @@
 
     <%= turbo_frame_tag "customer_modal" %>
     <%= turbo_frame_tag "location_modal" %>
+    <%= turbo_frame_tag "rate_plan_modal" %>
   </body>
 </html>

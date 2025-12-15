@@ -1,5 +1,5 @@
-# OrderLineItem captures the pricing snapshot for each unit type on an order.
-class OrderLineItem < ApplicationRecord
+# RentalLineItem captures the pricing snapshot for each unit type on an order.
+class RentalLineItem < ApplicationRecord
   belongs_to :order
   belongs_to :unit_type
   belongs_to :rate_plan, optional: true

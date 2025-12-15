@@ -6,7 +6,11 @@ class OrderPresenter
 
   attr_reader :order, :view
 
-  delegate :order_line_items, :units, to: :order, allow_nil: true
+  delegate :rental_line_items, :units, to: :order, allow_nil: true
+
+  def order_line_items
+    order.respond_to?(:rental_line_items) ? order.rental_line_items : []
+  end
 
   # Builds the presenter with the order and a view context for helpers.
   # `view` lets you call things like `l(...)` safely (I18n localization) from the presenter.
@@ -213,8 +217,8 @@ class OrderPresenter
   # For your “Line items” footer row subtotal (presentation only)
   # Returns the total of all line item subtotals in cents when available.
   def line_items_subtotal_cents
-    return nil unless order.respond_to?(:order_line_items)
-    line_items = order.order_line_items
+    return nil unless order.respond_to?(:rental_line_items)
+    line_items = order.rental_line_items
     return nil if line_items.blank?
 
     if subtotal_cents_supported?(line_items)
@@ -235,7 +239,7 @@ class OrderPresenter
   #
   # Returns how many line items are associated with the order.
   def line_items_count
-    order.respond_to?(:order_line_items) ? order.order_line_items.size : 0
+    order.respond_to?(:rental_line_items) ? order.rental_line_items.size : 0
   end
 
   # Returns how many units are assigned to the order.

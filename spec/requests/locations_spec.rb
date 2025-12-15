@@ -5,6 +5,23 @@ RSpec.describe "/locations", type: :request do
 
   before { sign_in user }
 
+  describe "GET /locations/new" do
+    it "requires a customer" do
+      get new_location_path
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "renders the modal when customer is provided" do
+      customer = create(:customer, company: user.company)
+
+      get new_location_path(customer_id: customer.id)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(customer.display_name)
+    end
+  end
+
   describe "POST /locations" do
     it "creates a location for the current company's customer" do
       customer = create(:customer, company: user.company)

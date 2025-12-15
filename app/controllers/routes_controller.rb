@@ -4,7 +4,7 @@ class RoutesController < ApplicationController
 
   def index
     @routes = current_user.company.routes.includes(:truck, :trailer,
-                                                   service_events: { order: { order_line_items: :unit_type } })
+                                                   service_events: { order: { rental_line_items: :unit_type } })
                           .order(route_date: :desc)
     @route = current_user.company.routes.new(
       route_date: Date.current,
@@ -14,7 +14,7 @@ class RoutesController < ApplicationController
   end
 
   def show
-    @service_events = @route.service_events.includes(order: [ :customer, :location, { order_line_items: :unit_type } ])
+    @service_events = @route.service_events.includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
   end
 
   def create
@@ -32,7 +32,7 @@ class RoutesController < ApplicationController
     if @route.update(route_params)
       redirect_to @route, notice: 'Route updated.'
     else
-      @service_events = @route.service_events.includes(order: [ :customer, :location, { order_line_items: :unit_type } ])
+      @service_events = @route.service_events.includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
       render :show, status: :unprocessable_content
     end
   end

@@ -10,13 +10,18 @@
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2"
+       data-controller="order-form"
+       data-order-form-location-url-value="<%= new_location_path %>">
     <div>
       <%= f.label :customer_id, "Customer", class: "text-sm font-medium text-gray-700" %>
       <% customers = @customers || Customer.none %>
       <%= f.collection_select :customer_id, customers, :id, :display_name,
         { include_blank: "Select customer" },
-        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+        {
+          class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+          data: { order_form_target: "customer", action: "change->order-form#customerChanged" }
+        } %>
       <%= link_to "+ Add customer",
         new_customer_path,
         data: { turbo_frame: "customer_modal" },
@@ -28,11 +33,16 @@
       <% locations = @locations || Location.none %>
       <%= f.collection_select :location_id, locations, :id, :display_label,
         { include_blank: "Select location" },
-        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+        {
+          class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+          data: { order_form_target: "location" },
+          disabled: order.customer_id.blank?
+        } %>
+      <% location_link_href = order.customer_id.present? ? new_location_path(customer_id: order.customer_id) : new_location_path %>
       <%= link_to "+ Add location",
-        new_location_path(customer_id: order.customer_id),
-        data: { turbo_frame: "location_modal" },
-        class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500" %>
+        location_link_href,
+        data: { order_form_target: "locationLink" },
+        class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500 transition" %>
     </div>
 
     <div>
@@ -63,8 +73,9 @@
 
   <% unit_types = @unit_types || (order.company ? order.company.unit_types.order(:name) : UnitType.none) %>
   <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
+  <% unit_type_payload << { id: 'service-only', name: 'Service-only (customer-owned units)' } %>
   <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
-  <% existing_line_items_payload = order.order_line_items.map do |li|
+  <% existing_line_items_payload = order.rental_line_items.map do |li|
        {
          unit_type_id: li.unit_type_id,
          rate_plan_id: li.rate_plan_id,
@@ -82,15 +93,19 @@
   <% rate_plans_for_view = (active_rate_plans + missing_rate_plans).uniq { |rp| rp.id } %>
   <% rate_plan_payload = rate_plans_for_view.group_by(&:unit_type_id).transform_values do |plans|
        plans.sort_by { |plan| [ plan.billing_period.to_s, plan.service_schedule.to_s ] }.map do |plan|
-         price = number_to_currency(plan.price_cents.to_i / 100.0)
-         schedule_label = plan.service_schedule.to_s.humanize.presence || "Service schedule"
-         billing_label = plan.billing_period.to_s.humanize.presence || "Billing period"
-         label = "#{schedule_label} (#{billing_label}) • #{price}"
-         { id: plan.id, label: label }
+         { id: plan.id, label: plan.display_label }
        end
      end %>
   <% rate_plan_payload_json = json_escape(rate_plan_payload.to_json) %>
   <% existing_line_items_payload_json = json_escape(existing_line_items_payload.to_json) %>
+  <% service_items_payload = order.service_line_items.map do |item|
+       {
+         description: item.description,
+         service_schedule: item.service_schedule,
+         units_serviced: item.units_serviced
+       }
+     end %>
+  <% service_items_payload_json = json_escape(service_items_payload.to_json) %>
 
   <div class="space-y-4">
     <div>
@@ -105,7 +120,9 @@
         controller: "order-items",
         order_items_unit_types_value: unit_type_payload_json,
         order_items_rate_plans_value: rate_plan_payload_json,
-        order_items_existing_value: existing_line_items_payload_json
+        order_items_existing_value: existing_line_items_payload_json,
+        order_items_service_existing_value: service_items_payload_json,
+        order_items_new_rate_plan_url_value: new_rate_plan_path
       } do %>
       <div class="space-y-3" data-order-items-target="rows"></div>
       <p class="text-sm text-gray-500" data-order-items-target="emptyState">No line items yet. Add at least one to continue.</p>
@@ -132,12 +149,13 @@
               data-order-items-target="unitType"
               data-action="change->order-items#unitTypeChanged">
               <option value="">Select unit type</option>
+              <option value="service-only">Service-only (customer-owned units)</option>
               <%= option_tags %>
             </select>
           </div>
 
           <div>
-            <label class="text-xs font-medium text-gray-700">Quantity</label>
+            <label class="text-xs font-medium text-gray-700" data-order-items-target="quantityLabel">Quantity</label>
             <%= tag.input type: "number",
               min: 1,
               step: 1,
@@ -146,8 +164,24 @@
               data: { order_items_target: "quantity" } %>
           </div>
 
+          <div class="md:col-span-3" data-order-items-target="descriptionWrapper" hidden>
+            <label class="text-xs font-medium text-gray-700">Description of service work</label>
+            <input type="text"
+              class="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20"
+              data-order-items-target="description" placeholder="e.g. Service customer-owned ADA fleet" />
+          </div>
+
           <div>
-            <label class="text-xs font-medium text-gray-700">Rate plan</label>
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-gray-700">Rate plan</label>
+              <button
+                type="button"
+                class="text-xs font-medium text-emerald-600 hover:text-emerald-500 transition"
+                data-order-items-target="ratePlanLink"
+                data-action="order-items#openRatePlanModal">
+                + Add rate plan
+              </button>
+            </div>
             <%= tag.select class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
               data: { order_items_target: "ratePlan" } do %>
               <option value="">Select rate plan</option>
@@ -185,15 +219,12 @@
               Remove
             </button>
           </div>
-          <input type="hidden" data-role="unitTypeInput" />
-          <input type="hidden" data-role="ratePlanInput" />
-          <input type="hidden" data-role="quantityInput" />
+          <div data-role="hiddenContainer" class="hidden"></div>
         </div>
       </template>
     <% end %>
   </div>
 
-  <div>
     <%= f.label :notes, class: "text-sm font-medium text-gray-700" %>
     <%= f.text_area :notes,
       rows: 4,

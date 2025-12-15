@@ -1,0 +1,32 @@
+
+Randomized with seed 32275
+[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[31mF[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m[32m.[0m
+
+Failures:
+
+  1) /locations POST /locations rejects locations for customers outside the company
+     [31mFailure/Error: [0m<p [32mclass[0m=[31m[1;31m"[0m[31mtext-sm font-semibold text-gray-900[1;31m"[0m[31m[0m><[31m[1;31m%=[0m[31m @location.customer.display_name %></p>[0m[0m
+     [31m[0m
+     [31mActionView::Template::Error:[0m
+     [31m  undefined method `display_name' for nil[0m
+     [36m# ./app/views/locations/new.html.erb:38:in `block in _app_views_locations_new_html_erb___4065941295320793781_46020'[0m
+     [36m# ./app/views/locations/new.html.erb:17:in `_app_views_locations_new_html_erb___4065941295320793781_46020'[0m
+     [36m# ./app/controllers/locations_controller.rb:19:in `block (2 levels) in create'[0m
+     [36m# ./app/controllers/locations_controller.rb:17:in `create'[0m
+     [36m# ./spec/requests/locations_spec.rb:50:in `block (4 levels) in <main>'[0m
+     [36m# ./spec/requests/locations_spec.rb:49:in `block (3 levels) in <main>'[0m
+     [36m# ------------------[0m
+     [36m# --- Caused by: ---[0m
+     [36m# NoMethodError:[0m
+     [36m#   undefined method `display_name' for nil[0m
+     [36m#   ./app/views/locations/new.html.erb:38:in `block in _app_views_locations_new_html_erb___4065941295320793781_46020'[0m
+
+Finished in 2.28 seconds (files took 0.6848 seconds to load)
+[31m141 examples, 1 failure[0m
+
+Failed examples:
+
+[31mrspec ./spec/requests/locations_spec.rb:46[0m [36m# /locations POST /locations rejects locations for customers outside the company[0m
+
+Randomized with seed 32275
+

@@ -1,0 +1,17 @@
+default: &default
+  verify_ssl: true
+  autocomplete:
+    region_code: US
+    language_code: en
+    included_primary_types:
+      - street_address
+
+development:
+  <<: *default
+  verify_ssl: false
+
+test:
+  <<: *default
+
+production:
+  <<: *default

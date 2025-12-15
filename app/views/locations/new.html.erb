@@ -14,7 +14,14 @@
         </button>
       </div>
 
-      <%= form_with model: @location, url: locations_path, class: "mt-6 space-y-4" do |f| %>
+      <%= form_with model: @location,
+        url: locations_path,
+        class: "mt-6 space-y-4",
+        data: {
+          controller: "address-autocomplete",
+          address_autocomplete_suggestions_url_value: api_places_autocomplete_path,
+          address_autocomplete_details_url_value: api_places_details_path
+        } do |f| %>
         <% if @location.errors.any? %>
           <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             <p class="font-semibold"><%= pluralize(@location.errors.count, "error") %> prevented this location from saving:</p>
@@ -26,12 +33,15 @@
           </div>
         <% end %>
 
-        <div>
-          <%= f.label :customer_id, "Customer", class: "text-sm font-medium text-gray-700" %>
-          <%= f.collection_select :customer_id, @customers, :id, :display_name,
-            { include_blank: "Select customer" },
-            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-        </div>
+        <% if @location.customer %>
+          <div class="rounded-2xl border border-gray-100 bg-gray-50 p-3">
+            <p class="text-xs font-medium text-gray-500">Customer</p>
+            <p class="text-sm font-semibold text-gray-900"><%= @location.customer.display_name %></p>
+          </div>
+          <%= f.hidden_field :customer_id, value: @location.customer_id %>
+        <% else %>
+          <%= f.hidden_field :customer_id %>
+        <% end %>
 
         <div>
           <%= f.label :label, "Location label", class: "text-sm font-medium text-gray-700" %>
@@ -40,21 +50,44 @@
         </div>
 
         <div>
+          <%= label_tag :address_lookup, "Lookup address (optional)", class: "text-sm font-medium text-gray-700" %>
+          <div class="relative mt-1">
+            <%= text_field_tag :address_lookup, nil,
+              name: nil,
+              placeholder: "Start typing to search…",
+              autocomplete: "off",
+              class: "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+              data: {
+                address_autocomplete_target: "search",
+                action: "input->address-autocomplete#search keydown->address-autocomplete#handleKeydown"
+              } %>
+            <div
+              class="absolute left-0 right-0 z-20 mt-2 hidden rounded-xl border border-gray-200 bg-white text-sm shadow-lg"
+              data-address-autocomplete-target="results">
+            </div>
+          </div>
+          <p class="mt-1 text-xs text-gray-500">You can still edit the fields below if Google doesn’t find the exact site.</p>
+        </div>
+
+        <div>
           <%= f.label :street, "Street address", class: "text-sm font-medium text-gray-700" %>
           <%= f.text_field :street,
-            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+            data: { address_autocomplete_target: "street" } %>
         </div>
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div class="sm:col-span-2">
             <%= f.label :city, class: "text-sm font-medium text-gray-700" %>
             <%= f.text_field :city,
-              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+              data: { address_autocomplete_target: "city" } %>
           </div>
           <div>
             <%= f.label :state, class: "text-sm font-medium text-gray-700" %>
             <%= f.text_field :state, maxlength: 2,
-              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm uppercase text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm uppercase text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+              data: { address_autocomplete_target: "state" } %>
           </div>
         </div>
 
@@ -62,7 +95,8 @@
           <div>
             <%= f.label :zip, class: "text-sm font-medium text-gray-700" %>
             <%= f.text_field :zip,
-              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+              data: { address_autocomplete_target: "zip" } %>
           </div>
           <div>
             <%= f.label :access_notes, "Access notes", class: "text-sm font-medium text-gray-700" %>
@@ -70,6 +104,9 @@
               class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
           </div>
         </div>
+
+        <%= f.hidden_field :lat, data: { address_autocomplete_target: "lat" } %>
+        <%= f.hidden_field :lng, data: { address_autocomplete_target: "lng" } %>
 
         <div class="flex justify-end gap-3 pt-2">
           <button type="button"

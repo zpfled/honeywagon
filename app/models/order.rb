@@ -6,7 +6,8 @@ class Order < ApplicationRecord
   belongs_to :customer
   belongs_to :location
 
-  has_many :order_line_items, dependent: :destroy
+  has_many :rental_line_items, dependent: :destroy
+  has_many :service_line_items, dependent: :destroy
   has_many :order_units, dependent: :destroy
   has_many :units, through: :order_units
   has_many :service_events, dependent: :destroy

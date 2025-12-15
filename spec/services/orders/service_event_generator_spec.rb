@@ -6,6 +6,7 @@ RSpec.describe Orders::ServiceEventGenerator do
   let(:none_schedule) { RatePlan::SERVICE_SCHEDULES[:none] }
   let(:weekly_schedule) { RatePlan::SERVICE_SCHEDULES[:weekly] }
   let(:biweekly_schedule) { RatePlan::SERVICE_SCHEDULES[:biweekly] }
+  let(:monthly_schedule) { RatePlan::SERVICE_SCHEDULES[:monthly] }
   let(:from_date) { nil }
 
   around do |example|
@@ -17,7 +18,7 @@ RSpec.describe Orders::ServiceEventGenerator do
     let!(:rate_plan) { create(:rate_plan, service_schedule: none_schedule) }
 
     before do
-      create(:order_line_item, order: order, rate_plan: rate_plan, service_schedule: none_schedule)
+      create(:rental_line_item, order: order, rate_plan: rate_plan, service_schedule: none_schedule)
     end
 
     it "creates only delivery and pickup events" do
@@ -40,7 +41,7 @@ RSpec.describe Orders::ServiceEventGenerator do
     let!(:rate_plan) { create(:rate_plan, :biweekly) }
 
     before do
-      create(:order_line_item, order: order, rate_plan: rate_plan, service_schedule: biweekly_schedule)
+      create(:rental_line_item, order: order, rate_plan: rate_plan, service_schedule: biweekly_schedule)
     end
 
     it "creates delivery, pickup, and recurring service events" do
@@ -63,12 +64,30 @@ RSpec.describe Orders::ServiceEventGenerator do
     end
   end
 
+  describe "monthly recurring rental" do
+    let(:start_date) { Date.new(2024, 1, 1) }
+    let(:end_date) { Date.new(2024, 4, 30) }
+    let(:order) { create(:order, start_date: start_date, end_date: end_date) }
+    let!(:rate_plan) { create(:rate_plan, service_schedule: monthly_schedule) }
+
+    before do
+      create(:rental_line_item, order: order, rate_plan: rate_plan, service_schedule: monthly_schedule)
+    end
+
+    it "creates monthly recurring service events" do
+      generate
+
+      service_dates = order.service_events.auto_generated.where(event_type: :service).order(:scheduled_on).pluck(:scheduled_on)
+      expect(service_dates).to eq([ start_date + 30, start_date + 60, start_date + 90 ])
+    end
+  end
+
   describe "idempotency" do
     let(:order) { create(:order, start_date: Date.new(2024, 3, 1), end_date: Date.new(2024, 3, 29)) }
     let!(:rate_plan) { create(:rate_plan, :weekly) }
 
     before do
-      create(:order_line_item, order: order, rate_plan: rate_plan, service_schedule: weekly_schedule)
+      create(:rental_line_item, order: order, rate_plan: rate_plan, service_schedule: weekly_schedule)
     end
 
     it "replaces existing auto-generated events on each run" do
@@ -86,7 +105,7 @@ RSpec.describe Orders::ServiceEventGenerator do
     let!(:rate_plan) { create(:rate_plan, :weekly) }
 
     before do
-      create(:order_line_item, order: order, rate_plan: rate_plan, service_schedule: weekly_schedule)
+      create(:rental_line_item, order: order, rate_plan: rate_plan, service_schedule: weekly_schedule)
       service_type = ServiceEventType.find_or_create_by!(key: "service") do |t|
         t.name = "Service"
         t.requires_report = true
@@ -120,6 +139,21 @@ RSpec.describe Orders::ServiceEventGenerator do
 
       remaining_ids = order.service_events.auto_generated.where(id: past_event_ids).pluck(:id)
       expect(remaining_ids).to match_array(past_event_ids)
+    end
+  end
+  describe "service-only orders" do
+    let(:order) { create(:order, start_date: Date.new(2024, 6, 1), end_date: Date.new(2024, 7, 1)) }
+
+    before do
+      create(:service_line_item, order: order, service_schedule: weekly_schedule, units_serviced: 5)
+    end
+
+    it "derives cadence from service-only line items" do
+      generate
+
+      service_events = order.service_events.auto_generated.where(event_type: :service).order(:scheduled_on).pluck(:scheduled_on)
+      expect(service_events).to include(Date.new(2024, 6, 8))
+      expect(service_events).to all(be >= order.start_date)
     end
   end
 end

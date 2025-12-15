@@ -10,7 +10,7 @@ RSpec.describe Routes::CapacitySummary do
   let(:rate_plan) { create(:rate_plan, unit_type: standard_type) }
 
   before do
-    create(:order_line_item, order: order, unit_type: standard_type, rate_plan: rate_plan, quantity: 6)
+    create(:rental_line_item, order: order, unit_type: standard_type, rate_plan: rate_plan, quantity: 6)
     create(:service_event, :delivery, order: order, route: route, route_date: route.route_date)
     create(:service_event, :service, order: order, route: route, route_date: route.route_date)
   end

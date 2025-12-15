@@ -111,8 +111,8 @@
             </thead>
 
             <tbody class="divide-y divide-gray-100 bg-white">
-              <% if @order_presenter.order_line_items.any? %>
-                <% @order_presenter.order_line_items.each do |li| %>
+              <% if @order_presenter.rental_line_items.any? %>
+                <% @order_presenter.rental_line_items.each do |li| %>
                   <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm font-medium text-gray-900">
                       <%= @order_presenter.line_item_unit_type_name(li) %>
@@ -141,7 +141,7 @@
             </tbody>
 
             <%# Footer subtotal row (presentation only) %>
-            <% if @order_presenter.order_line_items.any? %>
+            <% if @order_presenter.rental_line_items.any? %>
               <tfoot class="bg-gray-50">
                 <tr>
                   <td colspan="4" class="px-4 py-3 text-right text-sm font-medium text-gray-700">

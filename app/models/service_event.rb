@@ -40,14 +40,14 @@ class ServiceEvent < ApplicationRecord
   def estimated_gallons_pumped
     return 0 if event_type_delivery?
 
-    targeted_unit_types = order.order_line_items
+    targeted_unit_types = order.rental_line_items
                                .joins(:unit_type)
                                .where(unit_types: { slug: %w[standard ada] })
     targeted_unit_types.sum(:quantity) * 10
   end
 
   def units_impacted_count
-    order.order_line_items.sum(:quantity)
+    order.rental_line_items.sum(:quantity)
   end
 
   private

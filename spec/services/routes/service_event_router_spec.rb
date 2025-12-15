@@ -11,7 +11,7 @@ RSpec.describe Routes::ServiceEventRouter do
 
       order = create(:order, company: company)
       unit_type = create(:unit_type, :standard, company: company)
-      create(:order_line_item, order: order, unit_type: unit_type, quantity: 4)
+      create(:rental_line_item, order: order, unit_type: unit_type, quantity: 4)
       event = nil
 
       Routes::ServiceEventRouter.without_auto_assignment do
