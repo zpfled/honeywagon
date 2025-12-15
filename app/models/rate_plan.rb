@@ -5,6 +5,7 @@ class RatePlan < ApplicationRecord
     none:     'none',
     weekly:   'weekly',
     biweekly: 'biweekly',
+    monthly:  'monthly',
     event:    'event'
   }.freeze
   BILLING_PERIODS = %w[monthly per_event].freeze

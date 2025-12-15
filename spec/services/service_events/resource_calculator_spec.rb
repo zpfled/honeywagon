@@ -11,9 +11,9 @@ RSpec.describe ServiceEvents::ResourceCalculator do
   let!(:handwash_plan) { create(:rate_plan, unit_type: handwash_type) }
 
   before do
-    create(:order_line_item, order: order, unit_type: standard_type, rate_plan: standard_plan, quantity: 2)
-    create(:order_line_item, order: order, unit_type: ada_type, rate_plan: ada_plan, quantity: 1)
-    create(:order_line_item, order: order, unit_type: handwash_type, rate_plan: handwash_plan, quantity: 5)
+    create(:rental_line_item, order: order, unit_type: standard_type, rate_plan: standard_plan, quantity: 2)
+    create(:rental_line_item, order: order, unit_type: ada_type, rate_plan: ada_plan, quantity: 1)
+    create(:rental_line_item, order: order, unit_type: handwash_type, rate_plan: handwash_plan, quantity: 5)
   end
 
   describe '#usage' do

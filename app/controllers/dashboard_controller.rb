@@ -2,7 +2,7 @@ class DashboardController < ApplicationController
   def index
     @routes = current_user.company.routes.upcoming
                           .includes(:truck, :trailer,
-                                    service_events: [ order: [ :customer, :location, { order_line_items: :unit_type } ] ])
+                                    service_events: [ order: [ :customer, :location, { rental_line_items: :unit_type } ] ])
     @trucks = current_user.company.trucks.order(:name, :number)
     @trailers = current_user.company.trailers.order(:name, :identifier)
     @new_route = current_user.company.routes.new(

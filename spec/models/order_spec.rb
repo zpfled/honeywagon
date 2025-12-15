@@ -172,7 +172,7 @@ RSpec.describe Order, type: :model do
         start_date: Date.new(2024, 9, 2),
         end_date: Date.new(2024, 9, 6)
       )
-      create(:order_line_item, order: order, service_schedule: RatePlan::SERVICE_SCHEDULES[:none])
+      create(:rental_line_item, order: order, service_schedule: RatePlan::SERVICE_SCHEDULES[:none])
 
       expect { order.schedule! }.to change { order.service_events.count }.from(0).to(2)
       expect(order.service_events.order(:scheduled_on).pluck(:event_type)).to eq(%w[delivery pickup])

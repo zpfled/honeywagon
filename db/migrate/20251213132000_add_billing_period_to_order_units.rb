@@ -21,7 +21,7 @@ class AddBillingPeriodToOrderUnits < ActiveRecord::Migration[7.0]
           oli.unit_type_id,
           oli.billing_period,
           generate_series(1, oli.quantity) AS slot_index
-        FROM order_line_items oli
+        FROM rental_line_items oli
       )
       UPDATE order_units ou
          SET billing_period = eli.billing_period

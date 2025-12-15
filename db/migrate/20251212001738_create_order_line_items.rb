@@ -1,6 +1,6 @@
-class CreateOrderLineItems < ActiveRecord::Migration[8.1]
+class CreateRentalLineItems < ActiveRecord::Migration[8.1]
   def change
-    create_table :order_line_items, id: :uuid do |t|
+    create_table :rental_line_items, id: :uuid do |t|
       t.references :order, null: false, foreign_key: true, type: :uuid
       t.references :unit_type, null: false, foreign_key: true, type: :uuid
       t.references :rate_plan, null: false, foreign_key: true, type: :uuid

@@ -1,0 +1,2 @@
+module RentalLineItemsHelper
+end

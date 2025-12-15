@@ -71,4 +71,59 @@ RSpec.describe "Order line item form behaviour", type: :request do
       )
     )
   end
+
+  it "keeps service-only line items available after a validation error" do
+    order = create(
+      :order,
+      company: user.company,
+      customer: customer,
+      location: location,
+      start_date: Date.today,
+      end_date: Date.today + 7.days,
+      status: 'draft',
+      created_by: user
+    )
+
+    create(
+      :service_line_item,
+      order: order,
+      description: 'Customer-owned fleet',
+      service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly],
+      units_serviced: 4
+    )
+
+    patch order_path(order), params: {
+      order: {
+        customer_id: customer.id,
+        location_id: location.id,
+        start_date: "", # force error
+        end_date: order.end_date,
+        status: 'draft',
+        service_line_items: {
+          "0" => {
+            description: 'Customer-owned fleet',
+            service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly],
+            units_serviced: 4
+          }
+        }
+      }
+    }
+
+    expect(response).to have_http_status(:unprocessable_content)
+
+    doc = Nokogiri::HTML.parse(response.body)
+    widget = doc.at_css('[data-controller="order-items"]')
+    expect(widget).to be_present
+
+    payload = widget['data-order-items-service-existing-value']
+    parsed = JSON.parse(payload)
+
+    expect(parsed).to include(
+      a_hash_including(
+        "description" => "Customer-owned fleet",
+        "service_schedule" => RatePlan::SERVICE_SCHEDULES[:weekly],
+        "units_serviced" => 4
+      )
+    )
+  end
 end

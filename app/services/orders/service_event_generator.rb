@@ -82,24 +82,42 @@ module Orders
         7
       when RatePlan::SERVICE_SCHEDULES[:biweekly]
         14
+      when RatePlan::SERVICE_SCHEDULES[:monthly]
+        30
       else
         nil
       end
     end
 
-    # Derives the service schedule from the line items or their rate plans.
+    # Derives the service schedule from rental or service-only line items.
     def effective_service_schedule
-      line_item = line_item_with_schedule
-      line_item&.service_schedule.presence ||
-        line_item&.rate_plan&.service_schedule.presence ||
+      schedule_from_service_line_items ||
+        schedule_from_rental_line_items ||
         RatePlan::SERVICE_SCHEDULES[:none]
     end
 
-    # Picks the first line item that declares a schedule directly or via rate plan.
-    def line_item_with_schedule
-      order.order_line_items.detect do |line_item|
-        line_item.service_schedule.present? || line_item.rate_plan&.service_schedule.present?
+    def schedule_from_service_line_items
+      item = order.service_line_items.detect { |li| schedule_present?(li.service_schedule) }
+      item&.service_schedule
+    end
+
+    def schedule_from_rental_line_items
+      item = order.rental_line_items.detect do |line_item|
+        schedule_present?(line_item.service_schedule) ||
+          schedule_present?(line_item.rate_plan&.service_schedule)
       end
+
+      return unless item
+
+      if schedule_present?(item.service_schedule)
+        item.service_schedule
+      else
+        item.rate_plan&.service_schedule
+      end
+    end
+
+    def schedule_present?(value)
+      value.present? && value != RatePlan::SERVICE_SCHEDULES[:none]
     end
 
     # Ensures a ServiceEventType exists for the provided enum symbol.

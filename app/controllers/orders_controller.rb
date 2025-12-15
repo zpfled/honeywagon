@@ -26,7 +26,8 @@ class OrdersController < ApplicationController
     builder = Orders::Builder.new(@order)
     builder.assign(
       params:               order_params,
-      unit_type_requests: unit_type_requests_params
+      unit_type_requests:   unit_type_requests_params,
+      service_item_requests: service_line_items_params
     )
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order created.'
@@ -41,7 +42,8 @@ class OrdersController < ApplicationController
     builder = Orders::Builder.new(@order)
     builder.assign(
       params:               order_params,
-      unit_type_requests: unit_type_requests_params
+      unit_type_requests:   unit_type_requests_params,
+      service_item_requests: service_line_items_params
     )
 
     if @order.errors.empty? && @order.save
@@ -120,6 +122,37 @@ class OrdersController < ApplicationController
         unit_type_id: attrs[:unit_type_id],
         rate_plan_id: attrs[:rate_plan_id],
         quantity: attrs[:quantity].to_i
+      }
+    end
+  end
+
+  def service_line_items_params
+    raw = params.dig(:order, :service_line_items)
+    return [] unless raw.present?
+
+    entries =
+      if raw.is_a?(Array)
+        raw
+      else
+        raw.respond_to?(:values) ? raw.values : Array(raw)
+      end
+
+    entries.map do |entry|
+      source =
+        if entry.respond_to?(:to_unsafe_h)
+          entry.to_unsafe_h
+        elsif entry.respond_to?(:to_h)
+          entry.to_h
+        else
+          entry
+        end
+
+      attrs = source.respond_to?(:with_indifferent_access) ? source.with_indifferent_access : source
+
+      {
+        description: attrs[:description],
+        service_schedule: attrs[:service_schedule],
+        units_serviced: attrs[:units_serviced]
       }
     end
   end

@@ -9,6 +9,7 @@ RSpec.describe Orders::Builder do
   let(:start_date) { Date.today }
   let(:end_date)   { Date.today + 7.days }
   let(:weekly_schedule) { RatePlan::SERVICE_SCHEDULES[:weekly] }
+  let(:monthly_schedule) { RatePlan::SERVICE_SCHEDULES[:monthly] }
 
   let(:order_params) do
     {
@@ -80,7 +81,7 @@ RSpec.describe Orders::Builder do
       )
     end
 
-    it 'builds order_units and order_line_items and sets rental_subtotal_cents' do
+    it 'builds order_units and rental_line_items and sets rental_subtotal_cents' do
       standard = create(:unit_type, :standard, company: company)
       ada      = create(:unit_type, :ada, company: company)
 
@@ -126,10 +127,10 @@ RSpec.describe Orders::Builder do
       expect(order.order_units.map(&:billing_period).uniq).to eq([ 'monthly' ])
 
       # line items created
-      expect(order.order_line_items.size).to eq(2)
+      expect(order.rental_line_items.size).to eq(2)
 
-      li_standard = order.order_line_items.find { |li| li.unit_type_id == standard.id }
-      li_ada      = order.order_line_items.find { |li| li.unit_type_id == ada.id }
+      li_standard = order.rental_line_items.find { |li| li.unit_type_id == standard.id }
+      li_ada      = order.rental_line_items.find { |li| li.unit_type_id == ada.id }
 
       expect(li_standard.rate_plan).to eq(standard_weekly)
       expect(li_standard.quantity).to eq(2)
@@ -196,7 +197,7 @@ RSpec.describe Orders::Builder do
 
       expect(order.errors.full_messages.join(' ')).to match(/Only 1 .* available/i)
       expect(order.order_units).to be_empty
-      expect(order.order_line_items).to be_empty
+      expect(order.rental_line_items).to be_empty
       expect(order.rental_subtotal_cents.to_i).to eq(0)
     end
 
@@ -218,7 +219,7 @@ RSpec.describe Orders::Builder do
 
       expect(order.errors.full_messages.join(' ')).to match(/rate plan/i)
       expect(order.order_units).to be_empty
-      expect(order.order_line_items).to be_empty
+      expect(order.rental_line_items).to be_empty
     end
 
     it 'replaces existing units and line items on update' do
@@ -249,7 +250,7 @@ RSpec.describe Orders::Builder do
       # Existing assignment (simulate older state)
       create(:order_unit, order: order, unit: Unit.available_between(start_date, end_date).where(unit_type_id: standard.id, company_id: company.id).first, placed_on: start_date)
       create(
-        :order_line_item,
+        :rental_line_item,
         order: order,
         unit_type: standard,
         rate_plan: standard_weekly,
@@ -261,7 +262,7 @@ RSpec.describe Orders::Builder do
       )
 
       expect(order.order_units.count).to eq(1)
-      expect(order.order_line_items.count).to eq(1)
+      expect(order.rental_line_items.count).to eq(1)
 
       builder = described_class.new(order)
 
@@ -274,8 +275,8 @@ RSpec.describe Orders::Builder do
 
       expect(order.errors).to be_empty
       expect(order.order_units.size).to eq(3)
-      expect(order.order_line_items.size).to eq(1)
-      expect(order.order_line_items.first.quantity).to eq(3)
+      expect(order.rental_line_items.size).to eq(1)
+      expect(order.rental_line_items.first.quantity).to eq(3)
       expect(order.rental_subtotal_cents).to eq(42_000)
     end
 
@@ -304,6 +305,52 @@ RSpec.describe Orders::Builder do
 
       expect(order.order_units.size).to eq(1)
       expect(order.order_units.first.billing_period).to eq('per_event')
+    end
+
+    it 'builds service-only line items from the payload' do
+      order = company.orders.new(created_by: user)
+      builder = described_class.new(order)
+
+      builder.assign(
+        params: order_params,
+        unit_type_requests: [],
+        service_item_requests: [
+          {
+            description: 'Customer-owned ADA fleet',
+            service_schedule: monthly_schedule,
+            units_serviced: 6
+          }
+        ]
+      )
+
+      expect(order.errors).to be_empty
+      expect(order.service_line_items.size).to eq(1)
+
+      service_item = order.service_line_items.first
+      expect(service_item.description).to eq('Customer-owned ADA fleet')
+      expect(service_item.service_schedule).to eq(monthly_schedule)
+      expect(service_item.units_serviced).to eq(6)
+    end
+
+    it 'adds validation errors for malformed service-only payloads' do
+      order = company.orders.new(created_by: user)
+      builder = described_class.new(order)
+
+      builder.assign(
+        params: order_params,
+        unit_type_requests: [],
+        service_item_requests: [
+          {
+            description: '',
+            service_schedule: 'invalid',
+            units_serviced: 0
+          }
+        ]
+      )
+
+      expect(order.errors).not_to be_empty
+      expect(order.errors.full_messages.join(' ')).to match(/service line items/i)
+      expect(order.service_line_items).to be_empty
     end
   end
 end

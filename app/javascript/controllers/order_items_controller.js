@@ -1,5 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
+const SERVICE_OPTION = "service-only"
+const SERVICE_RATE_PLANS = [
+  { id: "service-monthly", label: "Monthly service (service-only)", schedule: "monthly" },
+  { id: "service-event", label: "Event service (service-only)", schedule: "event" }
+]
+
 // Manages the interactive "Add item" flow on the order form.
 export default class extends Controller {
   static targets = [
@@ -12,25 +18,33 @@ export default class extends Controller {
     "rowTemplate",
     "error",
     "emptyState",
-    "ratePlanLink"
+    "ratePlanLink",
+    "descriptionWrapper",
+    "description",
+    "quantityLabel"
   ]
 
   static values = {
     unitTypes: Array,
     ratePlans: Object,
     existing: Array,
+    serviceExisting: Array,
     nextIndex: Number,
+    serviceNextIndex: Number,
     newRatePlanUrl: String
   }
 
   connect() {
     if (!this.hasNextIndexValue) this.nextIndexValue = 0
+    if (!this.hasServiceNextIndexValue) this.serviceNextIndexValue = 0
     this.ratePlanCreatedHandler = (event) => this.ratePlanCreated(event)
     window.addEventListener("rate-plan-created", this.ratePlanCreatedHandler)
 
     this.hideForm()
+    this.toggleServiceFields()
     this.populateRatePlanOptions()
     this.populateExistingRows()
+    this.populateExistingServiceRows()
     this.updateEmptyState()
     this.updateRatePlanLink()
   }
@@ -56,6 +70,7 @@ export default class extends Controller {
   }
 
   unitTypeChanged() {
+    this.toggleServiceFields()
     this.populateRatePlanOptions()
     this.updateRatePlanLink()
   }
@@ -64,6 +79,53 @@ export default class extends Controller {
     event.preventDefault()
     this.clearError()
 
+    if (this.isServiceSelection()) {
+      this.addServiceItem()
+    } else {
+      this.addRentalItem()
+    }
+  }
+
+  removeRow(event) {
+    event.preventDefault()
+    const row = event.currentTarget.closest("[data-role='row']")
+    if (row) {
+      row.remove()
+      this.updateEmptyState()
+    }
+  }
+
+  // Private helpers
+
+  hideForm() {
+    this.formTarget.hidden = true
+    this.addButtonTarget.classList.remove("hidden")
+  }
+
+  resetFormFields() {
+    this.unitTypeTarget.value = ""
+    this.quantityTarget.value = 1
+    if (this.hasDescriptionTarget) this.descriptionTarget.value = ""
+    this.toggleServiceFields()
+    this.populateRatePlanOptions()
+  }
+
+  toggleServiceFields() {
+    const serviceMode = this.isServiceSelection()
+    if (this.hasDescriptionWrapperTarget) {
+      this.descriptionWrapperTarget.hidden = !serviceMode
+    }
+
+    if (this.hasQuantityLabelTarget) {
+      this.quantityLabelTarget.textContent = serviceMode ? "Units serviced" : "Quantity"
+    }
+  }
+
+  isServiceSelection() {
+    return this.unitTypeTarget.value === SERVICE_OPTION
+  }
+
+  addRentalItem() {
     const unitTypeId = this.unitTypeTarget.value
     const quantity = parseInt(this.quantityTarget.value, 10)
     const ratePlanId = this.ratePlanTarget.value
@@ -87,7 +149,7 @@ export default class extends Controller {
       return this.showError("Invalid line item selection.")
     }
 
-    this.appendRow({
+    this.appendRentalRow({
       unitTypeId,
       unitTypeName,
       ratePlanId,
@@ -99,26 +161,33 @@ export default class extends Controller {
     this.hideForm()
   }
 
-  removeRow(event) {
-    event.preventDefault()
-    const row = event.currentTarget.closest("[data-role='row']")
-    if (row) {
-      row.remove()
-      this.updateEmptyState()
+  addServiceItem() {
+    const description = this.descriptionTarget?.value?.trim()
+    const quantity = parseInt(this.quantityTarget.value, 10)
+    const ratePlanId = this.ratePlanTarget.value
+
+    if (!description) {
+      return this.showError("Describe the service work for customer-owned units.")
     }
-  }
 
-  // Private helpers
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      return this.showError("Units serviced must be at least 1.")
+    }
 
-  hideForm() {
-    this.formTarget.hidden = true
-    this.addButtonTarget.classList.remove("hidden")
-  }
+    const plan = SERVICE_RATE_PLANS.find((p) => p.id === ratePlanId)
+    if (!plan) {
+      return this.showError("Select a service cadence.")
+    }
 
-  resetFormFields() {
-    this.unitTypeTarget.value = ""
-    this.quantityTarget.value = 1
-    this.populateRatePlanOptions()
+    this.appendServiceRow({
+      description,
+      ratePlanLabel: plan.label,
+      schedule: plan.schedule,
+      quantity
+    })
+
+    this.resetFormFields()
+    this.hideForm()
   }
 
   populateRatePlanOptions() {
@@ -142,13 +211,11 @@ export default class extends Controller {
     this.ratePlanTarget.innerHTML = ""
     this.ratePlanTarget.appendChild(fragment)
     this.ratePlanTarget.disabled = plans.length === 0
-    this.updateRatePlanLink()
   }
 
   populateExistingRows() {
-    if (!this.hasExistingValue || this.existingValue.length === 0) return
-
-    this.existingValue.forEach((item) => {
+    const rentals = this.existingValue || []
+    rentals.forEach((item) => {
       const unitTypeId = item.unit_type_id || item["unit_type_id"]
       const ratePlanId = item.rate_plan_id || item["rate_plan_id"]
       const unitTypeName = this.lookupUnitTypeName(unitTypeId)
@@ -157,7 +224,7 @@ export default class extends Controller {
 
       if (!unitTypeName || !ratePlanLabel) return
 
-      this.appendRow({
+      this.appendRentalRow({
         unitTypeId,
         unitTypeName,
         ratePlanId,
@@ -167,30 +234,67 @@ export default class extends Controller {
     })
   }
 
-  appendRow(payload) {
+  populateExistingServiceRows() {
+    const serviceItems = this.serviceExistingValue || []
+    serviceItems.forEach((item) => {
+      const schedule = item.service_schedule || item["service_schedule"] || "event"
+      const label = `Service-only • ${this.humanize(schedule)}`
+      const units = item.units_serviced || item["units_serviced"] || 1
+      const description = item.description || item["description"] || "Service-only work"
+
+      this.appendServiceRow({
+        description,
+        ratePlanLabel: label,
+        schedule,
+        quantity: units
+      })
+    })
+  }
+
+  appendRentalRow(payload) {
     const index = this.nextIndexValue++
     const fragment = this.rowTemplateTarget.content.cloneNode(true)
     const row = fragment.querySelector("[data-role='row']")
+    row.dataset.itemType = "rental"
 
-    row.dataset.index = index
     row.querySelector("[data-role='summary']").textContent = payload.unitTypeName
     row.querySelector("[data-role='details']").textContent = payload.ratePlanLabel
     row.querySelector("[data-role='quantity']").textContent = `Qty: ${payload.quantity}`
 
-    const unitInput = row.querySelector("[data-role='unitTypeInput']")
-    unitInput.name = `order[unit_type_requests][${index}][unit_type_id]`
-    unitInput.value = payload.unitTypeId
-
-    const rateInput = row.querySelector("[data-role='ratePlanInput']")
-    rateInput.name = `order[unit_type_requests][${index}][rate_plan_id]`
-    rateInput.value = payload.ratePlanId
-
-    const qtyInput = row.querySelector("[data-role='quantityInput']")
-    qtyInput.name = `order[unit_type_requests][${index}][quantity]`
-    qtyInput.value = payload.quantity
+    const container = row.querySelector("[data-role='hiddenContainer']")
+    container.appendChild(this.buildHiddenInput(`order[unit_type_requests][${index}][unit_type_id]`, payload.unitTypeId))
+    container.appendChild(this.buildHiddenInput(`order[unit_type_requests][${index}][rate_plan_id]`, payload.ratePlanId))
+    container.appendChild(this.buildHiddenInput(`order[unit_type_requests][${index}][quantity]`, payload.quantity))
 
     this.rowsTarget.appendChild(fragment)
     this.updateEmptyState()
+  }
+
+  appendServiceRow(payload) {
+    const index = this.serviceNextIndexValue++
+    const fragment = this.rowTemplateTarget.content.cloneNode(true)
+    const row = fragment.querySelector("[data-role='row']")
+    row.dataset.itemType = "service"
+
+    row.querySelector("[data-role='summary']").textContent = payload.description
+    row.querySelector("[data-role='details']").textContent = payload.ratePlanLabel
+    row.querySelector("[data-role='quantity']").textContent = `Units: ${payload.quantity}`
+
+    const container = row.querySelector("[data-role='hiddenContainer']")
+    container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][description]`, payload.description))
+    container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][service_schedule]`, payload.schedule))
+    container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][units_serviced]`, payload.quantity))
+
+    this.rowsTarget.appendChild(fragment)
+    this.updateEmptyState()
+  }
+
+  buildHiddenInput(name, value) {
+    const input = document.createElement("input")
+    input.type = "hidden"
+    input.name = name
+    input.value = value
+    return input
   }
 
   updateEmptyState() {
@@ -212,6 +316,10 @@ export default class extends Controller {
   }
 
   lookupUnitTypeName(id) {
+    if (String(id) === SERVICE_OPTION) {
+      return "Service-only (customer-owned units)"
+    }
+
     if (!this.hasUnitTypesValue) return null
     const unitType = this.unitTypesValue.find((ut) => String(ut.id) === String(id))
     return unitType ? unitType.name : null
@@ -225,6 +333,7 @@ export default class extends Controller {
 
   plansForUnitType(unitTypeId) {
     if (!unitTypeId) return []
+    if (unitTypeId === SERVICE_OPTION) return SERVICE_RATE_PLANS
 
     let plans = this.ratePlansValue?.[unitTypeId] || []
     if (plans.length > 0) return plans
@@ -247,9 +356,9 @@ export default class extends Controller {
   updateRatePlanLink() {
     if (!this.hasRatePlanLinkTarget) return
 
-    const hasUnitType = Boolean(this.unitTypeTarget?.value)
-    this.ratePlanLinkTarget.classList.toggle("opacity-50", !hasUnitType)
-    this.ratePlanLinkTarget.classList.toggle("pointer-events-none", !hasUnitType)
+    const disabled = !this.unitTypeTarget?.value || this.isServiceSelection()
+    this.ratePlanLinkTarget.classList.toggle("opacity-50", disabled)
+    this.ratePlanLinkTarget.classList.toggle("pointer-events-none", disabled)
   }
 
   openRatePlanModal(event) {
@@ -257,6 +366,11 @@ export default class extends Controller {
     const unitTypeId = this.unitTypeTarget.value
     if (!unitTypeId) {
       this.showError("Select a unit type before adding a rate plan.")
+      return
+    }
+
+    if (this.isServiceSelection()) {
+      this.showError("Service-only items do not use rental rate plans.")
       return
     }
 
@@ -290,5 +404,9 @@ export default class extends Controller {
         this.ratePlanTarget.value = String(planId)
       }
     }
+  }
+
+  humanize(value) {
+    return String(value || "").replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
   }
 }
