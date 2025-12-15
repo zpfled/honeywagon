@@ -15,6 +15,10 @@ Rails.application.routes.draw do
     resource :company, only: %i[show update]
   end
   resource :company, only: %i[edit update], controller: 'company'
+  namespace :api do
+    get 'places/autocomplete', to: 'places#autocomplete', as: :places_autocomplete
+    get 'places/details', to: 'places#details', as: :places_details
+  end
   resources :locations, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
   devise_for :users, controllers: { registrations: 'users/registrations' }

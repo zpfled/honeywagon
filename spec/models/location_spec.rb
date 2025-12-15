@@ -75,4 +75,25 @@ RSpec.describe Location, type: :model do
       expect(location_nil.dump_site?).to be(false)
     end
   end
+
+  describe "geocoding" do
+    it "looks up coordinates when missing" do
+      allow(GoogleMaps).to receive(:api_key).and_return("test-key")
+      client = instance_double(Geocoding::GoogleClient, geocode: { lat: 43.5, lng: -90.6 })
+      allow(Geocoding::GoogleClient).to receive(:new).and_return(client)
+
+      location = Location.create!(street: "123 Main St", city: "La Farge", state: "WI", zip: "54639")
+
+      expect(location.lat).to eq(43.5)
+      expect(location.lng).to eq(-90.6)
+    end
+
+    it "skips geocoding when API key missing" do
+      allow(GoogleMaps).to receive(:api_key).and_return(nil)
+      expect(Geocoding::GoogleClient).not_to receive(:new)
+
+      location = Location.create!(street: "123 Main St", city: "La Farge", state: "WI")
+      expect(location.lat).to be_nil
+    end
+  end
 end
