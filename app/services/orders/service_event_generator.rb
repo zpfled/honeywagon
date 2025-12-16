@@ -77,47 +77,12 @@ module Orders
 
     # Maps the effective schedule string to a recurrence interval in days.
     def recurring_interval_days
-      case effective_service_schedule
-      when RatePlan::SERVICE_SCHEDULES[:weekly]
-        7
-      when RatePlan::SERVICE_SCHEDULES[:biweekly]
-        14
-      when RatePlan::SERVICE_SCHEDULES[:monthly]
-        30
-      else
-        nil
-      end
+      Orders::ServiceScheduleResolver.interval_days(order)
     end
 
     # Derives the service schedule from rental or service-only line items.
     def effective_service_schedule
-      schedule_from_service_line_items ||
-        schedule_from_rental_line_items ||
-        RatePlan::SERVICE_SCHEDULES[:none]
-    end
-
-    def schedule_from_service_line_items
-      item = order.service_line_items.detect { |li| schedule_present?(li.service_schedule) }
-      item&.service_schedule
-    end
-
-    def schedule_from_rental_line_items
-      item = order.rental_line_items.detect do |line_item|
-        schedule_present?(line_item.service_schedule) ||
-          schedule_present?(line_item.rate_plan&.service_schedule)
-      end
-
-      return unless item
-
-      if schedule_present?(item.service_schedule)
-        item.service_schedule
-      else
-        item.rate_plan&.service_schedule
-      end
-    end
-
-    def schedule_present?(value)
-      value.present? && value != RatePlan::SERVICE_SCHEDULES[:none]
+      Orders::ServiceScheduleResolver.schedule_for(order)
     end
 
     # Ensures a ServiceEventType exists for the provided enum symbol.
