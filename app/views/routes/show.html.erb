@@ -148,7 +148,7 @@
                 </div>
               </td>
               <td class="px-4 py-3">
-                <div class="flex flex-col items-end gap-2">
+                <div class="inline-flex items-center gap-2">
                   <div class="inline-flex overflow-hidden rounded-full border border-gray-300 shadow-sm divide-x divide-gray-300">
                     <%= button_to "← Earlier",
                                   advance_route_service_event_path(@route, event),
@@ -161,11 +161,15 @@
                                   data: { turbo_confirm: "Move this service event to the next route?" },
                                   class: "inline-flex items-center bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 focus:z-10" %>
                   </div>
-                  <%= button_to "Delete",
-                                order_service_event_path(order, event),
+                  <%= button_to order_service_event_path(order, event),
                                 method: :delete,
                                 data: { turbo_confirm: "Delete this service event? This cannot be undone." },
-                                class: button_classes(variant: :danger, size: :sm) %>
+                                class: "inline-flex items-center rounded-full bg-transparent px-2 py-1 text-rose-500 hover:text-rose-700" do %>
+                    <span class="sr-only">Delete</span>
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M9 3h6a1 1 0 0 1 1 1v1h4a1 1 0 1 1 0 2h-1.1l-1.1 13.1a2 2 0 0 1-2 1.9H7.2a2 2 0 0 1-2-1.9L4.1 7H3a1 1 0 1 1 0-2h4V4a1 1 0 0 1 1-1Zm1 2v1h4V5Zm-2.9 2 1 12h8l1-12Z"/>
+                    </svg>
+                  <% end %>
                 </div>
               </td>
             </tr>
