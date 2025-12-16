@@ -25,6 +25,14 @@ module Routes
       end
     end
 
+    def complete
+      if @service_event.update(status: :completed)
+        redirect_to route_path(@route), notice: 'Service event marked completed.'
+      else
+        redirect_to route_path(@route), alert: @service_event.errors.full_messages.to_sentence
+      end
+    end
+
     private
 
     def set_route

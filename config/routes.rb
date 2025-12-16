@@ -11,6 +11,7 @@ Rails.application.routes.draw do
     resources :service_events, only: [], module: :routes do
       post :postpone, on: :member
       post :advance, on: :member
+      post :complete, on: :member
     end
   end
   resources :service_event_reports, only: [ :index, :new, :create ]
