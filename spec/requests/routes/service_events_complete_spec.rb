@@ -18,8 +18,10 @@ RSpec.describe 'Routes::ServiceEventsController#complete', type: :request do
   end
 
   it 'surfaces validation errors' do
-    allow_any_instance_of(ServiceEvent).to receive(:update).and_return(false)
-    allow_any_instance_of(ServiceEvent).to receive(:errors).and_return(double(full_messages_to_sentence: 'Error'))
+    allow_any_instance_of(ServiceEvent).to receive(:update) do |instance, *|
+      instance.errors.add(:base, 'Error')
+      false
+    end
 
     post complete_route_service_event_path(route, service_event)
 
