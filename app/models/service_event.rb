@@ -53,6 +53,16 @@ class ServiceEvent < ApplicationRecord
     order.rental_line_items.sum(:quantity)
   end
 
+  def overdue?
+    return false if scheduled_on.blank?
+    status_scheduled? && scheduled_on < Date.current
+  end
+
+  def days_overdue
+    return 0 unless overdue?
+    (Date.current - scheduled_on).to_i
+  end
+
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :deleted, -> { with_deleted.where.not(deleted_at: nil) }
 

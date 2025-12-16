@@ -118,15 +118,17 @@
             <% order = event.order %>
             <tr class="hover:bg-gray-50">
               <td class="px-4 py-3 whitespace-nowrap">
-                <div class="text-sm font-semibold text-gray-900"><%= l(event.scheduled_on, format: :long) %></div>
+                <div class="text-sm font-semibold <%= event.overdue? ? 'text-rose-600' : 'text-gray-900' %>">
+                  <%= l(event.scheduled_on, format: :long) %>
+                </div>
+                <% if event.overdue? %>
+                  <div class="mt-1 inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
+                    Overdue • <%= pluralize(event.days_overdue, 'day') %>
+                  </div>
+                <% end %>
               </td>
               <td class="px-4 py-3">
-                <div class="flex flex-col gap-1">
-                  <%= badge(event.event_type.humanize, tone: :info) %>
-                  <% if (status_badge = service_event_status_badge(event)) %>
-                    <%= status_badge %>
-                  <% end %>
-                </div>
+                <%= badge(event.event_type.humanize, tone: :info) %>
               </td>
               <td class="<%= table_cell_class %>">
                 <%= event.units_impacted_count %>

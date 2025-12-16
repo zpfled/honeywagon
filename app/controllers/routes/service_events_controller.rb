@@ -5,28 +5,24 @@ module Routes
 
     def postpone
       next_route = find_or_create_next_route
+      return redirect_to(route_path(@route), alert: 'Unable to postpone service event.') unless next_route
 
-      if next_route
-        @service_event.update!(route: next_route, route_date: next_route.route_date)
+      if @service_event.update(route: next_route, route_date: next_route.route_date)
         redirect_to route_path(next_route), notice: 'Service event postponed to the next route.'
       else
-        redirect_to route_path(@route), alert: 'Unable to postpone service event.'
+        redirect_to route_path(@route), alert: @service_event.errors.full_messages.to_sentence
       end
-    rescue ActiveRecord::RecordInvalid => e
-      redirect_to route_path(@route), alert: e.record.errors.full_messages.to_sentence
     end
 
     def advance
-      previous_route = find_previous_route
+      prior_route = find_previous_route
+      return redirect_to(route_path(@route), alert: 'No earlier route available for this service event.') unless prior_route
 
-      if previous_route
-        @service_event.update!(route: previous_route, route_date: previous_route.route_date)
-        redirect_to route_path(previous_route), notice: 'Service event moved to the previous route.'
+      if @service_event.update(route: prior_route, route_date: prior_route.route_date)
+        redirect_to route_path(prior_route), notice: 'Service event moved to the previous route.'
       else
-        redirect_to route_path(@route), alert: 'No earlier route available for this service event.'
+        redirect_to route_path(@route), alert: @service_event.errors.full_messages.to_sentence
       end
-    rescue ActiveRecord::RecordInvalid => e
-      redirect_to route_path(@route), alert: e.record.errors.full_messages.to_sentence
     end
 
     private
@@ -40,18 +36,18 @@ module Routes
     end
 
     def find_or_create_next_route
-      company = current_user.company
-      next_route = company.routes.where('route_date > ?', @route.route_date).order(:route_date).first
-      return next_route if next_route
-
-      company.routes.create(route_date: @route.route_date + 1.day)
+      next_route = current_user.company.routes
+                               .where('route_date > ?', @route.route_date)
+                               .order(:route_date)
+                               .first
+      next_route || current_user.company.routes.create(route_date: @route.route_date + 1.day)
     end
 
     def find_previous_route
-      current_user.company.routes
-                  .where('route_date < ? AND route_date >= ?', @route.route_date, Date.current)
-                  .order(route_date: :desc)
-                  .first
+      @find_previous_route ||= current_user.company.routes
+                                           .where('route_date < ? AND route_date >= ?', @route.route_date, Date.current)
+                                           .order(route_date: :desc)
+                                           .first
     end
   end
 end
