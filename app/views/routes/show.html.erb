@@ -34,6 +34,27 @@
     </div>
   </div>
 
+  <% if @previous_route || @next_route %>
+    <div class="mt-4 flex items-center justify-between text-xs text-gray-600">
+      <div>
+        <% if @previous_route %>
+          <%= link_to route_path(@previous_route),
+              class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
+            ← <%= l(@previous_route.route_date, format: "%A, %B %-d") %>
+          <% end %>
+        <% end %>
+      </div>
+      <div>
+        <% if @next_route %>
+          <%= link_to route_path(@next_route),
+              class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
+            <%= l(@next_route.route_date, format: "%A, %B %-d") %> →
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
   <% capacity = @route.capacity_summary %>
   <% trailer_usage = capacity.trailer_usage %>
   <% clean_usage = capacity.clean_water_usage %>

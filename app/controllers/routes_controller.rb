@@ -14,7 +14,7 @@ class RoutesController < ApplicationController
   end
 
   def show
-    @service_events = @route.service_events.includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
+    build_presenter
   end
 
   def create
@@ -32,7 +32,7 @@ class RoutesController < ApplicationController
     if @route.update(route_params)
       redirect_to @route, notice: 'Route updated.'
     else
-      @service_events = @route.service_events.includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
+      build_presenter
       render :show, status: :unprocessable_content
     end
   end
@@ -43,9 +43,17 @@ class RoutesController < ApplicationController
     @route = current_user.company.routes.find(params[:id])
   end
 
+  def build_presenter
+    presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
+    @service_events = presenter.service_events
+    @previous_route = presenter.previous_route
+    @next_route = presenter.next_route
+  end
+
   def load_fleet_assets
-    @trucks = current_user.company.trucks.order(:name, :number)
-    @trailers = current_user.company.trailers.order(:name, :identifier)
+    company = current_user.company
+    @trucks = company.trucks.order(:name, :number)
+    @trailers = company.trailers.order(:name, :identifier)
   end
 
   def route_params
