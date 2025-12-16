@@ -3,9 +3,9 @@ module ServiceEventsHelper
   def service_event_status_badge(event)
     today = Date.current
 
-    if event.scheduled_on < today
+    if event.overdue?
       badge('Overdue', tone: :danger)
-    elsif event.scheduled_on <= today + 1.day
+    elsif event.status_scheduled? && event.scheduled_on.present? && event.scheduled_on <= today + 1.day
       badge('Due soon', tone: :warning)
     end
   end

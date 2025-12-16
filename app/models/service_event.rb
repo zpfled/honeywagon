@@ -54,13 +54,24 @@ class ServiceEvent < ApplicationRecord
   end
 
   def overdue?
+    return false unless status_scheduled?
     return false if scheduled_on.blank?
-    status_scheduled? && scheduled_on < Date.current
+
+    if event_type_delivery?
+      delivery_route_date.present? && delivery_route_date > scheduled_on
+    else
+      scheduled_on < Date.current
+    end
   end
 
   def days_overdue
     return 0 unless overdue?
-    (Date.current - scheduled_on).to_i
+
+    if event_type_delivery?
+      (delivery_route_date - scheduled_on).to_i
+    else
+      (Date.current - scheduled_on).to_i
+    end
   end
 
   scope :with_deleted, -> { unscope(where: :deleted_at) }
@@ -125,5 +136,9 @@ class ServiceEvent < ApplicationRecord
     return if route_id.present? || order.blank?
 
     Routes::ServiceEventRouter.new(self).call
+  end
+
+  def delivery_route_date
+    route_date || route&.route_date || scheduled_on
   end
 end
