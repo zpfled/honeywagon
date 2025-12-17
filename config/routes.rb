@@ -4,7 +4,7 @@ Rails.application.routes.draw do
       post :schedule
     end
 
-    resources :service_events, only: :destroy, module: :orders
+    resources :service_events, only: %i[create destroy], module: :orders
   end
   resources :service_events, only: :update
   resources :routes, only: [ :index, :show, :create, :update ] do
@@ -14,7 +14,7 @@ Rails.application.routes.draw do
       post :complete, on: :member
     end
   end
-  resources :service_event_reports, only: [ :index, :new, :create ]
+  resources :service_event_reports, only: [ :index, :new, :create, :edit, :update ]
   namespace :setup do
     resource :company, only: %i[show update]
   end

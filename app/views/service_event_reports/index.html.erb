@@ -15,6 +15,7 @@
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Address</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Units Serviced</th>
           <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Estimated Gallons</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">Actions</th>
         </tr>
       </thead>
 
@@ -43,11 +44,16 @@
               <td class="px-4 py-3 text-sm text-gray-900">
                 <%= report.data["estimated_gallons_pumped"].presence || "—" %>
               </td>
+              <td class="px-4 py-3 text-right">
+                <%= link_to "Edit", edit_service_event_report_path(report, redirect_path: service_event_reports_path),
+                            class: "inline-flex items-center rounded-full border border-gray-200 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50",
+                            data: { turbo_frame: "service_event_modal" } %>
+              </td>
             </tr>
           <% end %>
         <% else %>
           <tr>
-            <td colspan="5" class="px-4 py-10 text-center text-sm text-gray-500">
+            <td colspan="6" class="px-4 py-10 text-center text-sm text-gray-500">
               No service reports yet.
             </td>
           </tr>

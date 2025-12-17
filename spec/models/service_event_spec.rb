@@ -78,4 +78,38 @@ RSpec.describe ServiceEvent, type: :model do
       expect(event.reload.route).to eq(route)
     end
   end
+
+  describe '#overdue?' do
+    include ActiveSupport::Testing::TimeHelpers
+
+    it 'returns true for scheduled service events in the past' do
+      travel_to Date.new(2024, 1, 10) do
+        event = create(:service_event, :service, scheduled_on: Date.new(2024, 1, 5), status: :scheduled)
+        expect(event).to be_overdue
+        expect(event.days_overdue).to eq(5)
+      end
+    end
+
+    it 'returns false for completed events' do
+      travel_to Date.new(2024, 1, 10) do
+        event = create(:service_event, :service, scheduled_on: Date.new(2024, 1, 5), status: :completed)
+        expect(event).not_to be_overdue
+      end
+    end
+
+    it 'flags delivery events whose route date is after the scheduled date' do
+      travel_to Date.new(2024, 1, 10) do
+        route = create(:route, route_date: Date.new(2024, 1, 12))
+        event = create(:service_event, :delivery, scheduled_on: Date.new(2024, 1, 10), route: route, route_date: route.route_date)
+        expect(event).to be_overdue
+        expect(event.days_overdue).to eq(2)
+      end
+    end
+
+    it 'does not flag delivery events when route date is on or before schedule' do
+      route = create(:route, route_date: Date.current)
+      event = create(:service_event, :delivery, scheduled_on: Date.current, route: route, route_date: route.route_date)
+      expect(event).not_to be_overdue
+    end
+  end
 end

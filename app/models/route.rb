@@ -30,7 +30,10 @@ class Route < ApplicationRecord
   after_create :assign_service_events
   after_update_commit :propagate_route_date, if: -> { saved_change_to_route_date? }
 
-  scope :upcoming, -> { where('route_date >= ?', Date.current).order(:route_date) }
+  scope :upcoming, lambda {
+    today = Time.use_zone('Central Time (US & Canada)') { Time.zone.today }
+    where('route_date >= ?', today).order(:route_date)
+  }
 
   def service_event_count = service_events.count
   def estimated_gallons = service_events.sum(&:estimated_gallons_pumped)
