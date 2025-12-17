@@ -50,7 +50,7 @@ RSpec.describe "Order service events management", type: :request do
 
       expect(response).to redirect_to(order_path(order))
       follow_redirect!
-      expect(response.body).to include("Scheduled on can't be blank")
+      expect(CGI.unescapeHTML(response.body)).to include("Scheduled on can't be blank")
     end
   end
 end
