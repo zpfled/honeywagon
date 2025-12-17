@@ -1,4 +1,5 @@
 require 'rails_helper'
+require 'cgi'
 
 RSpec.describe "Order service events management", type: :request do
   let(:user) { create(:user) }
