@@ -48,6 +48,7 @@ class RoutesController < ApplicationController
     @service_events = presenter.service_events
     @previous_route = presenter.previous_route
     @next_route = presenter.next_route
+    @septage_load = presenter.septage_load
   end
 
   def load_fleet_assets

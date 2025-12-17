@@ -85,11 +85,23 @@
           <%= clean_usage[:used] %> / <%= clean_usage[:capacity] || '—' %> gal
         </span>
       </span>
+      <% default_summary = {
+           cumulative_used: septage_usage[:used],
+           capacity: septage_usage[:capacity],
+           remaining: septage_usage[:capacity] ? septage_usage[:capacity] - septage_usage[:used] : nil,
+           over_capacity: septage_usage[:capacity] && septage_usage[:used] > septage_usage[:capacity]
+         } %>
+      <% septage_summary = @septage_load || default_summary %>
+      <% septage_used = septage_summary[:cumulative_used] || septage_usage[:used] %>
+      <% septage_capacity = septage_summary[:capacity] %>
       <span>
         <span class="font-semibold text-gray-900">Septage:</span>
-        <span class="<%= septage_usage[:capacity] && septage_usage[:used] > septage_usage[:capacity] ? 'text-rose-700' : '' %>">
-          <%= septage_usage[:used] %> / <%= septage_usage[:capacity] || '—' %> gal
+        <span class="<%= septage_summary[:over_capacity] ? 'text-rose-700' : '' %>">
+          <%= septage_used %> / <%= septage_capacity || '—' %> gal
         </span>
+        <% if septage_summary[:remaining] %>
+          <span class="text-xs text-gray-500">(Remaining: <%= septage_summary[:remaining] %> gal)</span>
+        <% end %>
       </span>
     </div>
   <% end %>
