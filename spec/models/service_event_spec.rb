@@ -65,6 +65,42 @@ RSpec.describe ServiceEvent, type: :model do
       expect(event.estimated_gallons_pumped).to eq(30)
     end
   end
+
+  describe '#units_impacted_count' do
+    it 'counts rental units for deliveries and pickups' do
+      order = create(:order, status: 'scheduled')
+      unit_type = create(:unit_type, :standard, company: order.company)
+      rate_plan = create(:rate_plan, unit_type: unit_type)
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 4)
+
+      delivery_event = create(:service_event, :delivery, order: order)
+      pickup_event = create(:service_event, :pickup, order: order)
+
+      expect(delivery_event.units_impacted_count).to eq(4)
+      expect(pickup_event.units_impacted_count).to eq(4)
+    end
+
+    it 'includes service line item units for service events' do
+      order = create(:order, status: 'scheduled')
+      create(:service_line_item, order: order, units_serviced: 2)
+
+      event = create(:service_event, :service, order: order)
+
+      expect(event.units_impacted_count).to eq(2)
+    end
+
+    it 'sums rental and service units for service events' do
+      order = create(:order, status: 'scheduled')
+      unit_type = create(:unit_type, :standard, company: order.company)
+      rate_plan = create(:rate_plan, unit_type: unit_type)
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 3)
+      create(:service_line_item, order: order, units_serviced: 2)
+
+      event = create(:service_event, :service, order: order)
+
+      expect(event.units_impacted_count).to eq(5)
+    end
+  end
   describe "route auto-assignment" do
     it "assigns a newly created event to a nearby route" do
       company = create(:company)

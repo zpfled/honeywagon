@@ -50,7 +50,15 @@ class ServiceEvent < ApplicationRecord
   end
 
   def units_impacted_count
-    order.rental_line_items.sum(:quantity)
+    rental_units = order.rental_line_items.sum(:quantity)
+
+    case event_type.to_sym
+    when :delivery, :pickup
+      rental_units
+    else
+      service_units = order.service_line_items.sum(:units_serviced)
+      rental_units + service_units
+    end
   end
 
   def overdue?
