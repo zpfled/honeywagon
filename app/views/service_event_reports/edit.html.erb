@@ -5,7 +5,7 @@
       <div class="relative z-10 w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl">
         <div class="flex items-start justify-between">
           <div>
-            <h2 class="text-xl font-semibold text-gray-900">Complete Service Event</h2>
+            <h2 class="text-xl font-semibold text-gray-900">Edit Service Report</h2>
             <p class="text-sm text-gray-600 mt-1">
               <strong>Customer:</strong> <%= @prefill[:customer_name] %><br>
               <strong>Address:</strong> <%= @prefill[:customer_address] %>
@@ -17,7 +17,7 @@
           </button>
         </div>
         <div class="mt-4">
-          <%= render 'form', modal: true, redirect_path: params[:redirect_path] %>
+          <%= render 'form', modal: true, redirect_path: params[:redirect_path], form_url: service_event_report_path(@report), form_method: :patch %>
         </div>
       </div>
     </div>
@@ -25,7 +25,7 @@
 <% else %>
   <div class="mx-auto max-w-2xl px-4 py-8">
     <div class="mb-6">
-      <h1 class="text-2xl font-semibold text-gray-900">Complete Service Event</h1>
+      <h1 class="text-2xl font-semibold text-gray-900">Edit Service Report</h1>
       <p class="mt-1 text-sm text-gray-600">
         <strong>Customer:</strong> <%= @prefill[:customer_name] %><br>
         <strong>Address:</strong> <%= @prefill[:customer_address] %>
@@ -33,7 +33,7 @@
     </div>
 
     <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-      <%= render 'form', modal: false, redirect_path: params[:redirect_path] %>
+      <%= render 'form', modal: false, redirect_path: params[:redirect_path], form_url: service_event_report_path(@report), form_method: :patch %>
     </div>
   </div>
 <% end %>

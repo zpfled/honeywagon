@@ -90,40 +90,89 @@
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Date</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Service events</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Estimated gallons</th>
-          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Deliveries</th>
+          <th class="<%= table_header_class %>">Date</th>
+          <th class="<%= table_header_class %>">Deliveries</th>
+          <th class="<%= table_header_class %>">Services</th>
           <th class="<%= table_header_class %>">Pickups</th>
+          <th class="<%= table_header_class('text-right') %>">Est. gallons</th>
           <th class="<%= table_header_class %>">Truck • Trailer</th>
+          <th class="<%= table_header_class %>">Alerts</th>
           <th class="<%= table_header_class('text-right') %>">Actions</th>
         </tr>
       </thead>
-      <tbody class="divide-y divide-gray-100 bg-white">
+      <tbody class="divide-y divide-gray-100">
         <% if @routes.any? %>
           <% @routes.each do |route| %>
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm font-semibold text-gray-900"><%= l(route.route_date, format: :long) %></td>
-              <td class="px-4 py-3 text-sm text-gray-900"><%= route.service_event_count %></td>
-              <td class="<%= table_cell_class %>"><%= route.estimated_gallons %></td>
-              <td class="<%= table_cell_class %>"><%= route.deliveries_count %></td>
-              <td class="<%= table_cell_class %>"><%= route.pickups_count %></td>
+            <% row = Routes::DashboardRowPresenter.new(route) %>
+            <tr class="<%= row.row_background_class %> hover:bg-gray-50 transition">
+              <td class="<%= table_cell_class('font-semibold') %>">
+                <div><%= l(route.route_date, format: :long) %></div>
+                <div class="mt-1 text-xs text-gray-600">
+                  <%= badge(row.trend_badge[:text], tone: row.trend_badge[:tone]) %>
+                </div>
+              </td>
+              <td class="<%= table_cell_class %>">
+                <div class="text-sm font-semibold text-gray-900"><%= row.deliveries_count %></div>
+                <% if row.delivery_badges.any? %>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <% row.delivery_badges.each do |badge_info| %>
+                      <%= badge(badge_info[:text], tone: badge_info[:tone]) %>
+                    <% end %>
+                  </div>
+                <% end %>
+              </td>
+              <td class="<%= table_cell_class %>">
+                <div class="text-sm font-semibold text-gray-900"><%= row.services_count %></div>
+                <% if row.service_badges.any? %>
+                  <div class="mt-1 flex flex-wrap gap-1">
+                    <% row.service_badges.each do |badge_info| %>
+                      <%= badge(badge_info[:text], tone: badge_info[:tone]) %>
+                    <% end %>
+                  </div>
+                <% end %>
+                <% cadence = row.cadence_info %>
+                <div class="mt-1 text-xs text-gray-600">
+                  <% if cadence[:last_completed_on] %>
+                    Last serviced <%= time_ago_in_words(cadence[:last_completed_on]) %> ago
+                  <% else %>
+                    No completed services yet
+                  <% end %>
+                  <% if cadence[:next_due_on] %>
+                    • Next due <%= l(cadence[:next_due_on], format: :long) %>
+                  <% end %>
+                </div>
+              </td>
+              <td class="<%= table_cell_class %>"><%= row.pickups_count %></td>
+              <td class="<%= table_cell_class('', align: :right) %>"><%= row.estimated_gallons %></td>
               <td class="<%= table_cell_class %>">
                 <div><%= route.truck&.label || "—" %></div>
                 <div class="text-xs text-gray-500"><%= route.trailer&.label || "No trailer" %></div>
+                <% if row.capacity_icons.any? %>
+                  <div class="mt-2 flex gap-1">
+                    <% row.capacity_icons.each do |icon| %>
+                      <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white ring-1 ring-gray-200 text-base <%= icon[:tone] %>"
+                            title="<%= icon[:title] %>">
+                        <%= icon[:glyph] %>
+                      </span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </td>
+              <td class="<%= table_cell_class %>">
+                <div class="flex flex-wrap gap-1">
+                  <% row.alert_badges.each do |badge_info| %>
+                    <%= badge(badge_info[:text], tone: badge_info[:tone]) %>
+                  <% end %>
+                </div>
               </td>
               <td class="<%= table_cell_class('', align: :right) %>">
-                <% if route.over_capacity? %>
-                  <% dims = route.over_capacity_dimensions.map { |dim| dim.to_s.humanize.downcase }.join(', ') %>
-                  <%= badge("Over capacity (#{dims})", tone: :danger) %>
-                <% end %>
                 <%= link_to "View route", route_path(route), class: "#{button_classes size: :sm}" %>
               </td>
             </tr>
           <% end %>
         <% else %>
           <tr>
-            <td colspan="7" class="<%= table_cell_class('text-center', tone: :muted) %>">
+            <td colspan="8" class="<%= table_cell_class('text-center', tone: :muted) %>">
               No routes scheduled for the upcoming week.
             </td>
           </tr>

@@ -193,6 +193,34 @@
           <span class="text-sm text-gray-500"><%= @order_presenter.service_events_count %> scheduled</span>
         </div>
 
+        <div class="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+          <h3 class="text-sm font-semibold text-gray-900">Add manual service event</h3>
+          <p class="mt-1 text-xs text-gray-600">Schedule an additional delivery, service, or pickup for any date.</p>
+
+          <%= form_with url: order_service_events_path(@order_presenter.order),
+                        scope: :service_event,
+                        method: :post,
+                        class: "mt-3 grid gap-3 sm:flex sm:items-end" do |f| %>
+            <div>
+              <%= f.label :event_type, "Event type", class: "text-xs font-medium text-gray-700" %>
+              <%= f.select :event_type,
+                           options_for_select((@service_event_types || ServiceEvent.event_types.keys).map { |type| [type.humanize, type] }),
+                           {},
+                           class: "mt-1 block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+            </div>
+            <div>
+              <%= f.label :scheduled_on, "Scheduled date", class: "text-xs font-medium text-gray-700" %>
+              <%= f.date_field :scheduled_on,
+                               value: Date.current,
+                               class: "mt-1 block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+            </div>
+            <div class="sm:mt-5">
+              <%= f.submit "Add event",
+                           class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+            </div>
+          <% end %>
+        </div>
+
         <% if @order_presenter.service_events.any? %>
           <div class="mt-4 divide-y divide-gray-100">
             <% @order_presenter.service_events.each do |event| %>

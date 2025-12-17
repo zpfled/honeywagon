@@ -47,9 +47,14 @@ module Routes
       return unless company && route
 
       company.routes
-             .where('route_date < ? AND route_date >= ?', route.route_date, Date.current)
+             .where('route_date < ? AND route_date >= ?', route.route_date, central_today)
              .order(route_date: :desc)
              .first
+    end
+
+    # TODO: migrate to per-company time zones; Central Time is a temporary assumption.
+    def central_today
+      Time.use_zone('Central Time (US & Canada)') { Time.zone.today }
     end
   end
 end

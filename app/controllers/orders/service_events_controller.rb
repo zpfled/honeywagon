@@ -2,6 +2,16 @@ module Orders
   class ServiceEventsController < ApplicationController
     before_action :set_order
 
+    def create
+      @service_event = @order.service_events.new(service_event_params.merge(user: current_user, auto_generated: false))
+
+      if @service_event.save
+        redirect_to order_path(@order), notice: 'Service event added.'
+      else
+        redirect_to order_path(@order), alert: @service_event.errors.full_messages.to_sentence
+      end
+    end
+
     def destroy
       service_event = @order.service_events.find(params[:id])
       destination_route = service_event.route
@@ -17,6 +27,10 @@ module Orders
 
     def set_order
       @order = current_user.company.orders.find(params[:order_id])
+    end
+
+    def service_event_params
+      params.require(:service_event).permit(:event_type, :scheduled_on)
     end
 
     def route_destination(route)
