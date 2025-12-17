@@ -21,7 +21,7 @@ RSpec.describe Routes::SeptageTracker do
     route2 = create_route_with_usage(truck: truck, route_date: Date.current + 1, gallons: 30)
     route3 = create_route_with_usage(truck: other_truck, route_date: Date.current, gallons: 40)
 
-    tracker = described_class.new([route1, route2, route3])
+    tracker = described_class.new([ route1, route2, route3 ])
     loads = tracker.loads_by_route_id
 
     expect(loads[route1.id][:cumulative_used]).to eq(20)
