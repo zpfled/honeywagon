@@ -13,9 +13,9 @@ RSpec.describe Routes::BackfillServiceEvents do
     create(:trailer, company: company)
   end
 
-  it "assigns events within 2 days to an existing route" do
+  it "assigns service events within 2 days to an existing route" do
     route = create(:route, company: company, route_date: Date.today)
-    event = create(:service_event, :delivery, order: create(:order, company: company, created_by: user), scheduled_on: Date.today + 1.day, route: nil)
+    event = create(:service_event, :service, order: create(:order, company: company, created_by: user), scheduled_on: Date.today + 1.day, route: nil)
 
     assigned, created = described_class.new(company: company).call
 
@@ -24,7 +24,7 @@ RSpec.describe Routes::BackfillServiceEvents do
     expect(created).to eq(0)
   end
 
-  it "creates new routes when no nearby route exists" do
+  it "creates new routes for deliveries when no exact route exists" do
     event = create(:service_event, :delivery, order: create(:order, company: company, created_by: user), scheduled_on: Date.tomorrow + 5.days, route: nil)
 
     assigned, created = described_class.new(company: company).call

@@ -35,6 +35,22 @@ RSpec.describe ServiceEvents::ResourceCalculator do
       expect(usage[:septage_gallons]).to eq(30)     # 3 toilets * 10
     end
 
+    it 'includes service line item units for service events' do
+      create(:service_line_item, order: order, units_serviced: 2)
+      event = create(:service_event, :service, order: order)
+
+      usage = described_class.new(event).usage
+      # rental 3 + service-only 2 = 5 units -> 50 gallons
+      expect(usage[:septage_gallons]).to eq(50)
+    end
+
+    it 'honors estimated gallons overrides for septage usage' do
+      event = create(:service_event, :service, order: order, estimated_gallons_override: 75)
+      usage = described_class.new(event).usage
+
+      expect(usage[:septage_gallons]).to eq(75)
+    end
+
     it 'calculates pickup requirements' do
       event = create(:service_event, :pickup, order: order)
       usage = described_class.new(event).usage

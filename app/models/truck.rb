@@ -10,4 +10,13 @@ class Truck < ApplicationRecord
   def label
     [ name, number ].compact.join(' • ')
   end
+
+  def recalculate_septage_load!
+    total = ServiceEvent
+            .joins(:route)
+            .where(routes: { truck_id: id })
+            .where(status: ServiceEvent.statuses[:completed])
+            .sum { |event| event.estimated_gallons_pumped }
+    update_columns(septage_load_gal: total)
+  end
 end

@@ -23,5 +23,20 @@ RSpec.describe Routes::ServiceEventRouter do
       expect(event.reload.route.trailer).to eq(large_trailer)
       expect(event.route.trailer).not_to eq(small_trailer)
     end
+
+    it "assigns deliveries to a route on their scheduled date" do
+      create(:trailer, company: company, capacity_spots: 4)
+      order = create(:order, company: company, start_date: Date.today, end_date: Date.today + 2.days)
+      event = nil
+
+      Routes::ServiceEventRouter.without_auto_assignment do
+        event = create(:service_event, :delivery, order: order, scheduled_on: order.start_date, route: nil)
+      end
+
+      described_class.new(event).call
+
+      expect(event.reload.route.route_date).to eq(order.start_date)
+      expect(event.route_date).to eq(order.start_date)
+    end
   end
 end

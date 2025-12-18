@@ -30,6 +30,7 @@ class ServiceEventReportsController < ApplicationController
 
     ServiceEvent.transaction do
       report.save!
+      apply_estimated_gallons_override(report)
       @service_event.update!(status: :completed)
     end
 
@@ -61,6 +62,7 @@ class ServiceEventReportsController < ApplicationController
     data = @report.data.merge(report_params.compact)
 
     if @report.update(data: data)
+      apply_estimated_gallons_override(@report)
       redirect_to(params[:redirect_path].presence || service_event_reports_path, notice: 'Service report updated.')
     else
       flash.now[:alert] = @report.errors.full_messages.to_sentence
@@ -84,7 +86,11 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def report_params
-    params.fetch(:service_event_report, {}).permit(:estimated_gallons_pumped, :units_pumped).to_h
+    permitted = params.fetch(:service_event_report, {}).permit(:estimated_gallons_pumped, :units_pumped).to_h
+    permitted.transform_values do |value|
+      next if value.nil?
+      value.to_s.strip.presence&.to_i
+    end.compact
   end
 
   def default_prefill_data
@@ -93,5 +99,12 @@ class ServiceEventReportsController < ApplicationController
       customer_address: [ @service_event.order.location&.street, @service_event.order.location&.city, @service_event.order.location&.state, @service_event.order.location&.zip ].compact.join(', ').presence,
       units_pumped: @service_event.order.units.count
     }
+  end
+
+  def apply_estimated_gallons_override(report)
+    gallons = report.data['estimated_gallons_pumped']
+    return if gallons.blank?
+
+    @service_event.update_column(:estimated_gallons_override, gallons.to_i)
   end
 end

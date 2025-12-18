@@ -29,4 +29,32 @@ RSpec.describe Route do
       expect(event.reload.route_date).to eq(route.route_date)
     end
   end
+
+  describe '#serviced_units_count' do
+    it 'includes service line items in addition to rental units' do
+      route = create(:route)
+      order = create(:order, company: route.company, status: 'scheduled')
+      unit_type = create(:unit_type, :standard, company: route.company)
+      rate_plan = create(:rate_plan, unit_type: unit_type)
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 2)
+      create(:service_line_item, order: order, units_serviced: 3)
+
+      create(:service_event, :service, order: order, route: route, route_date: route.route_date)
+
+      expect(route.serviced_units_count).to eq(5)
+    end
+  end
+
+  describe '#estimated_gallons' do
+    it 'sums event estimates including overrides' do
+      route = create(:route)
+      order = create(:order, company: route.company, status: 'scheduled')
+      event_with_override = create(:service_event, :service, order: order, route: route, route_date: route.route_date, estimated_gallons_override: 25)
+      order2 = create(:order, company: route.company, status: 'scheduled')
+      create(:service_line_item, order: order2, units_serviced: 2)
+      event_with_service_units = create(:service_event, :service, order: order2, route: route, route_date: route.route_date)
+
+      expect(route.estimated_gallons).to eq(event_with_override.estimated_gallons_pumped + event_with_service_units.estimated_gallons_pumped)
+    end
+  end
 end

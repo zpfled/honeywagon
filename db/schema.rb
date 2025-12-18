@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_15_150000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_15_161500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -159,6 +159,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_150000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.uuid "deleted_by_id"
+    t.integer "estimated_gallons_override"
     t.integer "event_type"
     t.text "notes"
     t.uuid "order_id", null: false
@@ -206,6 +207,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_150000) do
     t.string "name", null: false
     t.string "number", null: false
     t.integer "septage_capacity_gal", default: 0, null: false
+    t.integer "septage_load_gal", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["company_id", "number"], name: "index_trucks_on_company_id_and_number", unique: true
     t.index ["company_id"], name: "index_trucks_on_company_id"

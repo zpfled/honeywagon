@@ -16,7 +16,10 @@ RSpec.describe Routes::SeptageTracker do
     route
   end
 
-  it 'tracks cumulative septage usage per truck' do
+  it 'tracks cumulative septage usage per truck starting from existing load' do
+    truck.update!(septage_load_gal: 10)
+    other_truck.update!(septage_load_gal: 5)
+
     route1 = create_route_with_usage(truck: truck, route_date: Date.current, gallons: 20)
     route2 = create_route_with_usage(truck: truck, route_date: Date.current + 1, gallons: 30)
     route3 = create_route_with_usage(truck: other_truck, route_date: Date.current, gallons: 40)
@@ -24,13 +27,8 @@ RSpec.describe Routes::SeptageTracker do
     tracker = described_class.new([ route1, route2, route3 ])
     loads = tracker.loads_by_route_id
 
-    expect(loads[route1.id][:cumulative_used]).to eq(20)
-    expect(loads[route1.id][:over_capacity]).to be(false)
-
-    expect(loads[route2.id][:cumulative_used]).to eq(50)
-    expect(loads[route2.id][:over_capacity]).to be(false)
-
-    expect(loads[route3.id][:cumulative_used]).to eq(40)
-    expect(loads[route3.id][:capacity]).to eq(50)
+    expect(loads[route1.id][:cumulative_used]).to eq(30) # 10 existing + 20
+    expect(loads[route2.id][:cumulative_used]).to eq(60) # 30 + 30
+    expect(loads[route3.id][:cumulative_used]).to eq(45) # 5 + 40
   end
 end

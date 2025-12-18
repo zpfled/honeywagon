@@ -15,11 +15,12 @@ RSpec.describe Routes::DashboardRowPresenter do
     standard_type = create(:unit_type, :standard, company: company)
     create(:rental_line_item, order: order, unit_type: standard_type, quantity: 2)
 
-    create(:service_event, :delivery,
-           order: order,
-           route: route,
-           route_date: route_date + 1.day,
-           scheduled_on: Date.current)
+    delivery = create(:service_event, :delivery,
+                      order: order,
+                      route: route,
+                      route_date: route_date,
+                      scheduled_on: route_date)
+    delivery.update_column(:route_date, route_date + 1.day)
 
     create(:service_event, :service,
            order: order,

@@ -15,10 +15,12 @@ module Routes
       created_routes = 0
 
       unrouted_events.find_each do |event|
-        route = find_matching_route(event) || create_route_for(event)
+        route = target_route_for(event)
         created_routes += 1 if route.previous_changes.key?('id')
 
-        event.update!(route: route, route_date: route.route_date)
+        attributes = { route: route }
+        attributes[:route_date] = event.logistics_locked? ? event.scheduled_on : route.route_date
+        event.update!(attributes)
         assigned += 1
       end
 
@@ -33,6 +35,14 @@ module Routes
       company.service_events.scheduled.where(route_id: nil)
     end
 
+    def target_route_for(event)
+      if event.logistics_locked?
+        company.routes.find_by(route_date: event.scheduled_on) || company.routes.create!(route_date: event.scheduled_on)
+      else
+        find_matching_route(event) || company.routes.create!(route_date: event.scheduled_on)
+      end
+    end
+
     def find_matching_route(event)
       target_date = event.scheduled_on
       range = (target_date - WINDOW)..(target_date + WINDOW)
@@ -40,10 +50,6 @@ module Routes
              .where(route_date: range)
              .order(Arel.sql("ABS(route_date - DATE '#{target_date}')"))
              .first
-    end
-
-    def create_route_for(event)
-      company.routes.create!(route_date: event.scheduled_on)
     end
   end
 end

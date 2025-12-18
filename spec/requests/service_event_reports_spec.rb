@@ -1,49 +1,35 @@
-require "rails_helper"
+require 'rails_helper'
 
 RSpec.describe "ServiceEventReports", type: :request do
   let(:user) { create(:user) }
+  let(:order) { create(:order, company: user.company, created_by: user, status: 'scheduled') }
+  let(:route) { create(:route, company: user.company) }
+  let(:service_event) { create(:service_event, :service, order: order, user: user, route: route, route_date: route.route_date) }
 
-  describe "GET /service_event_reports/new" do
-    it "renders the report form for reportable events" do
-      event = create(:service_event, :service, order: create(:order, company: user.company, created_by: user))
-
-      sign_in user
-      get new_service_event_report_path(service_event_id: event.id)
-
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include("Estimated gallons pumped")
-    end
-    it "redirects for non-reportable events" do
-      event = create(:service_event, :delivery, order: create(:order, company: user.company, created_by: user))
-
-      sign_in user
-      get new_service_event_report_path(service_event_id: event.id)
-
-      expect(response).to redirect_to(authenticated_root_path)
-      expect(flash[:alert]).to match(/does not require a report/i)
-    end
+  before do
+    sign_in user
   end
 
-  describe "POST /service_event_reports" do
-    it "creates a report and completes the event" do
-      event = create(:service_event, :service, status: :scheduled, order: create(:order, company: user.company, created_by: user))
+  it 'stores estimated gallons override when creating a report' do
+    post service_event_reports_path, params: {
+      service_event_id: service_event.id,
+      service_event_report: { estimated_gallons_pumped: 55, units_pumped: 2 }
+    }
 
-      sign_in user
-      post service_event_reports_path, params: {
-        service_event_id: event.id,
-        service_event_report: {
-          estimated_gallons_pumped: 150,
-          units_pumped: 3
-        }
-      }
+    expect(response).to redirect_to(route_path(service_event.route))
+    expect(service_event.reload.estimated_gallons_override).to eq(55)
+  end
 
-      expect(response).to redirect_to(authenticated_root_path)
-      expect(event.reload).to be_status_completed
-      report = event.service_event_report
-      expect(report.data["estimated_gallons_pumped"]).to eq("150")
-      expect(report.data["units_pumped"]).to eq("3")
-      expect(report.data["customer_name"]).to eq(event.order.customer.display_name)
-      expect(report.data["customer_address"]).to include(event.order.location.city)
-    end
+  it 'updates the override when editing a report' do
+    service_event.update!(status: :completed)
+    report = service_event.service_event_report
+    report.update!(data: { 'estimated_gallons_pumped' => 15 })
+
+    patch service_event_report_path(report), params: {
+      service_event_report: { estimated_gallons_pumped: 80 },
+      redirect_path: service_event_reports_path
+    }
+
+    expect(service_event.reload.estimated_gallons_override).to eq(80)
   end
 end

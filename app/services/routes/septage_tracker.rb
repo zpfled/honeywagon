@@ -8,13 +8,14 @@ module Routes
     def loads_by_route_id
       @loads_by_route_id ||= begin
         result = {}
-        routes_grouped_by_truck.each do |_truck_id, truck_routes|
-          cumulative = 0
-          truck_routes.sort_by(&:route_date).each do |route|
-            usage = route.capacity_summary.septage_usage
-            cumulative += usage[:used]
-            capacity = usage[:capacity]
+        routes_grouped_by_truck.each do |truck, truck_routes|
+          truck = truck&.reload
+          cumulative = truck&.septage_load_gal.to_i
+          capacity = truck&.septage_capacity_gal
 
+          truck_routes.sort_by(&:route_date).each do |route|
+            usage = route.capacity_summary.septage_usage[:used]
+            cumulative += usage
             result[route.id] = {
               cumulative_used: cumulative,
               capacity: capacity,
@@ -32,7 +33,7 @@ module Routes
     attr_reader :routes
 
     def routes_grouped_by_truck
-      routes.group_by(&:truck_id)
+      routes.group_by(&:truck)
     end
   end
 end

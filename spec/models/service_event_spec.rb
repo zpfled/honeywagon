@@ -49,6 +49,11 @@ RSpec.describe ServiceEvent, type: :model do
   end
 
   describe '#estimated_gallons_pumped' do
+    it 'uses override when present' do
+      event = create(:service_event, estimated_gallons_override: 25)
+      expect(event.estimated_gallons_pumped).to eq(25)
+    end
+
     it 'returns zero for delivery events' do
       event = create(:service_event, :delivery)
       expect(event.estimated_gallons_pumped).to eq(0)
@@ -63,6 +68,32 @@ RSpec.describe ServiceEvent, type: :model do
       event = create(:service_event, :service, order: order)
 
       expect(event.estimated_gallons_pumped).to eq(30)
+    end
+
+    it 'includes service line items for service events' do
+      order = create(:order, status: 'scheduled')
+      create(:service_line_item, order: order, units_serviced: 2)
+
+      event = create(:service_event, :service, order: order)
+
+      expect(event.estimated_gallons_pumped).to eq(20)
+    end
+  end
+
+  describe 'truck septage load maintenance' do
+    it 'recalculates truck load when override changes' do
+      truck = create(:truck, septage_capacity_gal: 200)
+      route = create(:route, truck: truck, company: truck.company)
+      order = create(:order, company: route.company, status: 'scheduled')
+      event = create(:service_event, :service, order: order, route: route, route_date: route.route_date, status: :completed)
+
+      event.update!(estimated_gallons_override: 40)
+
+      expect(truck.reload.septage_load_gal).to eq(40)
+
+      event.update!(estimated_gallons_override: 60)
+
+      expect(truck.reload.septage_load_gal).to eq(60)
     end
   end
 
@@ -135,9 +166,10 @@ RSpec.describe ServiceEvent, type: :model do
 
     it 'flags delivery events whose route date is after the scheduled date' do
       travel_to Date.new(2024, 1, 10) do
-        route = create(:route, route_date: Date.new(2024, 1, 12))
+        route = create(:route, route_date: Date.new(2024, 1, 10))
         event = create(:service_event, :delivery, scheduled_on: Date.new(2024, 1, 10), route: route, route_date: route.route_date)
-        expect(event).to be_overdue
+        event.update_column(:route_date, Date.new(2024, 1, 12))
+        expect(event.reload).to be_overdue
         expect(event.days_overdue).to eq(2)
       end
     end
@@ -146,6 +178,28 @@ RSpec.describe ServiceEvent, type: :model do
       route = create(:route, route_date: Date.current)
       event = create(:service_event, :delivery, scheduled_on: Date.current, route: route, route_date: route.route_date)
       expect(event).not_to be_overdue
+    end
+  end
+
+  describe 'logistics schedule enforcement' do
+    it 'prevents delivery events from moving later than scheduled' do
+      route = create(:route, route_date: Date.current + 1.day)
+      order = create(:order, company: route.company, status: 'scheduled', start_date: Date.current, end_date: Date.current + 5.days)
+
+      event = build(:service_event, :delivery, order: order, route: route, scheduled_on: Date.current, route_date: Date.current + 1.day)
+
+      expect(event).not_to be_valid
+      expect(event.errors[:route_date]).to include('cannot be after the scheduled date for deliveries')
+    end
+
+    it 'prevents pickup events from moving earlier than scheduled' do
+      route = create(:route, route_date: Date.current)
+      order = create(:order, company: route.company, status: 'scheduled', start_date: Date.current - 5.days, end_date: Date.current)
+
+      event = build(:service_event, :pickup, order: order, route: route, scheduled_on: Date.current, route_date: Date.current - 1.day)
+
+      expect(event).not_to be_valid
+      expect(event.errors[:route_date]).to include('cannot be before the scheduled date for pickups')
     end
   end
 end

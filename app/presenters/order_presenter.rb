@@ -117,7 +117,10 @@ class OrderPresenter
 
   # Returns the best available label for the order's location.
   def location_name
-    order.location&.label.presence || order.location&.name.presence || '—'
+    location = order.location
+    return '—' if location.blank?
+
+    location.display_label.presence || '—'
   end
 
   # Returns a single-line location address for quick reference.

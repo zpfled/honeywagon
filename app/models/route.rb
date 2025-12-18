@@ -42,7 +42,12 @@ class Route < ApplicationRecord
   def pickups_count = service_events.event_type_pickup.count
   def delivery_unit_breakdown = unit_breakdown_for(service_events.event_type_delivery)
   def pickup_unit_breakdown = unit_breakdown_for(service_events.event_type_pickup)
-  def serviced_units_count = units_impacted_for(service_events.event_type_service)
+  def serviced_units_count
+    service_scope = service_events.event_type_service
+    rental_units = units_impacted_for(service_scope)
+    service_line_units = service_scope.joins(order: :service_line_items).sum('service_line_items.units_serviced')
+    rental_units + service_line_units
+  end
   def capacity_summary = Routes::CapacitySummary.new(route: self)
   delegate :over_capacity?, :over_capacity_dimensions, :trailer_usage, :clean_water_usage, :septage_usage,
            to: :capacity_summary
@@ -64,6 +69,7 @@ class Route < ApplicationRecord
     window = route_date.beginning_of_week..route_date.end_of_week
     company.service_events
            .scheduled
+           .event_type_service
            .where(route_id: nil)
            .where(scheduled_on: window)
            .find_each do |event|
@@ -72,7 +78,7 @@ class Route < ApplicationRecord
   end
 
   def propagate_route_date
-    service_events.update_all(route_date: route_date)
+    service_events.event_type_service.update_all(route_date: route_date)
   end
 
   def truck_belongs_to_company
