@@ -1,6 +1,6 @@
-# Honeywagon
+# Sanitrack
 
-Honeywagon is an internal operations app for a portable toilet rental business.  
+Sanitrack is an internal operations app for a portable toilet rental business.  
 It tracks inventory, rentals, pricing, and service work with a focus on real unit assignment and overbooking prevention.
 
 This is not a generic rental app — it models how portable sanitation businesses actually operate.
@@ -165,7 +165,7 @@ Service events now drive the day-to-day workflow.
 
 ## Scope & Intent
 
-Honeywagon is built first for real operational use.  
+Sanitrack is built first for real operational use.  
 Generalization is possible, but correctness for portable sanitation comes first.
 
 If you’re reading this as a collaborator:

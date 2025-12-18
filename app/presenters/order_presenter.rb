@@ -6,10 +6,14 @@ class OrderPresenter
 
   attr_reader :order, :view
 
-  delegate :rental_line_items, :units, to: :order, allow_nil: true
+  delegate :units, to: :order, allow_nil: true
 
-  def order_line_items
+  def rental_line_items
     order.respond_to?(:rental_line_items) ? order.rental_line_items : []
+  end
+
+  def service_line_items
+    order.respond_to?(:service_line_items) ? order.service_line_items : []
   end
 
   # Builds the presenter with the order and a view context for helpers.
@@ -48,7 +52,7 @@ class OrderPresenter
   # Formats the order start date for display, falling back to ISO text.
   def start_date
     return order.start_date.to_s if order.start_date.blank?
-    view.l(order.start_date)
+    view.l(order.start_date, format: :long)
   rescue I18n::ArgumentError
     order.start_date.to_s
   end
@@ -56,7 +60,7 @@ class OrderPresenter
   # Formats the order end date for display, falling back to ISO text.
   def end_date
     return order.end_date.to_s if order.end_date.blank?
-    view.l(order.end_date)
+    view.l(order.end_date, format: :long)
   rescue I18n::ArgumentError
     order.end_date.to_s
   end
@@ -67,6 +71,29 @@ class OrderPresenter
     (order.end_date - order.start_date).to_i + 1
   rescue StandardError
     nil
+  end
+
+  # Returns a humanized duration string (e.g., "6 days", "3 weeks").
+  def date_range_humanized
+    total_days = date_range_days
+    return nil if total_days.nil?
+
+    case total_days
+    when 1...7
+      view.pluralize(total_days, 'day')
+    when 7...30
+      weeks = (total_days / 7.0).round
+      unit = weeks == 1 ? 'week' : 'weeks'
+      "#{weeks} #{unit}"
+    when 30...365
+      months = (total_days / 30.0).round
+      unit = months == 1 ? 'month' : 'months'
+      "#{months} #{unit}"
+    else
+      years = (total_days / 365.0).round(1)
+      unit = years == 1 ? 'year' : 'years'
+      "#{years} #{unit}"
+    end
   end
 
   #
@@ -115,6 +142,30 @@ class OrderPresenter
     format_money_from(line_item, :subtotal_cents, :subtotal)
   end
 
+  def display_line_items
+    rental_line_items.to_a + service_line_items.to_a
+  end
+
+  def line_item_label(line_item)
+    service_line_item?(line_item) ? line_item.description : line_item_unit_type_name(line_item)
+  end
+
+  def line_item_schedule(line_item)
+    service_line_item?(line_item) ? line_item.service_schedule.to_s.humanize : line_item_schedule_label(line_item)
+  end
+
+  def line_item_quantity_value(line_item)
+    service_line_item?(line_item) ? line_item.units_serviced : line_item_quantity(line_item)
+  end
+
+  def line_item_unit_price_display(line_item)
+    service_line_item?(line_item) ? '—' : line_item_unit_price(line_item)
+  end
+
+  def line_item_subtotal_display(line_item)
+    service_line_item?(line_item) ? '—' : line_item_subtotal(line_item)
+  end
+
   # Returns the best available label for the order's location.
   def location_name
     location = order.location
@@ -142,8 +193,8 @@ class OrderPresenter
       end
 
     id_part =
-      if unit.respond_to?(:id) && unit.id.present?
-        "##{unit.id}"
+      if unit.respond_to?(:serial) && unit.id.present?
+        "(#{unit.serial})"
       else
         nil
       end
@@ -153,9 +204,7 @@ class OrderPresenter
 
   # Renders supplemental information for a unit card (serial/status).
   def unit_secondary_line(unit)
-    if unit.respond_to?(:serial) && unit.serial.present?
-      "Serial: #{unit.serial}"
-    elsif unit.respond_to?(:status) && unit.status.present?
+    if unit.respond_to?(:status) && unit.status.present?
       "Status: #{unit.status.to_s.humanize}"
     else
       '—'
@@ -252,7 +301,7 @@ class OrderPresenter
   #
   # Returns how many line items are associated with the order.
   def line_items_count
-    order.respond_to?(:rental_line_items) ? order.rental_line_items.size : 0
+    rental_line_items.to_a.size + service_line_items.to_a.size
   end
 
   # Returns how many units are assigned to the order.
@@ -324,5 +373,9 @@ class OrderPresenter
     else
       Array(line_items).sum { |li| li.public_send(attribute).to_f }
     end
+  end
+
+  def service_line_item?(line_item)
+    line_item.is_a?(ServiceLineItem)
   end
 end

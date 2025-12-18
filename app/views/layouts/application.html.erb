@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Honeywagon" %></title>
+    <title><%= content_for(:title) || "Sanitrack" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Honeywagon">
+    <meta name="application-name" content="Sanitrack">
     <meta name="mobile-web-app-capable" content="yes">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
@@ -26,13 +26,13 @@
 
   <body>
     <!-- Top navigation bar -->
-    <header class="border-b border-gray-200 bg-white">
+    <header class="bg-brand-primary text-white shadow">
       <div class="mx-auto max-w-6xl px-4">
         <div class="flex h-16 items-center justify-between">
           <!-- Brand -->
           <div class="flex items-center gap-2">
-            <span class="text-lg font-semibold text-gray-900">
-              Honeywagon
+            <span class="text-lg font-semibold">
+              Sanitrack
             </span>
           </div>
 
@@ -41,14 +41,14 @@
             <% if user_signed_in? %>
               <%= link_to "Dashboard",
                 authenticated_root_path,
-                class: "text-gray-700 hover:text-gray-900" %>
+                class: "text-white-soft hover:text-white" %>
 
               <%= link_to "Orders",
                 orders_path,
-                class: "text-gray-700 hover:text-gray-900" %>
+                class: "text-white-soft hover:text-white" %>
 
               <div class="relative" data-controller="dropdown">
-                <button type="button" data-action="dropdown#toggle" class="inline-flex items-center gap-1 text-gray-700 hover:text-gray-900">
+                <button type="button" data-action="dropdown#toggle" class="inline-flex items-center gap-1 text-white-soft hover:text-white">
                   Operations
                   <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 011.08 1.04l-4.25 4.25a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
@@ -66,15 +66,15 @@
               <%= button_to "Sign out",
                 destroy_user_session_path,
                 method: :delete,
-                class: "inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+                class: "btn-brand" %>
             <% else %>
               <%= link_to "Sign in",
                 new_user_session_path,
-                class: "text-gray-700 hover:text-gray-900" %>
+                class: "text-white-soft hover:text-white" %>
 
               <%= link_to "Sign up",
                 new_user_registration_path,
-                class: "text-gray-700 hover:text-gray-900" %>
+                class: "btn-brand--outline" %>
             <% end %>
           </nav>
         </div>

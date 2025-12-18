@@ -4,19 +4,29 @@
     <div class="min-w-0">
       <div class="flex items-center gap-3">
         <h1 class="truncate text-2xl font-semibold text-gray-900">
-          Order <span class="text-gray-500">#<%= @order_presenter.id %></span>
+          <%= @order_presenter.customer_name %>
         </h1>
-
         <%= @order_presenter.status_badge %>
       </div>
 
-      <p class="mt-1 text-sm text-gray-600">
+      <div class="mt-2 space-y-1 text-sm text-gray-600">
+        <div class="flex items-center gap-2 text-gray-800">
+          <span><%= @order_presenter.location_name %></span>
+          <% if @order_presenter.location_address_line.present? %>
+            <span class="text-gray-400">•</span>
+            <span class="text-gray-600"><%= @order_presenter.location_address_line %></span>
+          <% end %>
+        </div>
+        <div class="font-medium text-gray-700">
+          <%= @order_presenter.start_date %> – <%= @order_presenter.end_date %>
+        </div>
         <% if @order_presenter.external_reference.present? %>
-          External Ref: <span class="font-medium text-gray-900"><%= @order_presenter.external_reference %></span>
-          <span class="mx-2 text-gray-300">•</span>
+          <div class="text-xs text-gray-500">
+            External Ref:
+            <span class="font-medium text-gray-700"><%= @order_presenter.external_reference %></span>
+          </div>
         <% end %>
-        Created <%= @order_presenter.created_at_long %>
-      </p>
+      </div>
     </div>
 
     <!-- Actions -->
@@ -40,54 +50,14 @@
   <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
     <!-- Left: Details -->
     <div class="lg:col-span-2 space-y-6">
-      <!-- Summary card -->
-      <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <h2 class="text-base font-semibold text-gray-900">Summary</h2>
-
-        <dl class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div class="rounded-xl bg-gray-50 p-4">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Customer</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900">
-              <%= @order_presenter.customer_name %>
-            </dd>
+      <% if @order_presenter.notes.present? %>
+        <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+          <h2 class="text-base font-semibold text-gray-900">Notes</h2>
+          <div class="mt-3 rounded-xl bg-gray-50 p-4 text-sm text-gray-800 whitespace-pre-wrap">
+            <%= @order_presenter.notes %>
           </div>
-
-          <div class="rounded-xl bg-gray-50 p-4">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Location</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900">
-              <%= @order_presenter.location_name %>
-            </dd>
-            <% if @order_presenter.location_address_line.present? %>
-              <dd class="mt-1 text-sm text-gray-600">
-                <%= @order_presenter.location_address_line %>
-              </dd>
-            <% end %>
-          </div>
-
-          <div class="rounded-xl bg-gray-50 p-4">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Start date</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900">
-              <%= @order_presenter.start_date %>
-            </dd>
-          </div>
-
-          <div class="rounded-xl bg-gray-50 p-4">
-            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">End date</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900">
-              <%= @order_presenter.end_date %>
-            </dd>
-          </div>
-        </dl>
-
-        <% if @order_presenter.notes.present? %>
-          <div class="mt-5">
-            <div class="text-xs font-medium uppercase tracking-wide text-gray-500">Notes</div>
-            <div class="mt-2 rounded-xl bg-gray-50 p-4 text-sm text-gray-800 whitespace-pre-wrap">
-              <%= @order_presenter.notes %>
-            </div>
-          </div>
-        <% end %>
-      </div>
+        </div>
+      <% end %>
 
       <!-- Line items -->
       <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
@@ -110,24 +80,25 @@
               </tr>
             </thead>
 
+            <% line_items = @order_presenter.display_line_items %>
             <tbody class="divide-y divide-gray-100 bg-white">
-              <% if @order_presenter.rental_line_items.any? %>
-                <% @order_presenter.rental_line_items.each do |li| %>
+              <% if line_items.any? %>
+                <% line_items.each do |li| %>
                   <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 text-sm font-medium text-gray-900">
-                      <%= @order_presenter.line_item_unit_type_name(li) %>
+                      <%= @order_presenter.line_item_label(li) %>
                     </td>
                     <td class="px-4 py-3 text-sm text-gray-700">
-                      <%= @order_presenter.line_item_schedule_label(li) %>
+                      <%= @order_presenter.line_item_schedule(li) %>
                     </td>
                     <td class="px-4 py-3 text-right text-sm text-gray-700">
-                      <%= @order_presenter.line_item_quantity(li) %>
+                      <%= @order_presenter.line_item_quantity_value(li) %>
                     </td>
                     <td class="px-4 py-3 text-right text-sm text-gray-700">
-                      <%= @order_presenter.line_item_unit_price(li) %>
+                      <%= @order_presenter.line_item_unit_price_display(li) %>
                     </td>
                     <td class="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                      <%= @order_presenter.line_item_subtotal(li) %>
+                      <%= @order_presenter.line_item_subtotal_display(li) %>
                     </td>
                   </tr>
                 <% end %>
@@ -148,42 +119,13 @@
                     Subtotal
                   </td>
                   <td class="px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                    <%= @order_presenter.rental_subtotal_amount %>
+                    <%= @order_presenter.rental_subtotal_currency %>
                   </td>
                 </tr>
               </tfoot>
             <% end %>
           </table>
         </div>
-      </div>
-
-      <!-- Units -->
-      <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold text-gray-900">Assigned units</h2>
-          <span class="text-sm text-gray-500"><%= @order_presenter.units_count %> units</span>
-        </div>
-
-        <% if @order_presenter.units.any? %>
-          <ul class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <% @order_presenter.units.each do |unit| %>
-              <li class="rounded-xl border border-gray-200 bg-white p-4 hover:bg-gray-50">
-                <div class="min-w-0">
-                  <div class="truncate text-sm font-semibold text-gray-900">
-                    <%= @order_presenter.unit_title(unit) %>
-                  </div>
-                  <div class="mt-1 text-sm text-gray-600">
-                    <%= @order_presenter.unit_secondary_line(unit) %>
-                  </div>
-                </div>
-              </li>
-            <% end %>
-          </ul>
-        <% else %>
-          <div class="mt-4 rounded-xl bg-gray-50 p-6 text-sm text-gray-600">
-            No units assigned yet.
-          </div>
-        <% end %>
       </div>
 
       <!-- Service events -->
@@ -270,28 +212,38 @@
           <div class="flex items-center justify-between">
             <dt class="text-sm text-gray-600">Rental subtotal</dt>
             <dd class="text-sm font-semibold text-gray-900">
-              <%= @order_presenter.rental_subtotal_amount %>
+              <%= @order_presenter.rental_subtotal_currency %>
             </dd>
           </div>
         </dl>
       </div>
 
       <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <h2 class="text-base font-semibold text-gray-900">Quick info</h2>
-        <dl class="mt-4 space-y-3 text-sm">
-          <div class="flex items-center justify-between">
-            <dt class="text-gray-600">Line items</dt>
-            <dd class="font-medium text-gray-900"><%= @order_presenter.line_items_count %></dd>
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-semibold text-gray-900">Assigned units</h2>
+          <span class="text-sm text-gray-500"><%= @order_presenter.units_count %> units</span>
+        </div>
+
+        <% if @order_presenter.units.any? %>
+          <ul class="mt-4 space-y-3">
+            <% @order_presenter.units.each do |unit| %>
+              <li class="rounded-xl border border-gray-200 bg-white p-4 hover:bg-gray-50">
+                <div class="min-w-0">
+                  <div class="truncate text-sm font-semibold text-gray-900">
+                    <%= @order_presenter.unit_title(unit) %>
+                  </div>
+                  <div class="mt-1 text-sm text-gray-600">
+                    <%= @order_presenter.unit_secondary_line(unit) %>
+                  </div>
+                </div>
+              </li>
+            <% end %>
+          </ul>
+        <% else %>
+          <div class="mt-4 rounded-xl bg-gray-50 p-6 text-sm text-gray-600">
+            No units assigned yet.
           </div>
-          <div class="flex items-center justify-between">
-            <dt class="text-gray-600">Units</dt>
-            <dd class="font-medium text-gray-900"><%= @order_presenter.units_count %></dd>
-          </div>
-          <div class="flex items-center justify-between">
-            <dt class="text-gray-600">Date range</dt>
-            <dd class="font-medium text-gray-900"><%= @order_presenter.date_range_days %></dd>
-          </div>
-        </dl>
+        <% end %>
       </div>
     </div>
   </div>
