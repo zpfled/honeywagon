@@ -42,6 +42,8 @@ class Route < ApplicationRecord
   def pickups_count = service_events.event_type_pickup.count
   def delivery_unit_breakdown = unit_breakdown_for(service_events.event_type_delivery)
   def pickup_unit_breakdown = unit_breakdown_for(service_events.event_type_pickup)
+  def delivery_units_total = unit_total_for(service_events.event_type_delivery)
+  def pickup_units_total = unit_total_for(service_events.event_type_pickup)
   def serviced_units_count
     service_scope = service_events.event_type_service
     rental_units = units_impacted_for(service_scope)
@@ -109,6 +111,12 @@ class Route < ApplicationRecord
   end
 
   def units_impacted_for(events_scope)
+    events_scope
+      .joins(order: :rental_line_items)
+      .sum('rental_line_items.quantity')
+  end
+
+  def unit_total_for(events_scope)
     events_scope
       .joins(order: :rental_line_items)
       .sum('rental_line_items.quantity')

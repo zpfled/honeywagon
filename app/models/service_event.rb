@@ -22,6 +22,7 @@ class ServiceEvent < ApplicationRecord
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
   before_destroy :remember_route_for_cleanup
+  before_destroy :remember_route_for_cleanup
   after_commit :auto_assign_route, on: :create
   after_commit :refresh_truck_septage_load, if: :affects_truck_septage_load?
   after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
@@ -198,16 +199,15 @@ class ServiceEvent < ApplicationRecord
   end
 
   def cleanup_empty_routes
-    route_ids = []
+    ids = []
     if saved_change_to_route_id?
       previous_id = saved_change_to_route_id.first
-      route_ids << previous_id if previous_id
+      ids << previous_id if previous_id
     end
-    route_ids << (@route_id_for_cleanup || route_id) if destroyed?
+    ids << (@route_id_for_cleanup || route_id) if destroyed?
 
-    route_ids.compact.uniq.each do |id|
-      route = Route.find_by(id: id)
-      route&.destroy if route&.service_events&.reload&.none?
+    ids.compact.uniq.each do |route_id|
+      Routes::Cleanup.destroy_if_empty(route_id)
     end
   end
 end

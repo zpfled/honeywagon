@@ -64,7 +64,10 @@ RSpec.describe Route do
       order = create(:order, company: route.company, status: 'scheduled')
       create(:service_event, :service, route: route, order: order, route_date: route.route_date)
 
-      expect { route.service_events.destroy_all }.to change { Route.count }.by(-1)
+      expect do
+        route.service_events.destroy_all
+        Routes::Cleanup.destroy_if_empty(route.id)
+      end.to change { Route.count }.by(-1)
       expect(Route.find_by(id: route.id)).to be_nil
     end
   end
