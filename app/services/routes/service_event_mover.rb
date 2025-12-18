@@ -7,7 +7,7 @@ module Routes
     end
 
     def move_to_next
-      return locked_failure if logistics_locked?
+      return locked_failure('Deliveries must stay on or before their scheduled date.') if service_event.prevent_move_later?
 
       route = next_candidate
       return failure('Unable to postpone service event.') unless route
@@ -16,7 +16,7 @@ module Routes
     end
 
     def move_to_previous
-      return locked_failure if logistics_locked?
+      return locked_failure('Pickups must stay on their scheduled date.') if service_event.prevent_move_earlier?
 
       route = previous_candidate
       return failure('No earlier route available for this service event.') unless route
@@ -29,7 +29,13 @@ module Routes
     attr_reader :service_event, :route, :company
 
     def update_event(target_route, success_message)
-      if service_event.update(route: target_route, route_date: target_route.route_date)
+      attrs = {
+        route: target_route,
+        route_date: target_route.route_date,
+        scheduled_on: target_route.route_date
+      }
+
+      if service_event.update(attrs)
         Routes::ServiceEventActionResult.new(route: target_route, success: true, message: success_message)
       else
         failure(service_event.errors.full_messages.to_sentence.presence || 'Unable to update service event.')
@@ -40,8 +46,8 @@ module Routes
       Routes::ServiceEventActionResult.new(route: route, success: false, message: message)
     end
 
-    def locked_failure
-      failure('Deliveries and pickups must stay on their scheduled dates.')
+    def locked_failure(message)
+      failure(message)
     end
 
     def next_candidate
@@ -63,10 +69,6 @@ module Routes
     # TODO: migrate to per-company time zones; Central Time is a temporary assumption.
     def central_today
       Time.use_zone('Central Time (US & Canada)') { Time.zone.today }
-    end
-
-    def logistics_locked?
-      service_event.logistics_locked?
     end
   end
 end

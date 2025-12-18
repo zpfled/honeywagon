@@ -53,8 +53,12 @@ class ServiceEvent < ApplicationRecord
     event_type_delivery? || event_type_pickup?
   end
 
-  def reschedulable?
-    status_scheduled? && !logistics_locked?
+  def prevent_move_earlier?
+    event_type_pickup?
+  end
+
+  def prevent_move_later?
+    event_type_delivery? || event_type_pickup?
   end
 
   def units_impacted_count

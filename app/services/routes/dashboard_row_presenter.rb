@@ -84,6 +84,18 @@ module Routes
       septage_load
     end
 
+    def orders_summary
+      route.service_events
+           .includes(order: :customer)
+           .group_by(&:order)
+           .map do |order, events|
+             {
+               customer: order&.customer&.display_name || order&.location&.display_label || 'Unknown order',
+               units: events.sum(&:units_impacted_count)
+             }
+           end
+    end
+
     private
 
     def delivery_events
