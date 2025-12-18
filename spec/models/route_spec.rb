@@ -57,4 +57,15 @@ RSpec.describe Route do
       expect(route.estimated_gallons).to eq(event_with_override.estimated_gallons_pumped + event_with_service_units.estimated_gallons_pumped)
     end
   end
+
+  describe 'auto-destroy when empty' do
+    it 'removes the route once all service events are gone' do
+      route = create(:route)
+      order = create(:order, company: route.company, status: 'scheduled')
+      create(:service_event, :service, route: route, order: order, route_date: route.route_date)
+
+      expect { route.service_events.destroy_all }.to change { Route.count }.by(-1)
+      expect(Route.find_by(id: route.id)).to be_nil
+    end
+  end
 end

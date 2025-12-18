@@ -8,9 +8,9 @@ module Routes
       @septage_load = septage_load
     end
 
-    def deliveries_count = delivery_events.count
-    def services_count = service_events.count
-    def pickups_count = route.pickups_count
+    def deliveries_count = extract_unit_total(route.delivery_unit_breakdown)
+    def services_count = route.serviced_units_count
+    def pickups_count = extract_unit_total(route.pickup_unit_breakdown)
     def estimated_gallons = route.estimated_gallons
 
     def delivery_badges
@@ -127,6 +127,13 @@ module Routes
 
     def service_orders
       @service_orders ||= service_events.map(&:order).compact.uniq
+    end
+
+    def extract_unit_total(labels)
+      labels.sum do |label|
+        match = label.to_s.match(/\A(\d+)/)
+        match ? match[1].to_i : 0
+      end
     end
   end
 end
