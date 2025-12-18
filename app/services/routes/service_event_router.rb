@@ -30,14 +30,24 @@ module Routes
       return unless company && event.scheduled_on
       return unless company.trucks.exists?
 
-      route = find_matching_route || create_route
-      event.update!(route: route, route_date: route.route_date)
+      route = target_route
+      attrs = { route: route }
+      attrs[:route_date] = event.logistics_locked? ? event.scheduled_on : route.route_date
+      event.update!(attrs)
       route
     end
 
     private
 
     attr_reader :event, :company
+
+    def target_route
+      if event.logistics_locked?
+        exact_route || create_route(event.scheduled_on)
+      else
+        find_matching_route || create_route(event.scheduled_on)
+      end
+    end
 
     def find_matching_route
       range = (event.scheduled_on - WINDOW)..(event.scheduled_on + WINDOW)
@@ -47,9 +57,13 @@ module Routes
              .first
     end
 
-    def create_route
+    def exact_route
+      company.routes.find_by(route_date: event.scheduled_on)
+    end
+
+    def create_route(date)
       company.routes.create!(
-        route_date: event.scheduled_on,
+        route_date: date,
         truck: company.trucks.order(:created_at).first,
         trailer: default_trailer
       )

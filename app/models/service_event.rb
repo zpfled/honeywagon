@@ -14,13 +14,18 @@ class ServiceEvent < ApplicationRecord
   enum :status, { scheduled: 0, completed: 1 }, prefix: true
 
   validates :scheduled_on, presence: true
+  validate :enforce_logistics_schedule
 
   before_validation :assign_service_event_type, if: -> { service_event_type_id.blank? && event_type.present? }
   before_validation :inherit_user_from_order, if: -> { order.present? && user_id.blank? }
   before_validation :default_route_date
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
+  before_destroy :remember_route_for_cleanup
+  before_destroy :remember_route_for_cleanup
   after_commit :auto_assign_route, on: :create
+  after_commit :refresh_truck_septage_load, if: :affects_truck_septage_load?
+  after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
 
   # Scope returning only auto-generated events that can be safely regenerated.
   scope :auto_generated, -> { where(auto_generated: true) }
@@ -41,16 +46,27 @@ class ServiceEvent < ApplicationRecord
   end
 
   def estimated_gallons_pumped
-    return 0 if event_type_delivery?
+    ServiceEvents::GallonsEstimator.call(self)
+  end
 
-    targeted_unit_types = order.rental_line_items
-                               .joins(:unit_type)
-                               .where(unit_types: { slug: %w[standard ada] })
-    targeted_unit_types.sum(:quantity) * 10
+  def logistics_locked?
+    event_type_delivery? || event_type_pickup?
+  end
+
+  def reschedulable?
+    status_scheduled? && !logistics_locked?
   end
 
   def units_impacted_count
-    order.rental_line_items.sum(:quantity)
+    rental_units = order.rental_line_items.sum(:quantity)
+
+    case event_type.to_sym
+    when :delivery, :pickup
+      rental_units
+    else
+      service_units = order.service_line_items.sum(:units_serviced)
+      rental_units + service_units
+    end
   end
 
   def overdue?
@@ -141,4 +157,60 @@ class ServiceEvent < ApplicationRecord
   def delivery_route_date
     route_date || route&.route_date || scheduled_on
   end
+
+  def refresh_truck_septage_load
+    affected_trucks = []
+    affected_trucks << route&.truck if route&.truck.present?
+
+    if saved_change_to_route_id?
+      previous_route_id = saved_change_to_route_id.first
+      if previous_route_id
+        previous_route = Route.find_by(id: previous_route_id)
+        affected_trucks << previous_route&.truck
+      end
+    end
+
+    affected_trucks.compact.uniq.each(&:recalculate_septage_load!)
+  end
+
+  def affects_truck_septage_load?
+    status_transition_affects_load? ||
+      (status_completed? && (saved_change_to_estimated_gallons_override? ||
+                             previous_changes.key?('deleted_at') ||
+                             saved_change_to_route_id?))
+  end
+
+  def status_transition_affects_load?
+    return false unless saved_change_to_status?
+
+    status_completed? || saved_change_to_status&.first == 'completed'
+  end
+
+  def enforce_logistics_schedule
+    return if scheduled_on.blank? || route_date.blank?
+
+    if event_type_delivery? && route_date > scheduled_on
+      errors.add(:route_date, 'cannot be after the scheduled date for deliveries')
+    end
+
+    if event_type_pickup? && route_date < scheduled_on
+      errors.add(:route_date, 'cannot be before the scheduled date for pickups')
+    end
+  end
+
+  def cleanup_empty_routes
+    ids = []
+    if saved_change_to_route_id?
+      previous_id = saved_change_to_route_id.first
+      ids << previous_id if previous_id
+    end
+    ids << (@route_id_for_cleanup || route_id) if destroyed?
+
+    ids.compact.uniq.each do |route_id|
+      Routes::Cleanup.destroy_if_empty(route_id)
+    end
+  end
 end
+  def remember_route_for_cleanup
+    @route_id_for_cleanup = route_id
+  end

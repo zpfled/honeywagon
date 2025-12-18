@@ -20,6 +20,7 @@ class Order < ApplicationRecord
   validate :end_date_after_start_date
 
   before_validation :assign_company_from_creator
+  before_validation :set_default_status, on: :create
   before_save :recalculate_totals
   after_save  :sync_unit_statuses, if: :saved_change_to_status?
   after_commit :generate_service_events, if: :trigger_service_event_generation?
@@ -116,6 +117,10 @@ class Order < ApplicationRecord
 
   def assign_company_from_creator
     self.company ||= created_by&.company
+  end
+
+  def set_default_status
+    self.status ||= 'scheduled'
   end
 
   # Whether the current change should enqueue service-event generation.

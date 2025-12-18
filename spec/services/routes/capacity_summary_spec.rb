@@ -24,4 +24,15 @@ RSpec.describe Routes::CapacitySummary do
     expect(summary.over_capacity?).to be(true)
     expect(summary.over_capacity_dimensions).to match_array(%i[trailer clean_water septage])
   end
+
+  it 'ignores completed events when calculating usage' do
+    route.service_events.update_all(status: ServiceEvent.statuses[:completed])
+
+    summary = described_class.new(route: route)
+
+    expect(summary.trailer_usage[:used]).to eq(0)
+    expect(summary.clean_water_usage[:used]).to eq(0)
+    expect(summary.septage_usage[:used]).to eq(0)
+    expect(summary.over_capacity?).to be(false)
+  end
 end

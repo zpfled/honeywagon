@@ -44,7 +44,7 @@ module Routes
     private
 
     def aggregate_usage
-      events = route.service_events
+      events = route.service_events.scheduled
       events = events.includes(order: { rental_line_items: :unit_type }) unless events.loaded?
 
       events.each_with_object({ trailer_spots: 0, clean_water_gallons: 0, septage_gallons: 0 }) do |event, memo|

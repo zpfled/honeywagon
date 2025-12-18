@@ -1,15 +1,16 @@
 module Routes
   # Presents per-route data for the dashboard table (alerts, cadence, badges).
   class DashboardRowPresenter
-    attr_reader :route
+    attr_reader :route, :septage_load
 
-    def initialize(route)
+    def initialize(route, septage_load: nil)
       @route = route
+      @septage_load = septage_load
     end
 
-    def deliveries_count = delivery_events.count
-    def services_count = service_events.count
-    def pickups_count = route.pickups_count
+    def deliveries_count = route.delivery_units_total
+    def services_count = route.serviced_units_count
+    def pickups_count = route.pickup_units_total
     def estimated_gallons = route.estimated_gallons
 
     def delivery_badges
@@ -75,6 +76,12 @@ module Routes
       else
         { text: '↔ steady', tone: :warning }
       end
+    end
+
+    def septage_load_summary
+      return unless septage_load
+
+      septage_load
     end
 
     private

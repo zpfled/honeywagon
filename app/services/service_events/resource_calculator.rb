@@ -39,8 +39,7 @@ module ServiceEvents
     end
 
     def septage_usage
-      return 0 if event.event_type_delivery?
-      total_toilets * 10
+      event.estimated_gallons_pumped
     end
 
     def total_toilets

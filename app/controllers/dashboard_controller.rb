@@ -6,6 +6,8 @@ class DashboardController < ApplicationController
                                                                :location,
                                                                { rental_line_items: :unit_type },
                                                                :service_events ] ])
+    tracker = Routes::SeptageTracker.new(@routes)
+    @septage_loads = tracker.loads_by_route_id
     @trucks = current_user.company.trucks.order(:name, :number)
     @trailers = current_user.company.trailers.order(:name, :identifier)
     @new_route = current_user.company.routes.new(

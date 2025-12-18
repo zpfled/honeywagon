@@ -7,18 +7,20 @@ RSpec.describe Routes::DashboardRowPresenter do
   let(:route_date) { Date.current + 1.day }
   let(:route) { create(:route, company: company, truck: truck, trailer: trailer, route_date: route_date) }
   let(:order) { create(:order, company: company) }
+  let(:septage_load) { { cumulative_used: 40, capacity: 60, remaining: 20, over_capacity: false } }
 
-  subject(:presenter) { described_class.new(route.reload) }
+  subject(:presenter) { described_class.new(route.reload, septage_load: septage_load) }
 
   before do
     standard_type = create(:unit_type, :standard, company: company)
     create(:rental_line_item, order: order, unit_type: standard_type, quantity: 2)
 
-    create(:service_event, :delivery,
-           order: order,
-           route: route,
-           route_date: route_date + 1.day,
-           scheduled_on: Date.current)
+    delivery = create(:service_event, :delivery,
+                      order: order,
+                      route: route,
+                      route_date: route_date,
+                      scheduled_on: route_date)
+    delivery.update_column(:route_date, route_date + 1.day)
 
     create(:service_event, :service,
            order: order,
@@ -58,5 +60,9 @@ RSpec.describe Routes::DashboardRowPresenter do
   it 'provides alert badges for the alerts column' do
     texts = presenter.alert_badges.map { |badge| badge[:text] }
     expect(texts).to include('1 late', '1 overdue')
+  end
+
+  it 'exposes septage load summary when provided' do
+    expect(presenter.septage_load_summary).to eq(septage_load)
   end
 end
