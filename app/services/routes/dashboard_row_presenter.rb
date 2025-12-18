@@ -8,6 +8,7 @@ module Routes
       @septage_load = septage_load
     end
 
+    # TODO: Extract workload-related data into Routes::WorkloadSummary and have this presenter delegate.
     def deliveries_count = route.delivery_units_total
     def services_count = route.serviced_units_count
     def pickups_count = route.pickup_units_total
@@ -44,6 +45,7 @@ module Routes
       { last_completed_on: last_service_completed_on, next_due_on: next_service_due_on }
     end
 
+    # TODO: Move capacity/septage alert generation into a dedicated Routes::CapacitySummary service.
     def capacity_icons
       route.over_capacity_dimensions.map do |dimension|
         case dimension
@@ -78,12 +80,14 @@ module Routes
       end
     end
 
+    # TODO: Replace direct septage access with a Routes::SeptageSummary collaborator.
     def septage_load_summary
       return unless septage_load
 
       septage_load
     end
 
+    # TODO: Extract the per-customer aggregation into a Routes::OrderSummary builder.
     def orders_summary
       route.service_events
            .includes(order: :customer)
