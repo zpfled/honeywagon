@@ -61,7 +61,7 @@ module Routes
       return unless company && route
 
       company.routes
-             .where('route_date < ? AND route_date >= ?', route.route_date, central_today)
+             .where('route_date < ?', route.route_date)
              .order(route_date: :desc)
              .first
     end

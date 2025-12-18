@@ -27,8 +27,8 @@ class Route < ApplicationRecord
 
   after_initialize :set_default_date
   before_validation :assign_default_assets
-  after_create :assign_service_events
-  after_update_commit :propagate_route_date, if: -> { saved_change_to_route_date? }
+  after_create -> { Routes::Lifecycle.after_route_create(self) }
+  after_update_commit -> { Routes::Lifecycle.after_route_update(self) }
 
   scope :upcoming, lambda {
     today = Time.use_zone('Central Time (US & Canada)') { Time.zone.today }
@@ -64,23 +64,6 @@ class Route < ApplicationRecord
     return unless company
     self.truck ||= company.trucks.first
     self.trailer = nil if new_record? && trailer.nil?
-  end
-
-  def assign_service_events
-    return if skip_auto_assign || self.class.auto_assignment_disabled?
-    window = route_date.beginning_of_week..route_date.end_of_week
-    company.service_events
-           .scheduled
-           .event_type_service
-           .where(route_id: nil)
-           .where(scheduled_on: window)
-           .find_each do |event|
-      event.update!(route: self, route_date: route_date)
-    end
-  end
-
-  def propagate_route_date
-    service_events.event_type_service.update_all(route_date: route_date)
   end
 
   def truck_belongs_to_company
