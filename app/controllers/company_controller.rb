@@ -14,6 +14,7 @@ class CompanyController < ApplicationController
       create_customer!
       create_unit_type!
       create_rate_plan!
+      create_dump_site!
     end
 
     redirect_to edit_company_path, notice: 'Company profile updated.'
@@ -49,12 +50,17 @@ class CompanyController < ApplicationController
     params.fetch(:rate_plan, {}).permit(:unit_type_id, :service_schedule, :billing_period, :price_cents, :effective_on, :expires_on, :active)
   end
 
+  def dump_site_params
+    params.fetch(:dump_site, {}).permit(:name, location_attributes: %i[label street city state zip])
+  end
+
   def build_forms
     @truck ||= current_user.company.trucks.new
     @trailer ||= current_user.company.trailers.new
     @customer ||= current_user.company.customers.new
     @unit_type ||= current_user.company.unit_types.new
     @rate_plan ||= current_user.company.rate_plans.new
+    @dump_site ||= current_user.company.dump_sites.new.tap { |site| site.build_location }
   end
 
   def update_company_details!
@@ -114,6 +120,19 @@ class CompanyController < ApplicationController
 
     @rate_plan.company = current_user.company
     @rate_plan.save!
+  end
+
+  def create_dump_site!
+    attrs = dump_site_params
+    return if attrs.blank?
+
+    location_attrs = attrs.delete(:location_attributes) || {}
+    location = Location.new(location_attrs)
+    location.dump_site = true
+    location.save!
+
+    @dump_site = current_user.company.dump_sites.new(attrs.merge(location: location))
+    @dump_site.save!
   end
 
   def normalize_price(value)

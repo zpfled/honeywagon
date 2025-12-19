@@ -60,6 +60,7 @@ module ServiceEvents
 
     def unit_counts
       @unit_counts ||= begin
+        return {} unless event.order
         order_items = event.order.rental_line_items.includes(:unit_type)
         order_items.each_with_object(Hash.new(0)) do |item, memo|
           slug = item.unit_type&.slug

@@ -3,18 +3,20 @@
 class ServiceEvent < ApplicationRecord
   default_scope { where(deleted_at: nil) }
 
-  belongs_to :order
+  belongs_to :order, optional: true
   belongs_to :service_event_type
   belongs_to :user
   belongs_to :route, optional: true
   belongs_to :deleted_by, class_name: 'User', optional: true
   has_one :service_event_report, dependent: :destroy
+  belongs_to :dump_site, optional: true
 
-  enum :event_type, { delivery: 0, service: 1, pickup: 2 }, prefix: true
+  enum :event_type, { delivery: 0, service: 1, pickup: 2, dump: 3 }, prefix: true
   enum :status, { scheduled: 0, completed: 1 }, prefix: true
 
   validates :scheduled_on, presence: true
   validate :enforce_logistics_schedule
+  validates :dump_site, presence: true, if: :event_type_dump?
 
   before_validation :assign_service_event_type, if: -> { service_event_type_id.blank? && event_type.present? }
   before_validation :inherit_user_from_order, if: -> { order.present? && user_id.blank? }
@@ -62,13 +64,15 @@ class ServiceEvent < ApplicationRecord
   end
 
   def units_impacted_count
-    rental_units = order.rental_line_items.sum(:quantity)
+    rental_units = order&.rental_line_items&.sum(:quantity) || 0
 
     case event_type.to_sym
     when :delivery, :pickup
       rental_units
+    when :dump
+      0
     else
-      service_units = order.service_line_items.sum(:units_serviced)
+      service_units = order&.service_line_items&.sum(:units_serviced) || 0
       rental_units + service_units
     end
   end

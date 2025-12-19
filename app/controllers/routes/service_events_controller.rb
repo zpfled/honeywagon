@@ -18,6 +18,13 @@ module Routes
       redirect_with_result(result)
     end
 
+    def destroy
+      @service_event.soft_delete!(user: current_user)
+      redirect_to route_path(@route), notice: 'Service event deleted.'
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to route_path(@route), alert: e.message
+    end
+
     private
 
     def set_route
