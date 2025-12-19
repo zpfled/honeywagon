@@ -159,11 +159,11 @@ class OrderPresenter
   end
 
   def line_item_unit_price_display(line_item)
-    service_line_item?(line_item) ? '—' : line_item_unit_price(line_item)
+    line_item_unit_price(line_item)
   end
 
   def line_item_subtotal_display(line_item)
-    service_line_item?(line_item) ? '—' : line_item_subtotal(line_item)
+    line_item_subtotal(line_item)
   end
 
   # Returns the best available label for the order's location.

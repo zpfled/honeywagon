@@ -310,6 +310,14 @@ RSpec.describe Orders::Builder do
     it 'builds service-only line items from the payload' do
       order = company.orders.new(created_by: user)
       builder = described_class.new(order)
+      service_plan = create(
+        :rate_plan,
+        unit_type: create(:unit_type, :standard, company: company),
+        service_schedule: monthly_schedule,
+        billing_period: 'per_event',
+        price_cents: 12_500,
+        active: true
+      )
 
       builder.assign(
         params: order_params,
@@ -318,7 +326,8 @@ RSpec.describe Orders::Builder do
           {
             description: 'Customer-owned ADA fleet',
             service_schedule: monthly_schedule,
-            units_serviced: 6
+            units_serviced: 6,
+            rate_plan_id: service_plan.id
           }
         ]
       )
@@ -330,6 +339,9 @@ RSpec.describe Orders::Builder do
       expect(service_item.description).to eq('Customer-owned ADA fleet')
       expect(service_item.service_schedule).to eq(monthly_schedule)
       expect(service_item.units_serviced).to eq(6)
+      expect(service_item.rate_plan).to eq(service_plan)
+      expect(service_item.unit_price_cents).to eq(service_plan.price_cents)
+      expect(service_item.subtotal_cents).to eq(service_plan.price_cents * 6)
     end
 
     it 'adds validation errors for malformed service-only payloads' do
@@ -343,7 +355,8 @@ RSpec.describe Orders::Builder do
           {
             description: '',
             service_schedule: 'invalid',
-            units_serviced: 0
+            units_serviced: 0,
+            rate_plan_id: nil
           }
         ]
       )

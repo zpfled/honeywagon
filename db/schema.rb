@@ -183,10 +183,14 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_161500) do
     t.datetime "created_at", null: false
     t.string "description", null: false
     t.uuid "order_id", null: false
+    t.uuid "rate_plan_id"
     t.string "service_schedule", default: "none", null: false
+    t.integer "subtotal_cents", default: 0, null: false
+    t.integer "unit_price_cents", default: 0, null: false
     t.integer "units_serviced", default: 1, null: false
     t.datetime "updated_at", null: false
     t.index ["order_id"], name: "index_service_line_items_on_order_id"
+    t.index ["rate_plan_id"], name: "index_service_line_items_on_rate_plan_id"
   end
 
   create_table "trailers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -276,6 +280,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_161500) do
   add_foreign_key "service_events", "users"
   add_foreign_key "service_events", "users", column: "deleted_by_id"
   add_foreign_key "service_line_items", "orders"
+  add_foreign_key "service_line_items", "rate_plans"
   add_foreign_key "trailers", "companies"
   add_foreign_key "trucks", "companies"
   add_foreign_key "unit_types", "companies"
