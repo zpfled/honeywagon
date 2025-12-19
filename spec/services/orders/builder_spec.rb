@@ -343,6 +343,7 @@ RSpec.describe Orders::Builder do
       expect(service_item.rate_plan).to eq(service_plan)
       expect(service_item.unit_price_cents).to eq(service_plan.price_cents)
       expect(service_item.subtotal_cents).to eq(service_plan.price_cents * 6)
+      expect(order.rental_subtotal_cents).to eq(service_plan.price_cents * 6)
     end
 
     it 'adds validation errors for malformed service-only payloads' do

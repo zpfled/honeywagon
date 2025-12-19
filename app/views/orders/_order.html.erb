@@ -30,8 +30,9 @@
   </div>
 
   <div>
-    <strong>Rental subtotal cents:</strong>
-    <%= order.rental_subtotal_cents %>
+    <strong>Line items subtotal:</strong>
+    <% combined_cents = order.rental_subtotal_cents.to_i + order.service_line_items.sum(:subtotal_cents).to_i %>
+    <%= number_to_currency(combined_cents / 100.0) %>
   </div>
 
   <div>

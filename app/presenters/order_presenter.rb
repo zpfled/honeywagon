@@ -155,7 +155,11 @@ class OrderPresenter
   end
 
   def line_item_quantity_value(line_item)
-    service_line_item?(line_item) ? line_item.units_serviced : line_item_quantity(line_item)
+    if service_line_item?(line_item)
+      line_item.units_serviced.presence || '—'
+    else
+      line_item_quantity(line_item)
+    end
   end
 
   def line_item_unit_price_display(line_item)
@@ -263,7 +267,7 @@ class OrderPresenter
   #
   # Returns the raw rental_subtotal_cents field (or nil for unsupported orders).
   def rental_subtotal_cents
-    order.respond_to?(:rental_subtotal_cents) ? order.rental_subtotal_cents : nil
+    line_items_subtotal_cents || (order.respond_to?(:rental_subtotal_cents) ? order.rental_subtotal_cents : nil)
   end
 
   # Converts the rental subtotal in cents to dollars.
@@ -279,15 +283,10 @@ class OrderPresenter
   # For your “Line items” footer row subtotal (presentation only)
   # Returns the total of all line item subtotals in cents when available.
   def line_items_subtotal_cents
-    return nil unless order.respond_to?(:rental_line_items)
-    line_items = order.rental_line_items
-    return nil if line_items.blank?
+    items = display_line_items
+    return nil if items.blank?
 
-    if subtotal_cents_supported?(line_items)
-      calculate_subtotal(line_items, :subtotal_cents)
-    elsif subtotal_amount_supported?(line_items)
-      (calculate_subtotal(line_items, :subtotal) * 100).to_i
-    end
+    items.sum { |item| subtotal_cents_for(item) }
   end
 
   # Formats the aggregate line-item subtotal for display.
@@ -345,34 +344,16 @@ class OrderPresenter
     end
   end
 
-  # True when the relation or objects expose a subtotal_cents column/method.
-  def subtotal_cents_supported?(line_items)
-    column_present?(line_items, :subtotal_cents) || first_item_responds?(line_items, :subtotal_cents)
-  end
+  def subtotal_cents_for(line_item)
+    return 0 if line_item.nil?
 
-  # True when the relation or objects expose a subtotal amount column/method.
-  def subtotal_amount_supported?(line_items)
-    column_present?(line_items, :subtotal) || first_item_responds?(line_items, :subtotal)
-  end
+    cents = line_item.respond_to?(:subtotal_cents) ? line_item.subtotal_cents : nil
+    return cents.to_i if cents.present?
 
-  # Detects whether the relation's table includes a given column.
-  def column_present?(collection, column_name)
-    collection.respond_to?(:klass) && collection.klass.column_names.include?(column_name.to_s)
-  end
+    amount = line_item.respond_to?(:subtotal) ? line_item.subtotal : nil
+    return (amount.to_f * 100).to_i if amount.present?
 
-  # Checks the first item in a collection for a responder method.
-  def first_item_responds?(collection, method_name)
-    item = collection.respond_to?(:first) ? collection.first : nil
-    item.respond_to?(method_name)
-  end
-
-  # Calculates a subtotal for the provided line items using the given attribute.
-  def calculate_subtotal(line_items, attribute)
-    if line_items.respond_to?(:loaded?) && !line_items.loaded? && column_present?(line_items, attribute)
-      line_items.sum(attribute).to_f
-    else
-      Array(line_items).sum { |li| li.public_send(attribute).to_f }
-    end
+    0
   end
 
   def service_line_item?(line_item)

@@ -51,7 +51,8 @@ module Orders
       new_service_items.each { |item| order.service_line_items << item }
 
       # Basic subtotal from line items (no proration yet)
-      order.rental_subtotal_cents = new_line_items.sum(&:subtotal_cents)
+      order.rental_subtotal_cents =
+        new_line_items.sum(&:subtotal_cents) + new_service_items.sum(&:subtotal_cents)
 
       # Let your existing callback/method handle total math (fees/discount/tax)
       order.recalculate_totals
