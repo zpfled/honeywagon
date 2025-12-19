@@ -312,7 +312,8 @@ RSpec.describe Orders::Builder do
       builder = described_class.new(order)
       service_plan = create(
         :rate_plan,
-        unit_type: create(:unit_type, :standard, company: company),
+        unit_type: nil,
+        company: company,
         service_schedule: monthly_schedule,
         billing_period: 'per_event',
         price_cents: 12_500,

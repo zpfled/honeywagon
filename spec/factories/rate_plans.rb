@@ -1,6 +1,7 @@
 FactoryBot.define do
   factory :rate_plan do
-    association :unit_type
+    association :company
+    unit_type { association(:unit_type, company: company) }
 
     service_schedule { RatePlan::SERVICE_SCHEDULES[:weekly] }        # weekly | biweekly | event
     billing_period   { 'monthly' }        # monthly | per_event
@@ -26,6 +27,14 @@ FactoryBot.define do
 
     trait :inactive do
       active { false }
+    end
+
+    after(:build) do |plan|
+      if plan.unit_type.present?
+        plan.company = plan.unit_type.company
+      else
+        plan.company ||= build(:company)
+      end
     end
   end
 end

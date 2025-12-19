@@ -74,9 +74,9 @@ class OrdersController < ApplicationController
 
   def load_form_options
     @unit_types = current_user.company.unit_types.order(:name)
-    @service_rate_plans = RatePlan.joins(:unit_type)
-                                  .where(unit_types: { company_id: current_user.company_id })
+    @service_rate_plans = RatePlan.service_only
                                   .active
+                                  .where(company_id: current_user.company_id)
                                   .order(:service_schedule)
     @customers = current_user.company.customers.order(:display_name)
     @locations = current_user.company.locations.includes(:customer).order(:label)

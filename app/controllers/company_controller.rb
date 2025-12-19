@@ -54,7 +54,7 @@ class CompanyController < ApplicationController
     @trailer ||= current_user.company.trailers.new
     @customer ||= current_user.company.customers.new
     @unit_type ||= current_user.company.unit_types.new
-    @rate_plan ||= RatePlan.new
+    @rate_plan ||= current_user.company.rate_plans.new
   end
 
   def update_company_details!
@@ -99,13 +99,20 @@ class CompanyController < ApplicationController
 
   def create_rate_plan!
     attrs = rate_plan_params
-    return if attrs.values.all?(&:blank?) || attrs[:unit_type_id].blank?
+    return if attrs.values.all?(&:blank?)
 
-    unit_type = current_user.company.unit_types.find(attrs.delete(:unit_type_id))
+    unit_type_id = attrs.delete(:unit_type_id).presence
     attrs[:price_cents] = normalize_price(attrs[:price_cents])
     attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
 
-    @rate_plan = unit_type.rate_plans.new(attrs.compact)
+    if unit_type_id.present?
+      unit_type = current_user.company.unit_types.find(unit_type_id)
+      @rate_plan = unit_type.rate_plans.new(attrs.compact)
+    else
+      @rate_plan = current_user.company.rate_plans.new(attrs.compact)
+    end
+
+    @rate_plan.company = current_user.company
     @rate_plan.save!
   end
 

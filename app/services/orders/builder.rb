@@ -80,7 +80,7 @@ module Orders
           break
         end
 
-        rate_plan = RatePlan.includes(:unit_type).find_by(id: rate_plan_id)
+        rate_plan = RatePlan.includes(:unit_type).find_by(id: rate_plan_id, company_id: order.company_id)
 
         unless rate_plan
           order.errors.add(:base, 'Rate plan could not be found.')
@@ -173,7 +173,7 @@ module Orders
           return []
         end
 
-        rate_plan = RatePlan.find_by(id: rate_plan_id)
+        rate_plan = RatePlan.find_by(id: rate_plan_id, company_id: order.company_id)
         unless rate_plan
           order.errors.add(:base, 'Pick a rate plan for service-only work.')
           return []

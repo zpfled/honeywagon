@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_15_161500) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -95,13 +95,15 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_161500) do
   create_table "rate_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "active"
     t.string "billing_period"
+    t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.date "effective_on"
     t.date "expires_on"
     t.integer "price_cents"
     t.string "service_schedule"
-    t.uuid "unit_type_id", null: false
+    t.uuid "unit_type_id"
     t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_rate_plans_on_company_id"
     t.index ["unit_type_id"], name: "index_rate_plans_on_unit_type_id"
   end
 
@@ -265,6 +267,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_161500) do
   add_foreign_key "orders", "customers"
   add_foreign_key "orders", "locations"
   add_foreign_key "orders", "users", column: "created_by_id"
+  add_foreign_key "rate_plans", "companies"
   add_foreign_key "rate_plans", "unit_types"
   add_foreign_key "rental_line_items", "orders"
   add_foreign_key "rental_line_items", "rate_plans"
