@@ -53,8 +53,12 @@ class ServiceEvent < ApplicationRecord
     event_type_delivery? || event_type_pickup?
   end
 
-  def reschedulable?
-    status_scheduled? && !logistics_locked?
+  def prevent_move_earlier?
+    event_type_pickup?
+  end
+
+  def prevent_move_later?
+    event_type_delivery? || event_type_pickup?
   end
 
   def units_impacted_count
@@ -199,18 +203,11 @@ class ServiceEvent < ApplicationRecord
   end
 
   def cleanup_empty_routes
-    ids = []
-    if saved_change_to_route_id?
-      previous_id = saved_change_to_route_id.first
-      ids << previous_id if previous_id
-    end
-    ids << (@route_id_for_cleanup || route_id) if destroyed?
-
-    ids.compact.uniq.each do |route_id|
-      Routes::Cleanup.destroy_if_empty(route_id)
-    end
+    previous_id = saved_change_to_route_id? ? saved_change_to_route_id.first : @route_id_for_cleanup
+    Routes::Lifecycle.after_service_event_change(self, previous_route_id: previous_id)
   end
-end
+
   def remember_route_for_cleanup
     @route_id_for_cleanup = route_id
   end
+end

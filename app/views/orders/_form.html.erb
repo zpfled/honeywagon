@@ -83,7 +83,7 @@
        }
      end %>
   <% required_rate_plan_ids = existing_line_items_payload.map { |li| li[:rate_plan_id] }.compact %>
-  <% active_rate_plans = RatePlan.active.includes(:unit_type).to_a %>
+  <% active_rate_plans = RatePlan.active.rental.where(company_id: current_user.company_id).includes(:unit_type).to_a %>
   <% missing_rate_plans = if required_rate_plan_ids.any?
        missing = required_rate_plan_ids - active_rate_plans.map(&:id)
        missing.any? ? RatePlan.includes(:unit_type).where(id: missing).to_a : []
@@ -99,13 +99,24 @@
   <% rate_plan_payload_json = json_escape(rate_plan_payload.to_json) %>
   <% existing_line_items_payload_json = json_escape(existing_line_items_payload.to_json) %>
   <% service_items_payload = order.service_line_items.map do |item|
+       plan_label = item.rate_plan&.display_label || "Service plan"
        {
          description: item.description,
          service_schedule: item.service_schedule,
-         units_serviced: item.units_serviced
+         units_serviced: item.units_serviced,
+         rate_plan_id: item.rate_plan_id,
+         rate_plan_label: plan_label
        }
      end %>
   <% service_items_payload_json = json_escape(service_items_payload.to_json) %>
+  <% service_rate_plans_payload = @service_rate_plans.map do |plan|
+       {
+         id: plan.id,
+         label: plan.display_label,
+         schedule: plan.service_schedule
+       }
+     end %>
+  <% service_rate_plans_payload_json = json_escape(service_rate_plans_payload.to_json) %>
 
   <div class="space-y-4">
     <div>
@@ -122,7 +133,8 @@
         order_items_rate_plans_value: rate_plan_payload_json,
         order_items_existing_value: existing_line_items_payload_json,
         order_items_service_existing_value: service_items_payload_json,
-        order_items_new_rate_plan_url_value: new_rate_plan_path
+        order_items_new_rate_plan_url_value: new_rate_plan_path,
+        order_items_service_rate_plans_value: service_rate_plans_payload_json
       } do %>
       <div class="space-y-3" data-order-items-target="rows"></div>
       <p class="text-sm text-gray-500" data-order-items-target="emptyState">No line items yet. Add at least one to continue.</p>

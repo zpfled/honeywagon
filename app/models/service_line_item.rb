@@ -1,4 +1,6 @@
 class ServiceLineItem < ApplicationRecord
+  include PriceableLineItem
+
   belongs_to :order
 
   SERVICE_SCHEDULES = RatePlan::SERVICE_SCHEDULES.values.freeze

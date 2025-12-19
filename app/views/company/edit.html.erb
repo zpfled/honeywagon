@@ -1,7 +1,8 @@
 <%= page_shell do %>
   <% company = current_user.company %>
   <% unit_types = company.unit_types.includes(:units, :rate_plans).order(:name) %>
-  <% rate_plan_rows = unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } %>
+  <% service_rate_plan_rows = company.rate_plans.service_only.order(:service_schedule).map { |plan| [ nil, plan ] } %>
+  <% rate_plan_rows = unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } + service_rate_plan_rows %>
   <% service_schedule_options = RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] } %>
   <% billing_period_options = RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] } %>
   <div class="flex flex-wrap items-center justify-between gap-4">
@@ -114,7 +115,7 @@
                 <% if rate_plan_rows.any? %>
                   <% rate_plan_rows.each do |unit_type, plan| %>
                     <tr>
-                      <td class="<%= table_cell_class %>"><%= unit_type.name %></td>
+                      <td class="<%= table_cell_class %>"><%= unit_type&.name || 'Service-only' %></td>
                       <td class="<%= table_cell_class %>"><%= plan.service_schedule.to_s.humanize %></td>
                       <td class="<%= table_cell_class %>"><%= plan.billing_period.to_s.humanize %></td>
                       <td class="<%= table_cell_class('', align: :right) %>"><%= number_to_currency(plan.price_cents.to_i / 100.0) %></td>
@@ -141,7 +142,7 @@
                 <div>
                   <%= f.label :unit_type_id, "Unit type", class: "text-xs font-medium text-gray-600" %>
                   <%= f.collection_select :unit_type_id, unit_types, :id, :name,
-                    { include_blank: "Select unit type" },
+                    { include_blank: "Service-only (no unit type)" },
                     class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
                 </div>
                 <div>

@@ -7,7 +7,7 @@ class RatePlansController < ApplicationController
     @unit_type = find_unit_type
     return render_missing_unit_type unless @unit_type
 
-    @rate_plan = RatePlan.new(unit_type: @unit_type, active: true)
+    @rate_plan = RatePlan.new(unit_type: @unit_type, company: @unit_type.company, active: true)
     render layout: false if turbo_frame_request?
   end
 
@@ -16,6 +16,8 @@ class RatePlansController < ApplicationController
     @unit_type = find_unit_type(@rate_plan.unit_type_id)
 
     return render_missing_unit_type if @unit_type.nil?
+
+    @rate_plan.company = @unit_type.company
 
     if @rate_plan.save
       respond_to do |format|

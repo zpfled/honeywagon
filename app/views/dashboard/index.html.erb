@@ -114,6 +114,13 @@
                   <div>Deliveries: <%= pluralize(row.deliveries_count, 'unit') %></div>
                   <div>Services: <%= pluralize(row.services_count, 'unit') %></div>
                   <div>Pickups: <%= pluralize(row.pickups_count, 'unit') %></div>
+                  <% if row.orders_summary.any? %>
+                    <div class="mt-2 text-xs text-gray-600">
+                      <% row.orders_summary.each do |summary| %>
+                        <div><%= summary[:customer] %> — <%= summary[:units] %> units</div>
+                      <% end %>
+                    </div>
+                  <% end %>
                 </div>
                 <% if row.delivery_badges.any? || row.service_badges.any? %>
                   <div class="mt-1 flex flex-wrap gap-1">

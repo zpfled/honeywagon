@@ -6,10 +6,14 @@ class OrderPresenter
 
   attr_reader :order, :view
 
-  delegate :rental_line_items, :units, to: :order, allow_nil: true
+  delegate :units, to: :order, allow_nil: true
 
-  def order_line_items
+  def rental_line_items
     order.respond_to?(:rental_line_items) ? order.rental_line_items : []
+  end
+
+  def service_line_items
+    order.respond_to?(:service_line_items) ? order.service_line_items : []
   end
 
   # Builds the presenter with the order and a view context for helpers.
@@ -48,7 +52,7 @@ class OrderPresenter
   # Formats the order start date for display, falling back to ISO text.
   def start_date
     return order.start_date.to_s if order.start_date.blank?
-    view.l(order.start_date)
+    view.l(order.start_date, format: :long)
   rescue I18n::ArgumentError
     order.start_date.to_s
   end
@@ -56,7 +60,7 @@ class OrderPresenter
   # Formats the order end date for display, falling back to ISO text.
   def end_date
     return order.end_date.to_s if order.end_date.blank?
-    view.l(order.end_date)
+    view.l(order.end_date, format: :long)
   rescue I18n::ArgumentError
     order.end_date.to_s
   end
@@ -67,6 +71,29 @@ class OrderPresenter
     (order.end_date - order.start_date).to_i + 1
   rescue StandardError
     nil
+  end
+
+  # Returns a humanized duration string (e.g., "6 days", "3 weeks").
+  def date_range_humanized
+    total_days = date_range_days
+    return nil if total_days.nil?
+
+    case total_days
+    when 1...7
+      view.pluralize(total_days, 'day')
+    when 7...30
+      weeks = (total_days / 7.0).round
+      unit = weeks == 1 ? 'week' : 'weeks'
+      "#{weeks} #{unit}"
+    when 30...365
+      months = (total_days / 30.0).round
+      unit = months == 1 ? 'month' : 'months'
+      "#{months} #{unit}"
+    else
+      years = (total_days / 365.0).round(1)
+      unit = years == 1 ? 'year' : 'years'
+      "#{years} #{unit}"
+    end
   end
 
   #
@@ -115,6 +142,34 @@ class OrderPresenter
     format_money_from(line_item, :subtotal_cents, :subtotal)
   end
 
+  def display_line_items
+    rental_line_items.to_a + service_line_items.to_a
+  end
+
+  def line_item_label(line_item)
+    service_line_item?(line_item) ? line_item.description : line_item_unit_type_name(line_item)
+  end
+
+  def line_item_schedule(line_item)
+    service_line_item?(line_item) ? line_item.service_schedule.to_s.humanize : line_item_schedule_label(line_item)
+  end
+
+  def line_item_quantity_value(line_item)
+    if service_line_item?(line_item)
+      line_item.units_serviced.presence || '—'
+    else
+      line_item_quantity(line_item)
+    end
+  end
+
+  def line_item_unit_price_display(line_item)
+    line_item_unit_price(line_item)
+  end
+
+  def line_item_subtotal_display(line_item)
+    line_item_subtotal(line_item)
+  end
+
   # Returns the best available label for the order's location.
   def location_name
     location = order.location
@@ -142,8 +197,8 @@ class OrderPresenter
       end
 
     id_part =
-      if unit.respond_to?(:id) && unit.id.present?
-        "##{unit.id}"
+      if unit.respond_to?(:serial) && unit.id.present?
+        "(#{unit.serial})"
       else
         nil
       end
@@ -153,9 +208,7 @@ class OrderPresenter
 
   # Renders supplemental information for a unit card (serial/status).
   def unit_secondary_line(unit)
-    if unit.respond_to?(:serial) && unit.serial.present?
-      "Serial: #{unit.serial}"
-    elsif unit.respond_to?(:status) && unit.status.present?
+    if unit.respond_to?(:status) && unit.status.present?
       "Status: #{unit.status.to_s.humanize}"
     else
       '—'
@@ -214,7 +267,7 @@ class OrderPresenter
   #
   # Returns the raw rental_subtotal_cents field (or nil for unsupported orders).
   def rental_subtotal_cents
-    order.respond_to?(:rental_subtotal_cents) ? order.rental_subtotal_cents : nil
+    line_items_subtotal_cents || (order.respond_to?(:rental_subtotal_cents) ? order.rental_subtotal_cents : nil)
   end
 
   # Converts the rental subtotal in cents to dollars.
@@ -230,15 +283,10 @@ class OrderPresenter
   # For your “Line items” footer row subtotal (presentation only)
   # Returns the total of all line item subtotals in cents when available.
   def line_items_subtotal_cents
-    return nil unless order.respond_to?(:rental_line_items)
-    line_items = order.rental_line_items
-    return nil if line_items.blank?
+    items = display_line_items
+    return nil if items.blank?
 
-    if subtotal_cents_supported?(line_items)
-      calculate_subtotal(line_items, :subtotal_cents)
-    elsif subtotal_amount_supported?(line_items)
-      (calculate_subtotal(line_items, :subtotal) * 100).to_i
-    end
+    items.sum { |item| subtotal_cents_for(item) }
   end
 
   # Formats the aggregate line-item subtotal for display.
@@ -252,7 +300,7 @@ class OrderPresenter
   #
   # Returns how many line items are associated with the order.
   def line_items_count
-    order.respond_to?(:rental_line_items) ? order.rental_line_items.size : 0
+    rental_line_items.to_a.size + service_line_items.to_a.size
   end
 
   # Returns how many units are assigned to the order.
@@ -296,33 +344,19 @@ class OrderPresenter
     end
   end
 
-  # True when the relation or objects expose a subtotal_cents column/method.
-  def subtotal_cents_supported?(line_items)
-    column_present?(line_items, :subtotal_cents) || first_item_responds?(line_items, :subtotal_cents)
+  def subtotal_cents_for(line_item)
+    return 0 if line_item.nil?
+
+    cents = line_item.respond_to?(:subtotal_cents) ? line_item.subtotal_cents : nil
+    return cents.to_i if cents.present?
+
+    amount = line_item.respond_to?(:subtotal) ? line_item.subtotal : nil
+    return (amount.to_f * 100).to_i if amount.present?
+
+    0
   end
 
-  # True when the relation or objects expose a subtotal amount column/method.
-  def subtotal_amount_supported?(line_items)
-    column_present?(line_items, :subtotal) || first_item_responds?(line_items, :subtotal)
-  end
-
-  # Detects whether the relation's table includes a given column.
-  def column_present?(collection, column_name)
-    collection.respond_to?(:klass) && collection.klass.column_names.include?(column_name.to_s)
-  end
-
-  # Checks the first item in a collection for a responder method.
-  def first_item_responds?(collection, method_name)
-    item = collection.respond_to?(:first) ? collection.first : nil
-    item.respond_to?(method_name)
-  end
-
-  # Calculates a subtotal for the provided line items using the given attribute.
-  def calculate_subtotal(line_items, attribute)
-    if line_items.respond_to?(:loaded?) && !line_items.loaded? && column_present?(line_items, attribute)
-      line_items.sum(attribute).to_f
-    else
-      Array(line_items).sum { |li| li.public_send(attribute).to_f }
-    end
+  def service_line_item?(line_item)
+    line_item.is_a?(ServiceLineItem)
   end
 end

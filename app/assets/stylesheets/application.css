@@ -8,3 +8,78 @@
  *
  * Consider organizing styles into separate files for maintainability.
  */
+
+:root {
+  --brand-primary: #0b5d1e;
+  --brand-primary-dark: #073d14;
+  --brand-secondary: #f0741b;
+  --brand-secondary-dark: #c35a12;
+  --brand-secondary-light: #ffe7d1;
+}
+
+.bg-brand-primary {
+  background-color: var(--brand-primary);
+}
+
+.bg-brand-secondary {
+  background-color: var(--brand-secondary);
+}
+
+.text-brand-primary {
+  color: var(--brand-primary);
+}
+
+.text-brand-secondary {
+  color: var(--brand-secondary);
+}
+
+.text-white-soft {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.btn-brand {
+  background-color: var(--brand-secondary);
+  color: #ffffff;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  transition: background-color 150ms ease-in-out;
+}
+
+.btn-brand:hover {
+  background-color: var(--brand-secondary-dark);
+}
+
+.btn-brand--outline {
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  color: #ffffff;
+  font-weight: 600;
+  transition: background-color 150ms ease-in-out, border-color 150ms ease-in-out;
+}
+
+.btn-brand--outline:hover {
+  border-color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.bg-emerald-600,
+.bg-green-600 {
+  background-color: var(--brand-primary) !important;
+}
+
+.text-emerald-600,
+.text-green-600 {
+  color: var(--brand-primary) !important;
+}
+
+.hover\:bg-emerald-500:hover,
+.hover\:bg-green-500:hover {
+  background-color: #128232 !important;
+}
+
+.focus\:ring-emerald-600:focus,
+.focus\:ring-emerald-500:focus {
+  --tw-ring-color: var(--brand-primary) !important;
+}

@@ -51,7 +51,8 @@ module Orders
       new_service_items.each { |item| order.service_line_items << item }
 
       # Basic subtotal from line items (no proration yet)
-      order.rental_subtotal_cents = new_line_items.sum(&:subtotal_cents)
+      order.rental_subtotal_cents =
+        new_line_items.sum(&:subtotal_cents) + new_service_items.sum(&:subtotal_cents)
 
       # Let your existing callback/method handle total math (fees/discount/tax)
       order.recalculate_totals
@@ -80,7 +81,7 @@ module Orders
           break
         end
 
-        rate_plan = RatePlan.includes(:unit_type).find_by(id: rate_plan_id)
+        rate_plan = RatePlan.includes(:unit_type).find_by(id: rate_plan_id, company_id: order.company_id)
 
         unless rate_plan
           order.errors.add(:base, 'Rate plan could not be found.')
@@ -153,9 +154,10 @@ module Orders
         attrs = normalize_payload(entry)
         next if attrs.blank?
 
-        description = attrs[:description].to_s.strip
-        schedule    = attrs[:service_schedule].presence || RatePlan::SERVICE_SCHEDULES[:none]
-        units       = attrs[:units_serviced].to_i
+        description  = attrs[:description].to_s.strip
+        schedule     = attrs[:service_schedule].presence || RatePlan::SERVICE_SCHEDULES[:none]
+        units        = attrs[:units_serviced].to_i
+        rate_plan_id = attrs[:rate_plan_id]
 
         if description.blank?
           order.errors.add(:base, 'Service line items require a description.')
@@ -172,11 +174,23 @@ module Orders
           return []
         end
 
+        rate_plan = RatePlan.find_by(id: rate_plan_id, company_id: order.company_id)
+        unless rate_plan
+          order.errors.add(:base, 'Pick a rate plan for service-only work.')
+          return []
+        end
+
+        unit_price_cents = rate_plan.price_cents
+        subtotal_cents   = compute_subtotal(rate_plan: rate_plan, quantity: units)
+
         items << ServiceLineItem.new(
           order: order,
           description: description,
           service_schedule: schedule,
-          units_serviced: units
+          units_serviced: units,
+          rate_plan: rate_plan,
+          unit_price_cents: unit_price_cents,
+          subtotal_cents: subtotal_cents
         )
       end
       items

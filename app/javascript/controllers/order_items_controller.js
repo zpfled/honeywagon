@@ -1,10 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 
 const SERVICE_OPTION = "service-only"
-const SERVICE_RATE_PLANS = [
-  { id: "service-monthly", label: "Monthly service (service-only)", schedule: "monthly" },
-  { id: "service-event", label: "Event service (service-only)", schedule: "event" }
-]
 
 // Manages the interactive "Add item" flow on the order form.
 export default class extends Controller {
@@ -29,6 +25,7 @@ export default class extends Controller {
     ratePlans: Object,
     existing: Array,
     serviceExisting: Array,
+    serviceRatePlans: Array,
     nextIndex: Number,
     serviceNextIndex: Number,
     newRatePlanUrl: String
@@ -174,16 +171,17 @@ export default class extends Controller {
       return this.showError("Units serviced must be at least 1.")
     }
 
-    const plan = SERVICE_RATE_PLANS.find((p) => p.id === ratePlanId)
+    const plan = (this.serviceRatePlansValue || []).find((p) => String(p.id) === String(ratePlanId))
     if (!plan) {
-      return this.showError("Select a service cadence.")
+      return this.showError("Select a rate plan for service-only work.")
     }
 
     this.appendServiceRow({
       description,
       ratePlanLabel: plan.label,
       schedule: plan.schedule,
-      quantity
+      quantity,
+      ratePlanId: plan.id
     })
 
     this.resetFormFields()
@@ -238,15 +236,17 @@ export default class extends Controller {
     const serviceItems = this.serviceExistingValue || []
     serviceItems.forEach((item) => {
       const schedule = item.service_schedule || item["service_schedule"] || "event"
-      const label = `Service-only • ${this.humanize(schedule)}`
+      const label = item.rate_plan_label || `Service-only • ${this.humanize(schedule)}`
       const units = item.units_serviced || item["units_serviced"] || 1
       const description = item.description || item["description"] || "Service-only work"
+      const ratePlanId = item.rate_plan_id || item["rate_plan_id"]
 
       this.appendServiceRow({
         description,
         ratePlanLabel: label,
         schedule,
-        quantity: units
+        quantity: units,
+        ratePlanId
       })
     })
   }
@@ -277,13 +277,14 @@ export default class extends Controller {
     row.dataset.itemType = "service"
 
     row.querySelector("[data-role='summary']").textContent = payload.description
-    row.querySelector("[data-role='details']").textContent = payload.ratePlanLabel
+    row.querySelector("[data-role='details']").textContent = payload.ratePlanLabel || payload.unit_price || "Service plan"
     row.querySelector("[data-role='quantity']").textContent = `Units: ${payload.quantity}`
 
     const container = row.querySelector("[data-role='hiddenContainer']")
     container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][description]`, payload.description))
     container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][service_schedule]`, payload.schedule))
     container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][units_serviced]`, payload.quantity))
+    container.appendChild(this.buildHiddenInput(`order[service_line_items][${index}][rate_plan_id]`, payload.ratePlanId))
 
     this.rowsTarget.appendChild(fragment)
     this.updateEmptyState()
@@ -333,7 +334,7 @@ export default class extends Controller {
 
   plansForUnitType(unitTypeId) {
     if (!unitTypeId) return []
-    if (unitTypeId === SERVICE_OPTION) return SERVICE_RATE_PLANS
+    if (unitTypeId === SERVICE_OPTION) return this.serviceRatePlansValue || []
 
     let plans = this.ratePlansValue?.[unitTypeId] || []
     if (plans.length > 0) return plans
