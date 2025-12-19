@@ -10,10 +10,13 @@ class OrdersController < ApplicationController
     month_start = @month.beginning_of_month
     month_end = @month.end_of_month
 
-    @orders = current_user.company.orders
-                          .includes(:customer, :location)
-                          .where('start_date <= ? AND end_date >= ?', month_end, month_start)
-                          .order(:start_date)
+    monthly_scope = current_user.company.orders
+                                .where('start_date <= ? AND end_date >= ?', month_end, month_start)
+
+    @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
+
+    @orders = monthly_scope.includes(:customer, :location)
+                           .order(:start_date)
   end
 
   def show

@@ -5,6 +5,7 @@ class Route < ApplicationRecord
   belongs_to :truck
   belongs_to :trailer, optional: true
   has_many :service_events, dependent: :nullify
+  has_many :service_events_with_deleted, -> { with_deleted }, class_name: 'ServiceEvent'
 
   validates :route_date, presence: true
   validates :truck, presence: true
@@ -27,6 +28,7 @@ class Route < ApplicationRecord
 
   after_initialize :set_default_date
   before_validation :assign_default_assets
+  before_destroy :nullify_deleted_service_events
   after_create -> { Routes::Lifecycle.after_route_create(self) }
   after_update_commit -> { Routes::Lifecycle.after_route_update(self) }
 
@@ -103,5 +105,9 @@ class Route < ApplicationRecord
     events_scope
       .joins(order: :rental_line_items)
       .sum('rental_line_items.quantity')
+  end
+
+  def nullify_deleted_service_events
+    service_events_with_deleted.where.not(deleted_at: nil).update_all(route_id: nil)
   end
 end
