@@ -1,9 +1,21 @@
-# Sanitrack
+# Dumpr
 
-Sanitrack is an internal operations app for a portable toilet rental business.  
-It tracks inventory, rentals, pricing, and service work with a focus on real unit assignment and overbooking prevention.
+Dumpr is the internal operations platform for a portable sanitation company.  
+It manages inventory, pricing, weather-aware routes, and field reporting using real unit assignments so overbooking isn’t possible.  
+The product is unapologetically opinionated toward how portable toilet operators work in the real world.
 
-This is not a generic rental app — it models how portable sanitation businesses actually operate.
+---
+
+## Highlights
+
+- ✅ **Inventory truth** — every order reserves physical units; availability checks prevent double booking.  
+- ✅ **Pricing engine** — rate plans drive rental and service-only pricing; order line items snapshot totals for accounting.  
+- ✅ **Route dashboard** — dispatchers see the next two weeks of routes with truck capacity, weather forecasts, and service event badges.  
+- ✅ **Field workflow** — drivers/dipatch mark deliveries/recurring service/pickups complete; required events collect reports in-app.  
+- ✅ **Dump events** — plan dump stops, reset truck septage loads, and track them in the service log alongside customer work.  
+- ✅ **Google Places integration** — order/location forms autocomplete addresses and store lat/lng for routing + weather.  
+- ✅ **National Weather Service forecasts** — automatically fetched per company/location to highlight freeze risk and estimated rain.  
+- ✅ **Safety net tooling** — RSpec coverage, Brakeman, Bundler Audit, and CI scripts keep the critical scheduling logic honest.
 
 ---
 
@@ -116,23 +128,42 @@ The builder does not rely on order.valid?.
 
 ---
 
-## Service Events & Field Work
-
-Service events now drive the day-to-day workflow.
+## Service Events, Routes & Field Work
 
 ### Auto-generated lifecycle
-- When an order transitions to `scheduled`, `Orders::ServiceEventGenerator` rebuilds delivery, recurring service, and pickup events.
-- Events are stored with `ServiceEventType` records so new categories can be added (requires report, custom fields, etc.).
-- Weekly and biweekly plans inject midpoint service visits; event rows are marked `auto_generated` so the generator can safely rerun.
+- Scheduling an order calls `Orders::ServiceEventGenerator` which rebuilds the delivery, recurring service, pickup, and dump prep events.
+- Events use `ServiceEventType` metadata (requires report? custom fields?) so we can add new categories without rewriting logic.
+- Weekly/biweekly plans inject midpoint service visits; auto-generated rows are safe to regenerate in-place.
 
 ### Dispatch dashboard
-- The root path lists the next seven days of service events with customer/location context.
-- Drivers or dispatchers can mark delivery-only events complete in one click or jump into the reporting flow for events that require data capture.
+- The dashboard shows the next **two weeks** of routes, grouped by truck, with alternating rows, capacity icons, and weather freeze warnings.
+- A compact overview card keeps YTD revenue and per-unit-type availability visible without pushing the routes table below the fold.
+- “New route” lives in a collapsible drawer, keeping focus on upcoming work while still allowing fast additions.
+
+### Field actions
+- Deliveries can move earlier but never later; pickups can move later (truck delays happen) but not earlier.  
+- Drivers mark events complete from the route view; service events that require data launch the reporting form, all inline.  
+- Dump events are schedulable and show up in the route just like a customer stop, resetting each truck’s septage tally when completed.
 
 ### Reporting & compliance
-- Service and pickup events require a `ServiceEventReport`. The form is prefilled with customer/address + assigned unit counts and captures pump-specific metrics (estimated gallons, units serviced).
-- Submitting a report both persists the JSON payload and marks the event completed in a transaction.
-- The “Service Log” nav links to `/service_event_reports`, giving accounting/compliance a reverse-chronological audit of submitted reports.
+- Service and pickup events capture `ServiceEventReport` JSON (estimated gallons, units serviced, etc.).  
+- Reports both persist the measurements and mark the event complete in the same transaction.  
+- `/service_event_reports` provides a chronological log for accounting/compliance export.
+
+---
+
+## Everyday Usage
+
+1. **Create customers & locations** (new customer modal → add location with Google autocomplete).  
+2. **Create an order**  
+   - Select customer/location  
+   - Enter start/end dates (availability sidebar automatically shows per-unit-type counts)  
+   - Add rental or service-only line items (rate-plan driven pricing)  
+3. **Schedule the order** – this generates delivery/service/pickup events.  
+4. **Review the dashboard** – dispatchers see the upcoming routes, weather risks, and unit workloads.  
+5. **Adjust routes** – postpone/advance events as needed, schedule dump stops, and keep an eye on truck trailer capacity.  
+6. **Complete events** – deliveries flip the order to `active`; services/pickups prompt drivers for any required report fields.  
+7. **Audit** – Service log and inventory overview provide quick status snapshots for management.
 
 ---
 
@@ -165,7 +196,7 @@ Service events now drive the day-to-day workflow.
 
 ## Scope & Intent
 
-Sanitrack is built first for real operational use.  
+Dumpr is built first for real operational use.  
 Generalization is possible, but correctness for portable sanitation comes first.
 
 If you’re reading this as a collaborator:
