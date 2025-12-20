@@ -46,7 +46,7 @@ module Routes
     end
 
     def alert_badges
-      labeled_badges.presence || [ { text: 'On schedule', tone: :success } ]
+      labeled_badges.presence || [ completed_badge ]
     end
 
     def cadence_info
@@ -169,6 +169,21 @@ module Routes
 
     def service_orders
       @service_orders ||= service_events.map(&:order).compact.uniq
+    end
+
+    def completed_badge
+      if route_completed?
+        { text: 'Completed', tone: :success }
+      else
+        { text: 'On schedule', tone: :success }
+      end
+    end
+
+    def route_completed?
+      @route_completed ||= begin
+        events = route.service_events
+        events.present? && events.all?(&:status_completed?)
+      end
     end
 
     def representative_location
