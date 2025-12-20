@@ -224,9 +224,9 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_090000) do
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.string "number", null: false
-    t.integer "septage_capacity_gal", default: 0, null: false
-    t.integer "septage_load_gal", default: 0, null: false
     t.datetime "updated_at", null: false
+    t.integer "waste_capacity_gal", default: 0, null: false
+    t.integer "waste_load_gal", default: 0, null: false
     t.index ["company_id", "number"], name: "index_trucks_on_company_id_and_number", unique: true
     t.index ["company_id"], name: "index_trucks_on_company_id"
   end

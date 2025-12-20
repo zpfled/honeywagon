@@ -2,14 +2,14 @@ require 'rails_helper'
 
 RSpec.describe Routes::DashboardRowPresenter do
   let(:company) { create(:company) }
-  let(:truck) { create(:truck, company: company, clean_water_capacity_gal: 10, septage_capacity_gal: 10) }
+  let(:truck) { create(:truck, company: company, clean_water_capacity_gal: 10, waste_capacity_gal: 10) }
   let(:trailer) { create(:trailer, company: company, capacity_spots: 0) }
   let(:route_date) { Date.current + 1.day }
   let(:route) { create(:route, company: company, truck: truck, trailer: trailer, route_date: route_date) }
   let(:order) { create(:order, company: company) }
-  let(:septage_load) { { cumulative_used: 40, capacity: 60, remaining: 20, over_capacity: false } }
+  let(:waste_load) { { cumulative_used: 40, capacity: 60, remaining: 20, over_capacity: false } }
 
-  subject(:presenter) { described_class.new(route.reload, septage_load: septage_load) }
+  subject(:presenter) { described_class.new(route.reload, waste_load: waste_load) }
 
   before do
     standard_type = create(:unit_type, :standard, company: company)
@@ -62,8 +62,8 @@ RSpec.describe Routes::DashboardRowPresenter do
     expect(texts).to include('Delivery: 1 late', 'Service: 1 overdue')
   end
 
-  it 'exposes septage load summary when provided' do
-    expect(presenter.septage_load_summary).to eq(septage_load)
+  it 'exposes waste load summary when provided' do
+    expect(presenter.waste_load_summary).to eq(waste_load)
   end
 
   it 'includes dump events in the orders summary' do

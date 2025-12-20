@@ -12,7 +12,7 @@ The product is unapologetically opinionated toward how portable toilet operators
 - ✅ **Pricing engine** — rate plans drive rental and service-only pricing; order line items snapshot totals for accounting.  
 - ✅ **Route dashboard** — dispatchers see the next two weeks of routes with truck capacity, weather forecasts, and service event badges.  
 - ✅ **Field workflow** — drivers/dipatch mark deliveries/recurring service/pickups complete; required events collect reports in-app.  
-- ✅ **Dump events** — plan dump stops, reset truck septage loads, and track them in the service log alongside customer work.  
+- ✅ **Dump events** — plan dump stops, reset truck waste loads, and track them in the service log alongside customer work.  
 - ✅ **Google Places integration** — order/location forms autocomplete addresses and store lat/lng for routing + weather.  
 - ✅ **National Weather Service forecasts** — automatically fetched per company/location to highlight freeze risk and estimated rain.  
 - ✅ **Safety net tooling** — RSpec coverage, Brakeman, Bundler Audit, and CI scripts keep the critical scheduling logic honest.
@@ -143,7 +143,7 @@ The builder does not rely on order.valid?.
 ### Field actions
 - Deliveries can move earlier but never later; pickups can move later (truck delays happen) but not earlier.  
 - Drivers mark events complete from the route view; service events that require data launch the reporting form, all inline.  
-- Dump events are schedulable and show up in the route just like a customer stop, resetting each truck’s septage tally when completed.
+- Dump events are schedulable and show up in the route just like a customer stop, resetting each truck’s waste tally when completed.
 
 ### Reporting & compliance
 - Service and pickup events capture `ServiceEventReport` JSON (estimated gallons, units serviced, etc.).  

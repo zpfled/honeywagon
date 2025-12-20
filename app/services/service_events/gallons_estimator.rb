@@ -1,5 +1,5 @@
 module ServiceEvents
-  # Calculates estimated septage gallons for a service event.
+  # Calculates estimated waste gallons for a service event.
   class GallonsEstimator
     def initialize(event)
       @event = event

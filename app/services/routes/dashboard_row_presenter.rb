@@ -1,11 +1,11 @@
 module Routes
   # Presents per-route data for the dashboard table (alerts, cadence, badges).
   class DashboardRowPresenter
-    attr_reader :route, :septage_load
+    attr_reader :route, :waste_load
 
-    def initialize(route, septage_load: nil)
+    def initialize(route, waste_load: nil)
       @route = route
-      @septage_load = septage_load
+      @waste_load = waste_load
     end
 
     # TODO: Extract workload-related data into Routes::WorkloadSummary and have this presenter delegate.
@@ -53,7 +53,7 @@ module Routes
       { last_completed_on: last_service_completed_on, next_due_on: next_service_due_on }
     end
 
-    # TODO: Move capacity/septage alert generation into a dedicated Routes::CapacitySummary service.
+    # TODO: Move capacity/waste alert generation into a dedicated Routes::CapacitySummary service.
     def capacity_icons
       route.over_capacity_dimensions.map do |dimension|
         case dimension
@@ -61,8 +61,8 @@ module Routes
           { glyph: '⛟', tone: 'text-rose-600', title: 'Trailer capacity exceeded' }
         when :clean_water
           { glyph: '💧', tone: 'text-blue-600', title: 'Clean water capacity exceeded' }
-        when :septage
-          { glyph: '🛢', tone: 'text-amber-700', title: 'Septage capacity exceeded' }
+        when :waste
+          { glyph: '🛢', tone: 'text-amber-700', title: 'Waste capacity exceeded' }
         end
       end.compact
     end
@@ -85,11 +85,11 @@ module Routes
       nil
     end
 
-    # TODO: Replace direct septage access with a Routes::SeptageSummary collaborator.
-    def septage_load_summary
-      return unless septage_load
+    # TODO: Replace direct waste access with a Routes::WasteSummary collaborator.
+    def waste_load_summary
+      return unless waste_load
 
-      septage_load
+      waste_load
     end
 
     # TODO: Extract the per-customer aggregation into a Routes::OrderSummary builder.

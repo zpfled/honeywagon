@@ -32,7 +32,7 @@ class CompanyController < ApplicationController
   end
 
   def truck_params
-    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :septage_capacity_gal)
+    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal)
   end
 
   def trailer_params

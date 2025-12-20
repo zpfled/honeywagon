@@ -22,10 +22,10 @@ module Routes
       }
     end
 
-    def septage_usage
+    def waste_usage
       {
-        used: usage[:septage_gallons],
-        capacity: route.truck&.septage_capacity_gal
+        used: usage[:waste_gallons],
+        capacity: route.truck&.waste_capacity_gal
       }
     end
 
@@ -37,7 +37,7 @@ module Routes
       [].tap do |dims|
         dims << :trailer if over?(trailer_usage)
         dims << :clean_water if over?(clean_water_usage)
-        dims << :septage if over?(septage_usage)
+        dims << :waste if over?(waste_usage)
       end
     end
 
@@ -47,11 +47,11 @@ module Routes
       events = route.service_events.scheduled
       events = events.includes(order: { rental_line_items: :unit_type }) unless events.loaded?
 
-      events.each_with_object({ trailer_spots: 0, clean_water_gallons: 0, septage_gallons: 0 }) do |event, memo|
+      events.each_with_object({ trailer_spots: 0, clean_water_gallons: 0, waste_gallons: 0 }) do |event, memo|
         usage = ServiceEvents::ResourceCalculator.new(event).usage
         memo[:trailer_spots] += usage[:trailer_spots]
         memo[:clean_water_gallons] += usage[:clean_water_gallons]
-        memo[:septage_gallons] += usage[:septage_gallons]
+        memo[:waste_gallons] += usage[:waste_gallons]
       end
     end
 
