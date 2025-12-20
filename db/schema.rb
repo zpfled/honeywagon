@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_16_100000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_17_090000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -271,6 +271,23 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_100000) do
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 
+  create_table "weather_forecasts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.date "forecast_date", null: false
+    t.integer "high_temp"
+    t.string "icon_url"
+    t.decimal "latitude", precision: 8, scale: 4
+    t.decimal "longitude", precision: 9, scale: 4
+    t.integer "low_temp"
+    t.integer "precip_percent"
+    t.datetime "retrieved_at", null: false
+    t.string "summary"
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "forecast_date", "latitude", "longitude"], name: "index_weather_forecasts_on_company_date_and_location", unique: true
+    t.index ["company_id"], name: "index_weather_forecasts_on_company_id"
+  end
+
   add_foreign_key "customers", "companies"
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"
@@ -305,4 +322,5 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_16_100000) do
   add_foreign_key "units", "companies"
   add_foreign_key "units", "unit_types"
   add_foreign_key "users", "companies"
+  add_foreign_key "weather_forecasts", "companies"
 end

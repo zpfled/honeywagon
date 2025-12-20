@@ -79,13 +79,10 @@ module Routes
 
     def trend_badge
       count = route.service_event_count
-      if count <= 1
-        { text: '↓ light load', tone: :info }
-      elsif count >= 5
-        { text: '↑ heavy week', tone: :danger }
-      else
-        { text: '↔ steady', tone: :warning }
-      end
+      return { text: '↓ light route', tone: :info } if count <= 2
+      return { text: '↑ heavy route', tone: :danger } if count >= 5
+
+      nil
     end
 
     # TODO: Replace direct septage access with a Routes::SeptageSummary collaborator.
@@ -172,6 +169,26 @@ module Routes
 
     def service_orders
       @service_orders ||= service_events.map(&:order).compact.uniq
+    end
+
+    def representative_location
+      @representative_location ||= route.service_events.includes(order: :location).map { |event| event.order&.location }.compact.find do |location|
+        location.lat.present? && location.lng.present?
+      end
+    end
+
+    public
+
+    def weather_forecast
+      @weather_forecast ||= begin
+        location = representative_location
+        Weather::ForecastFetcher.call(
+          company: route.company,
+          date: route.route_date,
+          latitude: location&.lat,
+          longitude: location&.lng
+        )
+      end
     end
   end
 end

@@ -10,8 +10,10 @@ class LocationsController < ApplicationController
   end
 
   def create
-    @location = Location.new(location_params.except(:customer_id))
+    place_id = location_params[:place_id]
+    @location = Location.new(location_params.except(:customer_id, :place_id))
     assign_customer!
+    apply_place_details(place_id)
 
     if @location.errors[:customer].present?
       respond_to do |format|
@@ -69,6 +71,20 @@ class LocationsController < ApplicationController
   end
 
   def location_params
-    params.require(:location).permit(:customer_id, :label, :street, :city, :state, :zip, :access_notes, :lat, :lng)
+    params.require(:location).permit(:customer_id, :label, :street, :city, :state, :zip, :access_notes, :lat, :lng, :place_id)
+  end
+
+  def apply_place_details(place_id)
+    return if place_id.blank?
+
+    details = Geocoding::GoogleClient.new.place_details(place_id)
+    return if details.blank?
+
+    @location.lat = details[:lat] if details[:lat]
+    @location.lng = details[:lng] if details[:lng]
+    @location.street = details[:street] if @location.street.blank? && details[:street]
+    @location.city = details[:city] if @location.city.blank? && details[:city]
+    @location.state = details[:state] if @location.state.blank? && details[:state]
+    @location.zip = details[:postal_code] if @location.zip.blank? && details[:postal_code]
   end
 end

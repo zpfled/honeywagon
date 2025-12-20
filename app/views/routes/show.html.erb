@@ -34,9 +34,9 @@
     </div>
   </div>
 
-  <% if @previous_route || @next_route %>
-    <div class="mt-4 flex items-center justify-between text-xs text-gray-600">
-      <div>
+  <% if @previous_route || @next_route || @weather_forecast %>
+    <div class="mt-4 flex flex-col gap-3 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+      <div class="sm:w-1/3">
         <% if @previous_route %>
           <%= link_to route_path(@previous_route),
               class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
@@ -44,7 +44,26 @@
           <% end %>
         <% end %>
       </div>
-      <div>
+      <div class="text-center sm:w-1/3">
+        <% if @weather_forecast %>
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Forecast</p>
+          <div class="mt-1 flex flex-wrap items-center justify-center gap-3 text-sm">
+            <% if @weather_forecast.high_temp.present? %>
+              <span class="<%= freeze_risk_class(@weather_forecast.high_temp) %>">High <%= @weather_forecast.high_temp %>°F</span>
+            <% end %>
+            <% if @weather_forecast.low_temp.present? %>
+              <span class="<%= freeze_risk_class(@weather_forecast.low_temp) %>">Low <%= @weather_forecast.low_temp %>°F</span>
+            <% end %>
+            <% if @weather_forecast.precip_percent.present? %>
+              <span><%= @weather_forecast.precip_percent %>% precip</span>
+            <% end %>
+          </div>
+          <% if @weather_forecast.summary.present? %>
+            <p class="mt-1 text-xs text-gray-600"><%= @weather_forecast.summary %></p>
+          <% end %>
+        <% end %>
+      </div>
+      <div class="sm:w-1/3 sm:text-right">
         <% if @next_route %>
           <%= link_to route_path(@next_route),
               class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
