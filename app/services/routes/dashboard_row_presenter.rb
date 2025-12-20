@@ -73,7 +73,7 @@ module Routes
       elsif services_overdue_count.positive?
         'bg-amber-50'
       else
-        'bg-white'
+        nil
       end
     end
 
