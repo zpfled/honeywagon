@@ -36,8 +36,8 @@ RSpec.describe "Dashboard and landing", type: :request do
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include(I18n.l(route.route_date, format: :long))
-        expect(response.body).to include("Upcoming Routes")
-        expect(response.body).to include("route")
+        expect(response.body).to include("Upcoming routes")
+        expect(response.body).to include("Next 2 weeks")
       end
     end
   end

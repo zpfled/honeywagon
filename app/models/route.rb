@@ -34,7 +34,8 @@ class Route < ApplicationRecord
 
   scope :upcoming, lambda {
     today = Time.use_zone('Central Time (US & Canada)') { Time.zone.today }
-    where('route_date >= ?', today).order(:route_date)
+    horizon = today + 13.days
+    where(route_date: today..horizon).order(:route_date)
   }
 
   def service_event_count = service_events.count
