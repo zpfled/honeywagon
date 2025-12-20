@@ -12,11 +12,21 @@ class Truck < ApplicationRecord
   end
 
   def recalculate_septage_load!
-    total = ServiceEvent
-            .joins(:route)
-            .where(routes: { truck_id: id })
-            .where(status: ServiceEvent.statuses[:completed])
-            .sum { |event| event.estimated_gallons_pumped }
+    events = ServiceEvent
+             .joins(:route)
+             .where(routes: { truck_id: id })
+             .where(status: ServiceEvent.statuses[:completed])
+             .order(Arel.sql('service_events.updated_at ASC'))
+
+    total = 0
+    events.each do |event|
+      if event.event_type_dump?
+        total = 0
+      else
+        total += event.estimated_gallons_pumped
+      end
+    end
+
     update_columns(septage_load_gal: total)
   end
 end

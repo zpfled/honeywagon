@@ -49,6 +49,7 @@ class RoutesController < ApplicationController
     @previous_route = presenter.previous_route
     @next_route = presenter.next_route
     @septage_load = presenter.septage_load
+    @dump_sites = current_user.company.dump_sites.includes(:location)
   end
 
   def load_fleet_assets

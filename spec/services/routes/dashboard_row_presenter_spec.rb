@@ -59,10 +59,22 @@ RSpec.describe Routes::DashboardRowPresenter do
 
   it 'provides alert badges for the alerts column' do
     texts = presenter.alert_badges.map { |badge| badge[:text] }
-    expect(texts).to include('1 late', '1 overdue')
+    expect(texts).to include('Delivery: 1 late', 'Service: 1 overdue')
   end
 
   it 'exposes septage load summary when provided' do
     expect(presenter.septage_load_summary).to eq(septage_load)
+  end
+
+  it 'includes dump events in the orders summary' do
+    dump_site = create(:dump_site, company: company)
+    create(:service_event, :dump, route: route, route_date: route_date, dump_site: dump_site)
+
+    summaries = described_class.new(route.reload).orders_summary
+    dump_entry = summaries.find { |entry| entry[:dump] }
+
+    expect(dump_entry[:label]).to eq(dump_site.name)
+    expect(dump_entry[:detail]).to eq(dump_site.location.display_label)
+    expect(dump_entry[:units]).to eq(0)
   end
 end

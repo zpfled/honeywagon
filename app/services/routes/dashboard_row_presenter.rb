@@ -36,9 +36,17 @@ module Routes
       end
     end
 
+    def labeled_badges
+      @labeled_badges ||= begin
+        badges = []
+        badges += delivery_badges.map { |badge| badge.merge(text: "Delivery: #{badge[:text]}") }
+        badges += service_badges.map { |badge| badge.merge(text: "Service: #{badge[:text]}") }
+        badges
+      end
+    end
+
     def alert_badges
-      (delivery_badges + service_badges).presence ||
-        [ { text: 'On schedule', tone: :success } ]
+      labeled_badges.presence || [ { text: 'On schedule', tone: :success } ]
     end
 
     def cadence_info
@@ -90,13 +98,34 @@ module Routes
     # TODO: Extract the per-customer aggregation into a Routes::OrderSummary builder.
     def orders_summary
       route.service_events
-           .includes(order: :customer)
-           .group_by(&:order)
-           .map do |order, events|
-             {
-               customer: order&.customer&.display_name || order&.location&.display_label || 'Unknown order',
-               units: events.sum(&:units_impacted_count)
-             }
+           .includes(order: :customer, dump_site: :location)
+           .group_by do |event|
+             if event.event_type_dump?
+               [ :dump, event.dump_site_id ]
+             else
+               [ :order, event.order_id ]
+             end
+           end
+           .map do |_group_key, events|
+             sample = events.first
+             if sample.event_type_dump?
+               site = sample.dump_site
+               {
+                 label: site&.name || 'Dump event',
+                 detail: site&.location&.display_label,
+                 units: 0,
+                 dump: true
+               }
+             else
+               order = sample.order
+               label = order&.customer&.display_name || order&.location&.display_label || 'Unknown order'
+               {
+                 label: label,
+                 detail: nil,
+                 units: events.sum(&:units_impacted_count),
+                 dump: false
+               }
+             end
            end
     end
 

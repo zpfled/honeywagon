@@ -11,7 +11,8 @@ module ServiceEvents
 
     def call
       return event.estimated_gallons_override if event.estimated_gallons_override.present?
-      return 0 if event.event_type_delivery?
+      return 0 if event.event_type_delivery? || event.event_type_dump?
+      return 0 unless event.order
 
       total_units = rental_standard_units
       total_units += service_line_units if event.event_type_service?

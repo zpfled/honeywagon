@@ -3,7 +3,20 @@ class OrdersController < ApplicationController
   before_action :load_form_options, only: %i[new create edit update]
 
   def index
-    @orders = current_user.company.orders.includes(:customer, :location).order(start_date: :desc)
+    @month = selected_month
+    @previous_month = (@month - 1.month).beginning_of_month
+    @next_month = (@month + 1.month).beginning_of_month
+
+    month_start = @month.beginning_of_month
+    month_end = @month.end_of_month
+
+    monthly_scope = current_user.company.orders
+                                .where('start_date <= ? AND end_date >= ?', month_end, month_start)
+
+    @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
+
+    @orders = monthly_scope.includes(:customer, :location)
+                           .order(:start_date)
   end
 
   def show
@@ -80,6 +93,15 @@ class OrdersController < ApplicationController
                                   .order(:service_schedule)
     @customers = current_user.company.customers.order(:display_name)
     @locations = current_user.company.locations.includes(:customer).order(:label)
+  end
+
+  def selected_month
+    param = params[:month]
+    return Date.current.beginning_of_month if param.blank?
+
+    Date.strptime(param, '%Y-%m').beginning_of_month
+  rescue ArgumentError
+    Date.current.beginning_of_month
   end
 
   def order_params

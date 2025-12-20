@@ -12,7 +12,9 @@ Rails.application.routes.draw do
       post :postpone, on: :member
       post :advance, on: :member
       post :complete, on: :member
+      delete :destroy, on: :member
     end
+    resources :dump_events, only: :create, module: :routes
   end
   resources :service_event_reports, only: [ :index, :new, :create, :edit, :update ]
   namespace :setup do

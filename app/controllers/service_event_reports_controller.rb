@@ -86,7 +86,7 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def report_params
-    permitted = params.fetch(:service_event_report, {}).permit(:estimated_gallons_pumped, :units_pumped).to_h
+    permitted = params.fetch(:service_event_report, {}).permit(:estimated_gallons_pumped, :units_pumped, :estimated_gallons_dumped).to_h
     permitted.transform_values do |value|
       next if value.nil?
       value.to_s.strip.presence&.to_i
@@ -94,14 +94,26 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def default_prefill_data
-    {
-      customer_name: @service_event.order.customer&.display_name,
-      customer_address: [ @service_event.order.location&.street, @service_event.order.location&.city, @service_event.order.location&.state, @service_event.order.location&.zip ].compact.join(', ').presence,
-      units_pumped: @service_event.order.units.count
-    }
+    if @service_event.event_type_dump?
+      site = @service_event.dump_site
+      {
+        customer_name: site&.name,
+        customer_address: site&.location&.full_address,
+        units_pumped: nil
+      }
+    else
+      order = @service_event.order
+      {
+        customer_name: order&.customer&.display_name,
+        customer_address: [ order&.location&.street, order&.location&.city, order&.location&.state, order&.location&.zip ].compact.join(', ').presence,
+        units_pumped: order&.units&.count
+      }
+    end
   end
 
   def apply_estimated_gallons_override(report)
+    return if @service_event.event_type_dump?
+
     gallons = report.data['estimated_gallons_pumped']
     return if gallons.blank?
 

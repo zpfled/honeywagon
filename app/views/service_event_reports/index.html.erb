@@ -24,25 +24,43 @@
           <% @reports.each do |report| %>
             <% event = report.service_event %>
             <% order = event.order %>
+            <% dump_site = event.dump_site %>
+            <% dump_event = event.event_type_dump? %>
             <tr class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm text-gray-900">
                 <%= l(event.updated_at, format: :long) %>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <div class="font-semibold"><%= order.customer.display_name %></div>
+                <% if dump_event %>
+                  <div class="font-semibold"><%= dump_site&.name || 'Dump site' %></div>
+                <% else %>
+                  <div class="font-semibold"><%= order&.customer&.display_name %></div>
+                <% end %>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <%= [order.location.street, order.location.city, order.location.state, order.location.zip].compact.join(", ") %>
+                <% if dump_event %>
+                  <%= dump_site&.location&.full_address || '—' %>
+                <% else %>
+                  <%= [order&.location&.street, order&.location&.city, order&.location&.state, order&.location&.zip].compact.join(", ") %>
+                <% end %>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <%= report.data["units_pumped"].presence || "—" %>
+                <% if dump_event %>
+                  —
+                <% else %>
+                  <%= report.data["units_pumped"].presence || "—" %>
+                <% end %>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <%= report.data["estimated_gallons_pumped"].presence || "—" %>
+                <% if dump_event %>
+                  <%= report.data["estimated_gallons_dumped"].presence || "—" %>
+                <% else %>
+                  <%= report.data["estimated_gallons_pumped"].presence || "—" %>
+                <% end %>
               </td>
               <td class="px-4 py-3 text-right">
                 <%= link_to "Edit", edit_service_event_report_path(report, redirect_path: service_event_reports_path),

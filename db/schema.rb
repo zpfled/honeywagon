@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_16_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -35,6 +35,16 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
     t.index ["company_id"], name: "index_customers_on_company_id"
     t.index ["display_name"], name: "index_customers_on_display_name"
     t.index ["last_name"], name: "index_customers_on_last_name"
+  end
+
+  create_table "dump_sites", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "location_id", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_dump_sites_on_company_id"
+    t.index ["location_id"], name: "index_dump_sites_on_location_id"
   end
 
   create_table "locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -161,10 +171,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.uuid "deleted_by_id"
+    t.uuid "dump_site_id"
     t.integer "estimated_gallons_override"
     t.integer "event_type"
     t.text "notes"
-    t.uuid "order_id", null: false
+    t.uuid "order_id"
     t.date "route_date"
     t.uuid "route_id"
     t.date "scheduled_on"
@@ -175,6 +186,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
     t.index ["auto_generated"], name: "index_service_events_on_auto_generated"
     t.index ["deleted_at"], name: "index_service_events_on_deleted_at"
     t.index ["deleted_by_id"], name: "index_service_events_on_deleted_by_id"
+    t.index ["dump_site_id"], name: "index_service_events_on_dump_site_id"
     t.index ["order_id"], name: "index_service_events_on_order_id"
     t.index ["route_id"], name: "index_service_events_on_route_id"
     t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
@@ -260,6 +272,8 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
   end
 
   add_foreign_key "customers", "companies"
+  add_foreign_key "dump_sites", "companies"
+  add_foreign_key "dump_sites", "locations"
   add_foreign_key "locations", "customers"
   add_foreign_key "order_units", "orders"
   add_foreign_key "order_units", "units"
@@ -277,6 +291,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_15_162000) do
   add_foreign_key "routes", "trucks"
   add_foreign_key "service_event_reports", "service_events"
   add_foreign_key "service_event_reports", "users"
+  add_foreign_key "service_events", "dump_sites"
   add_foreign_key "service_events", "orders"
   add_foreign_key "service_events", "routes"
   add_foreign_key "service_events", "service_event_types"

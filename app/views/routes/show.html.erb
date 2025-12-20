@@ -134,6 +134,33 @@
     <% end %>
   </div>
 
+  <%= card classes: "mt-6" do %>
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Schedule dump stop</p>
+        <p class="text-xs text-gray-600">Add a dump event to this route to reset the truck's septage load.</p>
+      </div>
+      <% if @dump_sites.any? %>
+        <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex items-end gap-3" do |f| %>
+          <div>
+            <%= f.label :dump_site_id, "Dump site", class: "text-xs font-medium text-gray-700" %>
+            <%= f.select :dump_site_id,
+                         options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
+                         { include_blank: "Select a dump site" },
+                         class: "mt-1 block w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+          </div>
+          <div class="pb-1">
+            <%= f.submit "Add dump event", class: button_classes %>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="text-sm text-gray-600">
+          No dump sites yet. <%= link_to "Add one in company settings.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <%= card classes: "mt-6 overflow-hidden" do %>
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
@@ -149,6 +176,7 @@
         <% if @service_events.any? %>
           <% @service_events.each do |event| %>
             <% order = event.order %>
+            <% dump_site = event.dump_site if event.event_type_dump? %>
             <% completed = event.status_completed? %>
             <% disable_later = completed || event.prevent_move_later? %>
             <% disable_earlier = completed || event.prevent_move_earlier? %>
@@ -173,21 +201,37 @@
                 <%= badge(event.event_type.humanize, tone: :info) %>
               </td>
               <td class="<%= table_cell_class %>">
-                <%= event.units_impacted_count %>
+                <%= event.event_type_dump? ? '—' : event.units_impacted_count %>
               </td>
               <td class="px-4 py-3">
-                <div class="text-sm font-semibold text-gray-900">
-                  <%= link_to(order.customer.display_name, order_path(order), class: "hover:underline") %>
-                </div>
-                <div class="mt-1 text-xs text-gray-600">
-                  <%= order.customer.billing_email %>
-                </div>
-                <div class="mt-1 text-xs text-gray-600">
-                  <%= order.location.label %> — <%= [ order.location.city, order.location.state ].compact.join(', ') %>
-                </div>
-                <div class="mt-1 text-xs text-gray-600">
-                  <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
-                </div>
+                <% if event.event_type_dump? %>
+                  <div class="text-sm font-semibold text-gray-900">
+                    <%= dump_site&.name || 'Dump stop' %>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-600">
+                    <%= dump_site&.location&.display_label || 'Location pending' %>
+                  </div>
+                  <% if dump_site&.location %>
+                    <div class="mt-1 text-xs text-gray-600">
+                      <%= dump_site.location.full_address %>
+                    </div>
+                  <% end %>
+                <% elsif order.present? %>
+                  <div class="text-sm font-semibold text-gray-900">
+                    <%= link_to(order.customer.display_name, order_path(order), class: "hover:underline") %>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-600">
+                    <%= order.customer.billing_email %>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-600">
+                    <%= order.location.label %> — <%= [ order.location.city, order.location.state ].compact.join(', ') %>
+                  </div>
+                  <div class="mt-1 text-xs text-gray-600">
+                    <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
+                  </div>
+                <% else %>
+                  <div class="text-sm font-semibold text-gray-900">Unassigned</div>
+                <% end %>
               </td>
               <td class="px-4 py-3">
                 <div class="inline-flex items-center gap-3">
@@ -225,7 +269,7 @@
                     <% end %>
                   </div>
                   <span class="h-4 w-px bg-gray-200" aria-hidden="true"></span>
-                  <%= button_to order_service_event_path(order, event),
+                  <%= button_to route_service_event_path(@route, event),
                                 method: :delete,
                                 data: { turbo_confirm: "Delete this service event? This cannot be undone." },
                                 class: "inline-flex items-center rounded-full bg-transparent px-2 py-1 text-gray-400 hover:text-rose-600 #{'opacity-50 cursor-not-allowed' if completed}",
