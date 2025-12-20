@@ -59,7 +59,7 @@ RSpec.describe Routes::DashboardRowPresenter do
 
   it 'provides alert badges for the alerts column' do
     texts = presenter.alert_badges.map { |badge| badge[:text] }
-    expect(texts).to include('1 late', '1 overdue')
+    expect(texts).to include('Delivery: 1 late', 'Service: 1 overdue')
   end
 
   it 'exposes septage load summary when provided' do
