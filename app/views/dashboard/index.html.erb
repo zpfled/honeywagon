@@ -172,8 +172,12 @@
               </td>
               <td class="<%= table_cell_class('', align: :right) %>"><%= row.estimated_gallons %></td>
               <td class="<%= table_cell_class %>">
-                <div><%= route.truck&.label || "—" %></div>
-                <div class="text-xs text-gray-500"><%= route.trailer&.label || "No trailer" %></div>
+                <div class="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                  <%= route.truck&.name || "—" %>
+                </div>
+                <div class="text-xs text-gray-500 whitespace-nowrap">
+                  <%= route.trailer&.name || "No trailer" %>
+                </div>
                 <% if row.capacity_icons.any? %>
                   <div class="mt-2 flex gap-1">
                     <% row.capacity_icons.each do |icon| %>
@@ -186,10 +190,8 @@
                 <% end %>
                 <% if row.septage_load_summary %>
                   <% summary = row.septage_load_summary %>
-                  <div class="mt-2 text-xs <%= summary[:over_capacity] ? 'text-rose-600' : 'text-gray-600' %>">
-                    Septage after route:
-                    <%= summary[:cumulative_used] %> /
-                    <%= summary[:capacity] || '—' %> gal
+                  <div class="mt-2 text-xs whitespace-nowrap <%= summary[:over_capacity] ? 'text-rose-600' : 'text-gray-600' %>">
+                    Septage <%= summary[:cumulative_used] %>/<%= summary[:capacity] || '—' %> gal
                   </div>
                 <% end %>
               </td>
