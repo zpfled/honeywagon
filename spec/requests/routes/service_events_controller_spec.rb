@@ -91,5 +91,16 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
     ensure
       travel_back
     end
+
+    context 'when completing a delivery event' do
+      let(:delivery_order) { create(:order, company: company, created_by: user, start_date: Date.current - 1, end_date: Date.current + 10, status: 'scheduled') }
+      let(:delivery_event) { create(:service_event, :delivery, order: delivery_order, route: route, route_date: route.route_date) }
+
+      it 'activates the order' do
+        post complete_route_service_event_path(route, delivery_event)
+
+        expect(delivery_order.reload.status).to eq('active')
+      end
+    end
   end
 end

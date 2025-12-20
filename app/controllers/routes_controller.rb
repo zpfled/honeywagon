@@ -4,7 +4,7 @@ class RoutesController < ApplicationController
 
   def index
     @routes = current_user.company.routes.includes(:truck, :trailer,
-                                                   service_events: { order: { rental_line_items: :unit_type } })
+                                                   service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
                           .order(route_date: :desc)
     @route = current_user.company.routes.new(
       route_date: Date.current,
@@ -50,6 +50,7 @@ class RoutesController < ApplicationController
     @next_route = presenter.next_route
     @septage_load = presenter.septage_load
     @dump_sites = current_user.company.dump_sites.includes(:location)
+    @weather_forecast = presenter.weather_forecast
   end
 
   def load_fleet_assets

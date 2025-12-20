@@ -105,9 +105,29 @@
             <tr class="<%= row.row_background_class %> hover:bg-gray-50 transition">
               <td class="<%= table_cell_class('font-semibold') %>">
                 <div><%= l(route.route_date, format: :long) %></div>
-                <div class="mt-1 text-xs text-gray-600">
-                  <%= badge(row.trend_badge[:text], tone: row.trend_badge[:tone]) %>
-                </div>
+                <% if row.trend_badge %>
+                  <div class="mt-1 text-xs text-gray-600">
+                    <%= badge(row.trend_badge[:text], tone: row.trend_badge[:tone]) %>
+                  </div>
+                <% end %>
+                <% if row.weather_forecast %>
+                  <div class="mt-1 text-xs text-gray-600 space-y-0.5">
+                    <div class="flex items-center gap-2">
+                      <% if row.weather_forecast.high_temp.present? %>
+                        <span class="<%= freeze_risk_class(row.weather_forecast.high_temp) %>">H <%= row.weather_forecast.high_temp %>°F</span>
+                      <% end %>
+                      <% if row.weather_forecast.low_temp.present? %>
+                        <span class="<%= freeze_risk_class(row.weather_forecast.low_temp) %>">L <%= row.weather_forecast.low_temp %>°F</span>
+                      <% end %>
+                      <% if row.weather_forecast.precip_percent.present? %>
+                        <span><%= row.weather_forecast.precip_percent %>% precip</span>
+                      <% end %>
+                    </div>
+                    <% if row.weather_forecast.summary.present? %>
+                      <div><%= row.weather_forecast.summary %></div>
+                    <% end %>
+                  </div>
+                <% end %>
               </td>
               <td class="<%= table_cell_class %>">
                 <div class="text-sm font-semibold text-gray-900 space-y-1">

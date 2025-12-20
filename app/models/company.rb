@@ -12,6 +12,7 @@ class Company < ApplicationRecord
   has_many :service_events, through: :orders
   has_many :rate_plans, dependent: :destroy
   has_many :dump_sites, dependent: :destroy
+  has_many :weather_forecasts, dependent: :destroy
 
   validates :name, presence: true
 

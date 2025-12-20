@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["search", "street", "city", "state", "zip", "lat", "lng", "results"]
+  static targets = ["search", "street", "city", "state", "zip", "lat", "lng", "results", "placeId"]
   static values = {
     suggestionsUrl: String,
     detailsUrl: String
@@ -13,6 +13,7 @@ export default class extends Controller {
 
   search(event) {
     const query = event.target.value.trim()
+    this.clearPlaceId()
     if (this.fetchTimeout) clearTimeout(this.fetchTimeout)
 
     if (query.length < 3) {
@@ -63,6 +64,10 @@ export default class extends Controller {
       this.searchTarget.value = label
     }
 
+    if (this.hasPlaceIdTarget) {
+      this.placeIdTarget.value = placeId || ""
+    }
+
     this.clearSuggestions()
     if (placeId) this.fetchDetails(placeId)
   }
@@ -97,5 +102,9 @@ export default class extends Controller {
     if (!this.hasResultsTarget) return
     this.resultsTarget.innerHTML = ""
     this.resultsTarget.classList.add("hidden")
+  }
+
+  clearPlaceId() {
+    if (this.hasPlaceIdTarget) this.placeIdTarget.value = ""
   }
 }

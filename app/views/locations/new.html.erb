@@ -107,6 +107,7 @@
 
         <%= f.hidden_field :lat, data: { address_autocomplete_target: "lat" } %>
         <%= f.hidden_field :lng, data: { address_autocomplete_target: "lng" } %>
+        <%= f.hidden_field :place_id, data: { address_autocomplete_target: "placeId" } %>
 
         <div class="flex justify-end gap-3 pt-2">
           <button type="button"

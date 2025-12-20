@@ -65,4 +65,12 @@ module UiHelper
     content_tag(:span, text,
                 class: "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold #{palette.fetch(tone, palette[:info])}")
   end
+
+  def freeze_risk_class(temp)
+    return '' if temp.nil?
+    return 'text-rose-700 font-semibold' if temp < 10
+    return 'text-amber-600 font-semibold' if temp < 32
+
+    ''
+  end
 end

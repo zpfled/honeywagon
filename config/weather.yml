@@ -1,0 +1,12 @@
+default: &default
+  verify_ssl: true
+
+development:
+  <<: *default
+  verify_ssl: false
+
+test:
+  <<: *default
+
+production:
+  <<: *default
