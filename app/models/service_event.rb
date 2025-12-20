@@ -60,7 +60,7 @@ class ServiceEvent < ApplicationRecord
   end
 
   def prevent_move_later?
-    event_type_delivery? || event_type_pickup?
+    event_type_delivery?
   end
 
   def units_impacted_count

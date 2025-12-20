@@ -200,7 +200,7 @@
             <% disable_later = completed || event.prevent_move_later? %>
             <% disable_earlier = completed || event.prevent_move_earlier? %>
             <% later_hint = if event.prevent_move_later?
-                              event.event_type_delivery? ? 'Deliveries must stay on or before their scheduled date.' : 'Pickups must stay on their scheduled date.'
+                              'Deliveries must stay on or before their scheduled date.'
                             end %>
             <% earlier_hint = if event.prevent_move_earlier?
                                 'Pickups must stay on their scheduled date.'
