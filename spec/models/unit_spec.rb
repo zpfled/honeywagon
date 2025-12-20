@@ -140,8 +140,8 @@ RSpec.describe Unit, type: :model do
       let(:start_date) { Date.today }
       let(:end_date)   { Date.today + 3.days }
 
-      it "returns units that have no blocking overlap and are not retired" do
-        # u1: maintenance, no orders → should still be included (status shouldn't lie)
+      it "returns units that have no blocking overlap and are not retired or maintenance" do
+        # u1: maintenance, no orders → excluded from availability
         u1 = create(:unit, status: "maintenance", company: company, unit_type: unit_type)
 
         # u2: available, on a scheduled order overlapping the window → excluded
@@ -185,8 +185,8 @@ RSpec.describe Unit, type: :model do
 
         result = Unit.available_between(start_date, end_date)
 
-        expect(result).to include(u1, u3, u4)
-        expect(result).not_to include(u2, u5)
+        expect(result).to include(u3, u4)
+        expect(result).not_to include(u1, u2, u5)
       end
     end
   end

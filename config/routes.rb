@@ -1,5 +1,8 @@
 Rails.application.routes.draw do
   resources :orders do
+    collection do
+      get :availability
+    end
     member do
       post :schedule
     end

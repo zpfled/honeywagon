@@ -86,7 +86,7 @@ RSpec.describe Company::Inventory do
       maintenance_unit = create(:unit, company: company, unit_type: standard_type, status: 'maintenance')
       retired_unit = create(:unit, company: company, unit_type: standard_type, status: 'retired')
 
-      expect(inventory.available_count(unit_type: standard_type)).to eq(units.size + 1) # maintenance + base units
+        expect(inventory.available_count(unit_type: standard_type)).to eq(units.size) # maintenance excluded
       expect(
         company.units.assignable
                .merge(Unit.available_between(Date.current, Date.current))

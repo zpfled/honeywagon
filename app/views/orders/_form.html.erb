@@ -1,4 +1,12 @@
-<%= form_with(model: order, html: { class: "space-y-8" }) do |f| %>
+<%= form_with(
+      model: order,
+      data: {
+        controller: "order-form",
+        order_form_location_url_value: new_location_path,
+        order_form_availability_url_value: availability_orders_path
+      },
+      html: { class: "space-y-8" }
+    ) do |f| %>
   <% if order.errors.any? %>
     <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
       <h2 class="font-semibold"><%= pluralize(order.errors.count, "error") %> prevented this order from saving:</h2>
@@ -10,72 +18,74 @@
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 gap-6 md:grid-cols-2"
-       data-controller="order-form"
-       data-order-form-location-url-value="<%= new_location_path %>">
-    <div>
-      <%= f.label :customer_id, "Customer", class: "text-sm font-medium text-gray-700" %>
-      <% customers = @customers || Customer.none %>
-      <%= f.collection_select :customer_id, customers, :id, :display_name,
-        { include_blank: "Select customer" },
-        {
-          class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
-          data: { order_form_target: "customer", action: "change->order-form#customerChanged" }
-        } %>
-      <%= link_to "+ Add customer",
-        new_customer_path,
-        data: { turbo_frame: "customer_modal" },
-        class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500" %>
-    </div>
+  <div class="lg:grid lg:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)] lg:gap-6">
+    <div class="space-y-8">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div>
+          <%= f.label :customer_id, "Customer", class: "text-sm font-medium text-gray-700" %>
+          <% customers = @customers || Customer.none %>
+          <%= f.collection_select :customer_id, customers, :id, :display_name,
+            { include_blank: "Select customer" },
+            {
+              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+              data: { order_form_target: "customer", action: "change->order-form#customerChanged" }
+            } %>
+          <%= link_to "+ Add customer",
+            new_customer_path,
+            data: { turbo_frame: "customer_modal" },
+            class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500" %>
+        </div>
 
-    <div>
-      <%= f.label :location_id, "Location", class: "text-sm font-medium text-gray-700" %>
-      <% locations = @locations || Location.none %>
-      <%= f.collection_select :location_id, locations, :id, :display_label,
-        { include_blank: "Select location" },
-        {
-          class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
-          data: { order_form_target: "location" },
-          disabled: order.customer_id.blank?
-        } %>
-      <% location_link_href = order.customer_id.present? ? new_location_path(customer_id: order.customer_id) : new_location_path %>
-      <%= link_to "+ Add location",
-        location_link_href,
-        data: { order_form_target: "locationLink" },
-        class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500 transition" %>
-    </div>
+        <div>
+          <%= f.label :location_id, "Location", class: "text-sm font-medium text-gray-700" %>
+          <% locations = @locations || Location.none %>
+          <%= f.collection_select :location_id, locations, :id, :display_label,
+            { include_blank: "Select location" },
+            {
+              class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+              data: { order_form_target: "location" },
+              disabled: order.customer_id.blank?
+            } %>
+          <% location_link_href = order.customer_id.present? ? new_location_path(customer_id: order.customer_id) : new_location_path %>
+          <%= link_to "+ Add location",
+            location_link_href,
+            data: { order_form_target: "locationLink" },
+            class: "mt-2 inline-flex text-sm font-medium text-emerald-600 hover:text-emerald-500 transition" %>
+        </div>
 
-    <div>
-      <%= f.label :external_reference, "Internal ref / PO #", class: "text-sm font-medium text-gray-700" %>
-      <%= f.text_field :external_reference,
-        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-    </div>
+        <div>
+          <%= f.label :external_reference, "Internal ref / PO #", class: "text-sm font-medium text-gray-700" %>
+          <%= f.text_field :external_reference,
+            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+        </div>
 
-    <div>
-      <%= f.label :status, class: "text-sm font-medium text-gray-700" %>
-      <%= f.select :status, Order::STATUSES,
-        {},
-        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-    </div>
+        <div>
+          <%= f.label :status, class: "text-sm font-medium text-gray-700" %>
+          <%= f.select :status, Order::STATUSES,
+            {},
+            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+        </div>
 
-    <div>
-      <%= f.label :start_date, class: "text-sm font-medium text-gray-700" %>
-      <%= f.date_field :start_date,
-        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-    </div>
+        <div>
+          <%= f.label :start_date, class: "text-sm font-medium text-gray-700" %>
+          <%= f.date_field :start_date,
+            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+            data: { order_form_target: "startDate", action: "change->order-form#datesChanged input->order-form#datesChanged" } %>
+        </div>
 
-    <div>
-      <%= f.label :end_date, class: "text-sm font-medium text-gray-700" %>
-      <%= f.date_field :end_date,
-        class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-    </div>
-  </div>
+        <div>
+          <%= f.label :end_date, class: "text-sm font-medium text-gray-700" %>
+          <%= f.date_field :end_date,
+            class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+            data: { order_form_target: "endDate", action: "change->order-form#datesChanged input->order-form#datesChanged" } %>
+        </div>
+      </div>
 
-  <% unit_types = @unit_types || (order.company ? order.company.unit_types.order(:name) : UnitType.none) %>
-  <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
-  <% unit_type_payload << { id: 'service-only', name: 'Service-only (customer-owned units)' } %>
-  <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
-  <% existing_line_items_payload = order.rental_line_items.map do |li|
+      <% unit_types = @unit_types || (order.company ? order.company.unit_types.order(:name) : UnitType.none) %>
+      <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
+      <% unit_type_payload << { id: 'service-only', name: 'Service-only (customer-owned units)' } %>
+      <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
+      <% existing_line_items_payload = order.rental_line_items.map do |li|
        {
          unit_type_id: li.unit_type_id,
          rate_plan_id: li.rate_plan_id,
@@ -116,17 +126,17 @@
          schedule: plan.service_schedule
        }
      end %>
-  <% service_rate_plans_payload_json = json_escape(service_rate_plans_payload.to_json) %>
+      <% service_rate_plans_payload_json = json_escape(service_rate_plans_payload.to_json) %>
 
-  <div class="space-y-4">
-    <div>
-      <h2 class="text-lg font-semibold text-gray-900">Line items</h2>
-      <p class="text-sm text-gray-600">Add each unit type, quantity, and rate plan combination you need.</p>
-    </div>
+      <div class="space-y-4">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">Line items</h2>
+          <p class="text-sm text-gray-600">Add each unit type, quantity, and rate plan combination you need.</p>
+        </div>
 
-    <% option_tags = options_from_collection_for_select(unit_types, :id, :name) %>
+        <% option_tags = options_from_collection_for_select(unit_types, :id, :name) %>
 
-    <%= tag.div class: "space-y-4",
+        <%= tag.div class: "space-y-4",
       data: {
         controller: "order-items",
         order_items_unit_types_value: unit_type_payload_json,
@@ -219,7 +229,7 @@
         </div>
       </div>
 
-      <template data-order-items-target="rowTemplate">
+        <template data-order-items-target="rowTemplate">
         <div class="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3 shadow-sm" data-role="row">
           <div>
             <p class="text-sm font-semibold text-gray-900" data-role="summary"></p>
@@ -233,14 +243,27 @@
           </div>
           <div data-role="hiddenContainer" class="hidden"></div>
         </div>
-      </template>
-    <% end %>
-  </div>
+        </template>
+        <% end %>
+      </div>
 
-    <%= f.label :notes, class: "text-sm font-medium text-gray-700" %>
-    <%= f.text_area :notes,
-      rows: 4,
-      class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+      <div>
+        <%= f.label :notes, class: "text-sm font-medium text-gray-700" %>
+        <%= f.text_area :notes,
+          rows: 4,
+          class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+      </div>
+    </div>
+
+    <aside class="mt-8 space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-5 lg:mt-0">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Unit availability</p>
+        <p class="mt-1 text-sm text-gray-600">We’ll show how many units are free for the selected window.</p>
+      </div>
+      <div data-order-form-target="availability" class="mt-4 text-sm text-gray-600">
+        Select start and end dates to see availability.
+      </div>
+    </aside>
   </div>
 
   <div class="flex justify-end">

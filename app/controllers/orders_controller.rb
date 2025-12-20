@@ -79,6 +79,28 @@ class OrdersController < ApplicationController
     redirect_to @order, alert: "Unable to schedule order: #{e.message}"
   end
 
+  def availability
+    summary = Units::AvailabilitySummary.new(
+      company: current_user.company,
+      start_date: params[:start_date],
+      end_date: params[:end_date]
+    )
+
+    unless summary.valid_range?
+      return render json: { error: 'Enter a valid start and end date.' }, status: :unprocessable_entity
+    end
+
+    render json: {
+      availability: summary.summary.map do |entry|
+        {
+          unit_type_id: entry[:unit_type].id,
+          name: entry[:unit_type].name,
+          available: entry[:available]
+        }
+      end
+    }
+  end
+
   private
 
   def set_order
