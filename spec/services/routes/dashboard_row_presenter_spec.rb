@@ -77,4 +77,23 @@ RSpec.describe Routes::DashboardRowPresenter do
     expect(dump_entry[:detail]).to eq(dump_site.location.display_label)
     expect(dump_entry[:units]).to eq(0)
   end
+
+  it 'shows a completed badge when all events are complete' do
+    completed_route = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
+    create(:service_event, :delivery,
+           order: order,
+           route: completed_route,
+           route_date: completed_route.route_date,
+           scheduled_on: completed_route.route_date,
+           status: :completed)
+    create(:service_event, :service,
+           order: order,
+           route: completed_route,
+           route_date: completed_route.route_date,
+           scheduled_on: completed_route.route_date,
+           status: :completed)
+
+    badges = described_class.new(completed_route.reload).alert_badges
+    expect(badges).to eq([ { text: 'Completed', tone: :success } ])
+  end
 end
