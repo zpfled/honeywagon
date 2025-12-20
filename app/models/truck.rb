@@ -16,7 +16,7 @@ class Truck < ApplicationRecord
              .joins(:route)
              .where(routes: { truck_id: id })
              .where(status: ServiceEvent.statuses[:completed])
-             .order(Arel.sql('COALESCE(service_events.completed_on, service_events.updated_at) ASC'))
+             .order(Arel.sql('service_events.updated_at ASC'))
 
     total = 0
     events.each do |event|

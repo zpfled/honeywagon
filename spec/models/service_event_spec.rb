@@ -132,6 +132,41 @@ RSpec.describe ServiceEvent, type: :model do
       expect(event.units_impacted_count).to eq(5)
     end
   end
+
+  describe 'dump events' do
+    it 'require a dump site' do
+      event = build(:service_event, :dump, dump_site: nil)
+      expect(event).not_to be_valid
+      expect(event.errors[:dump_site]).to include("can't be blank")
+    end
+
+    it 'allow events without an order' do
+      event = build(:service_event, :dump)
+      event.order = nil
+      expect(event).to be_valid
+    end
+
+    it 'impact zero units' do
+      event = create(:service_event, :dump)
+      expect(event.units_impacted_count).to eq(0)
+    end
+
+    it 'reset truck load when completed' do
+      truck = create(:truck, septage_capacity_gal: 200)
+      route = create(:route, company: truck.company, truck: truck, route_date: Date.current)
+      order = create(:order, company: truck.company, status: 'scheduled')
+      create(:service_event, :service, order: order, route: route, route_date: route.route_date, status: :completed, estimated_gallons_override: 50)
+      dump_site = create(:dump_site, company: truck.company)
+      dump_event = create(:service_event, :dump, route: route, route_date: route.route_date, dump_site: dump_site)
+
+      expect(truck.reload.septage_load_gal).to eq(50)
+
+      dump_event.update!(status: :completed)
+      truck.recalculate_septage_load!
+
+      expect(truck.reload.septage_load_gal).to eq(0)
+    end
+  end
   describe "route auto-assignment" do
     it "assigns a newly created event to a nearby route" do
       company = create(:company)

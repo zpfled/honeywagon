@@ -27,6 +27,13 @@ FactoryBot.define do
       association :service_event_type, factory: :service_event_type_pickup
     end
 
+    trait :dump do
+      event_type { :dump }
+      association :service_event_type, factory: :service_event_type_dump
+      association :dump_site
+      order { nil }
+    end
+
     trait :completed do
       status { :completed }
     end

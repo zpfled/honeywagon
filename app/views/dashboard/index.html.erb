@@ -117,14 +117,23 @@
                   <% if row.orders_summary.any? %>
                     <div class="mt-2 text-xs text-gray-600">
                       <% row.orders_summary.each do |summary| %>
-                        <div><%= summary[:customer] %> — <%= summary[:units] %> units</div>
+                        <div>
+                          <%= summary[:dump] ? "Dump: #{summary[:label]}" : summary[:label] %>
+                          <% if summary[:dump] %>
+                            <% if summary[:detail].present? %>
+                              — <%= summary[:detail] %>
+                            <% end %>
+                          <% else %>
+                            — <%= summary[:units] %> units
+                          <% end %>
+                        </div>
                       <% end %>
                     </div>
                   <% end %>
                 </div>
-                <% if row.delivery_badges.any? || row.service_badges.any? %>
-                  <div class="mt-1 flex flex-wrap gap-1">
-                    <% (row.delivery_badges + row.service_badges).each do |badge_info| %>
+                <% if row.labeled_badges.any? %>
+                  <div class="mt-1 flex flex-wrap gap-1 text-xs text-gray-600">
+                    <% row.labeled_badges.each do |badge_info| %>
                       <%= badge(badge_info[:text], tone: badge_info[:tone]) %>
                     <% end %>
                   </div>
