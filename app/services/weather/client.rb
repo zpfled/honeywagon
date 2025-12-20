@@ -6,7 +6,7 @@ module Weather
   # Thin wrapper over the National Weather Service API.
   class Client
     POINTS_ENDPOINT = 'https://api.weather.gov/points/%<lat>.4f,%<lon>.4f'.freeze
-    USER_AGENT = 'Sanitrack (support@sanitrack.app)'.freeze
+    USER_AGENT = 'Dumpr (support@dumpr.app)'.freeze
 
     def initialize(latitude:, longitude:)
       @latitude = latitude

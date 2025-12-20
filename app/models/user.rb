@@ -1,4 +1,4 @@
-# User represents an internal Sanitrack account with a specific role.
+# User represents an internal Dumpr account with a specific role.
 class User < ApplicationRecord
   attr_accessor :company_name
 
