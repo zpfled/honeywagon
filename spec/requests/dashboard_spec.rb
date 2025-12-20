@@ -40,5 +40,11 @@ RSpec.describe "Dashboard and landing", type: :request do
         expect(response.body).to include("Next 2 weeks")
       end
     end
+
+    it "links the brand to the dashboard" do
+      sign_in user
+      get authenticated_root_path
+      expect(response.body).to include(authenticated_root_path)
+    end
   end
 end
