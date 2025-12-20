@@ -14,7 +14,7 @@ class Unit < ApplicationRecord
 
   # Scope for the standard unit type to simplify seeding/demo data.
   scope :standard, -> { includes(:unit_type).where(unit_type: { slug: 'standard' }) }
-  scope :assignable, -> { where.not(status: 'retired') }
+  scope :assignable, -> { where.not(status: %w[retired maintenance]) }
   scope :overlapping_between, lambda { |start_date, end_date, statuses = Order::BLOCKING_STATUSES|
     return none if start_date.blank? || end_date.blank?
 
