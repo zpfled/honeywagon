@@ -26,7 +26,7 @@ class ServiceEvent < ApplicationRecord
   before_destroy :remember_route_for_cleanup
   before_destroy :remember_route_for_cleanup
   after_commit :auto_assign_route, on: :create
-  after_commit :refresh_truck_septage_load, if: :affects_truck_septage_load?
+  after_commit :refresh_truck_waste_load, if: :affects_truck_waste_load?
   after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
 
   # Scope returning only auto-generated events that can be safely regenerated.
@@ -166,7 +166,7 @@ class ServiceEvent < ApplicationRecord
     route_date || route&.route_date || scheduled_on
   end
 
-  def refresh_truck_septage_load
+  def refresh_truck_waste_load
     affected_trucks = []
     affected_trucks << route&.truck if route&.truck.present?
 
@@ -178,10 +178,10 @@ class ServiceEvent < ApplicationRecord
       end
     end
 
-    affected_trucks.compact.uniq.each(&:recalculate_septage_load!)
+    affected_trucks.compact.uniq.each(&:recalculate_waste_load!)
   end
 
-  def affects_truck_septage_load?
+  def affects_truck_waste_load?
     status_transition_affects_load? ||
       (status_completed? && (saved_change_to_estimated_gallons_override? ||
                              previous_changes.key?('deleted_at') ||

@@ -77,7 +77,7 @@
   <% capacity = @route.capacity_summary %>
   <% trailer_usage = capacity.trailer_usage %>
   <% clean_usage = capacity.clean_water_usage %>
-  <% septage_usage = capacity.septage_usage %>
+  <% waste_usage = capacity.waste_usage %>
 
   <%= card classes: "mt-4 space-y-2" do %>
     <% if @route.over_capacity? %>
@@ -105,21 +105,21 @@
         </span>
       </span>
       <% default_summary = {
-           cumulative_used: septage_usage[:used],
-           capacity: septage_usage[:capacity],
-           remaining: septage_usage[:capacity] ? septage_usage[:capacity] - septage_usage[:used] : nil,
-           over_capacity: septage_usage[:capacity] && septage_usage[:used] > septage_usage[:capacity]
+           cumulative_used: waste_usage[:used],
+           capacity: waste_usage[:capacity],
+           remaining: waste_usage[:capacity] ? waste_usage[:capacity] - waste_usage[:used] : nil,
+           over_capacity: waste_usage[:capacity] && waste_usage[:used] > waste_usage[:capacity]
          } %>
-      <% septage_summary = @septage_load || default_summary %>
-      <% septage_used = septage_summary[:cumulative_used] || septage_usage[:used] %>
-      <% septage_capacity = septage_summary[:capacity] %>
+      <% waste_summary = @waste_load || default_summary %>
+      <% waste_used = waste_summary[:cumulative_used] || waste_usage[:used] %>
+      <% waste_capacity = waste_summary[:capacity] %>
       <span>
-        <span class="font-semibold text-gray-900">Septage:</span>
-        <span class="<%= septage_summary[:over_capacity] ? 'text-rose-700' : '' %>">
-          <%= septage_used %> / <%= septage_capacity || '—' %> gal
+        <span class="font-semibold text-gray-900">Waste:</span>
+        <span class="<%= waste_summary[:over_capacity] ? 'text-rose-700' : '' %>">
+          <%= waste_used %> / <%= waste_capacity || '—' %> gal
         </span>
-        <% if septage_summary[:remaining] %>
-          <span class="text-xs text-gray-500">(Remaining: <%= septage_summary[:remaining] %> gal)</span>
+        <% if waste_summary[:remaining] %>
+          <span class="text-xs text-gray-500">(Remaining: <%= waste_summary[:remaining] %> gal)</span>
         <% end %>
       </span>
     </div>
@@ -157,7 +157,7 @@
     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
       <div>
         <p class="text-sm font-semibold text-gray-900">Schedule dump stop</p>
-        <p class="text-xs text-gray-600">Add a dump event to this route to reset the truck's septage load.</p>
+        <p class="text-xs text-gray-600">Add a dump event to this route to reset the truck's waste load.</p>
       </div>
       <% if @dump_sites.any? %>
         <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex items-end gap-3" do |f| %>

@@ -54,7 +54,7 @@ class Route < ApplicationRecord
     rental_units + service_line_units
   end
   def capacity_summary = Routes::CapacitySummary.new(route: self)
-  delegate :over_capacity?, :over_capacity_dimensions, :trailer_usage, :clean_water_usage, :septage_usage,
+  delegate :over_capacity?, :over_capacity_dimensions, :trailer_usage, :clean_water_usage, :waste_usage,
            to: :capacity_summary
 
   private

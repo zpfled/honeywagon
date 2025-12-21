@@ -16,10 +16,10 @@ RSpec.describe Routes::DetailPresenter do
   end
 end
 
-RSpec.describe Routes::DetailPresenter, '#septage_load' do
-  it 'returns cumulative septage usage for the truck up to the route' do
+RSpec.describe Routes::DetailPresenter, '#waste_load' do
+  it 'returns cumulative waste usage for the truck up to the route' do
     company = create(:company)
-    truck = create(:truck, company: company, septage_capacity_gal: 200)
+    truck = create(:truck, company: company, waste_capacity_gal: 200)
     create(:trailer, company: company)
     order = create(:order, company: company)
     unit_type = create(:unit_type, :standard, company: company)
@@ -33,9 +33,9 @@ RSpec.describe Routes::DetailPresenter, '#septage_load' do
     create(:service_event, :service, order: order, route: route2, route_date: route2.route_date)
 
     presenter = described_class.new(route2, company: company)
-    load = presenter.septage_load
+    load = presenter.waste_load
 
     expect(load[:cumulative_used]).to be > 0
-    expect(load[:capacity]).to eq(truck.septage_capacity_gal)
+    expect(load[:capacity]).to eq(truck.waste_capacity_gal)
   end
 end

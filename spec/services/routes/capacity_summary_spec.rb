@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Routes::CapacitySummary do
   let(:company) { create(:company) }
-  let(:truck) { create(:truck, company: company, clean_water_capacity_gal: 40, septage_capacity_gal: 45) }
+  let(:truck) { create(:truck, company: company, clean_water_capacity_gal: 40, waste_capacity_gal: 45) }
   let(:trailer) { create(:trailer, company: company, capacity_spots: 4) }
   let(:route) { create(:route, company: company, truck: truck, trailer: trailer) }
   let(:order) { create(:order, company: company) }
@@ -20,9 +20,9 @@ RSpec.describe Routes::CapacitySummary do
 
     expect(summary.trailer_usage[:used]).to be > summary.trailer_usage[:capacity]
     expect(summary.clean_water_usage[:used]).to be > summary.clean_water_usage[:capacity]
-    expect(summary.septage_usage[:used]).to be > summary.septage_usage[:capacity]
+    expect(summary.waste_usage[:used]).to be > summary.waste_usage[:capacity]
     expect(summary.over_capacity?).to be(true)
-    expect(summary.over_capacity_dimensions).to match_array(%i[trailer clean_water septage])
+    expect(summary.over_capacity_dimensions).to match_array(%i[trailer clean_water waste])
   end
 
   it 'ignores completed events when calculating usage' do
@@ -32,7 +32,7 @@ RSpec.describe Routes::CapacitySummary do
 
     expect(summary.trailer_usage[:used]).to eq(0)
     expect(summary.clean_water_usage[:used]).to eq(0)
-    expect(summary.septage_usage[:used]).to eq(0)
+    expect(summary.waste_usage[:used]).to eq(0)
     expect(summary.over_capacity?).to be(false)
   end
 end

@@ -11,7 +11,7 @@ module ServiceEvents
       {
         trailer_spots: trailer_spots_usage,
         clean_water_gallons: clean_water_usage,
-        septage_gallons: septage_usage
+        waste_gallons: waste_usage
       }
     end
 
@@ -38,7 +38,7 @@ module ServiceEvents
       end
     end
 
-    def septage_usage
+    def waste_usage
       event.estimated_gallons_pumped
     end
 

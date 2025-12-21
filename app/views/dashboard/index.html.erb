@@ -89,7 +89,7 @@
       <tbody class="divide-y divide-gray-100">
         <% if @routes.any? %>
           <% @routes.each_with_index do |route, idx| %>
-            <% row = Routes::DashboardRowPresenter.new(route, septage_load: @septage_loads[route.id]) %>
+            <% row = Routes::DashboardRowPresenter.new(route, waste_load: @waste_loads[route.id]) %>
             <% base_background = row.row_background_class.presence || (idx.even? ? 'bg-white' : 'bg-gray-50') %>
             <tr class="<%= class_names(base_background, 'hover:bg-gray-50 transition') %>">
               <td class="<%= table_cell_class('font-semibold') %>">
@@ -177,10 +177,10 @@
                     <% end %>
                   </div>
                 <% end %>
-                <% if row.septage_load_summary %>
-                  <% summary = row.septage_load_summary %>
+                <% if row.waste_load_summary %>
+                  <% summary = row.waste_load_summary %>
                   <div class="mt-2 text-xs whitespace-nowrap <%= summary[:over_capacity] ? 'text-rose-600' : 'text-gray-600' %>">
-                    Septage <%= summary[:cumulative_used] %>/<%= summary[:capacity] || '—' %> gal
+                    Waste <%= summary[:cumulative_used] %>/<%= summary[:capacity] || '—' %> gal
                   </div>
                 <% end %>
               </td>
