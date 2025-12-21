@@ -54,8 +54,12 @@ class Route < ApplicationRecord
     rental_units + service_line_units
   end
 
-  def record_drive_time!(seconds)
-    update!(estimated_drive_seconds: seconds, optimization_stale: false)
+  def record_drive_metrics(seconds:, meters:)
+    update!(
+      estimated_drive_seconds: seconds,
+      estimated_drive_meters: meters,
+      optimization_stale: false
+    )
   end
 
   def humanized_drive_time
@@ -69,6 +73,13 @@ class Route < ApplicationRecord
     else
       "#{minutes}m"
     end
+  end
+
+  def humanized_drive_distance
+    return nil unless estimated_drive_meters.to_i.positive?
+
+    miles = estimated_drive_meters / 1609.34
+    "#{miles.round(1)} mi"
   end
 
   def capacity_summary = Routes::CapacitySummary.new(route: self)
