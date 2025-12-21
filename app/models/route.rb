@@ -57,6 +57,26 @@ class Route < ApplicationRecord
   delegate :over_capacity?, :over_capacity_dimensions, :trailer_usage, :clean_water_usage, :waste_usage,
            to: :capacity_summary
 
+  def resequence_service_events!(ordered_ids)
+    transaction do
+      events = service_events.index_by(&:id)
+      sequence = 0
+
+      Array(ordered_ids).each do |id|
+        event = events.delete(id)
+        next unless event
+
+        event.update!(route_sequence: sequence)
+        sequence += 1
+      end
+
+      events.values.sort_by { |event| event.route_sequence.to_i }.each do |event|
+        event.update!(route_sequence: sequence)
+        sequence += 1
+      end
+    end
+  end
+
   private
 
   def set_default_date

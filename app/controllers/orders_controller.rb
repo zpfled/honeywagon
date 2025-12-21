@@ -87,7 +87,7 @@ class OrdersController < ApplicationController
     )
 
     unless summary.valid_range?
-      return render json: { error: 'Enter a valid start and end date.' }, status: :unprocessable_entity
+      return render json: { error: 'Enter a valid start and end date.' }, status: :unprocessable_content
     end
 
     render json: {

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_17_090000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_21_141000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -178,6 +178,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_090000) do
     t.uuid "order_id"
     t.date "route_date"
     t.uuid "route_id"
+    t.integer "route_sequence"
     t.date "scheduled_on"
     t.uuid "service_event_type_id", null: false
     t.integer "status", default: 0
@@ -188,6 +189,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_17_090000) do
     t.index ["deleted_by_id"], name: "index_service_events_on_deleted_by_id"
     t.index ["dump_site_id"], name: "index_service_events_on_dump_site_id"
     t.index ["order_id"], name: "index_service_events_on_order_id"
+    t.index ["route_id", "route_sequence"], name: "index_service_events_on_route_id_and_route_sequence"
     t.index ["route_id"], name: "index_service_events_on_route_id"
     t.index ["service_event_type_id"], name: "index_service_events_on_service_event_type_id"
     t.index ["user_id"], name: "index_service_events_on_user_id"

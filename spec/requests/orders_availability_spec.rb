@@ -30,7 +30,7 @@ RSpec.describe 'Orders availability', type: :request do
   it 'requires valid dates' do
     get availability_orders_path, params: { start_date: '', end_date: '' }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     payload = JSON.parse(response.body)
     expect(payload['error']).to be_present
   end

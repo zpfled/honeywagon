@@ -21,6 +21,8 @@ class ServiceEvent < ApplicationRecord
   before_validation :assign_service_event_type, if: -> { service_event_type_id.blank? && event_type.present? }
   before_validation :inherit_user_from_order, if: -> { order.present? && user_id.blank? }
   before_validation :default_route_date
+  before_validation :assign_route_sequence, on: :create
+  before_validation :reset_route_sequence_for_new_route, if: -> { will_save_change_to_route_id? && route_id.present? }
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
   before_destroy :remember_route_for_cleanup
@@ -154,6 +156,18 @@ class ServiceEvent < ApplicationRecord
 
   def default_route_date
     self.route_date ||= route&.route_date || scheduled_on
+  end
+
+  def assign_route_sequence
+    return unless route_id.present? && route_sequence.nil?
+
+    max_sequence = ServiceEvent.where(route_id: route_id).maximum(:route_sequence)
+    self.route_sequence = max_sequence.to_i + 1
+  end
+
+  def reset_route_sequence_for_new_route
+    self.route_sequence = nil
+    assign_route_sequence
   end
 
   def auto_assign_route

@@ -5,7 +5,9 @@ module Routes
     def initialize(route, company:)
       @route = route
       @company = company
-      @service_events = route.service_events.includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
+      @service_events = route.service_events
+                               .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
+                               .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
     end
 
     def previous_route
