@@ -7,6 +7,11 @@ class Routes::OptimizationsController < ApplicationController
 
     if result.success?
       @route.resequence_service_events!(result.event_ids_in_order)
+      if result.duration_seconds.present?
+        @route.record_drive_time!(result.duration_seconds)
+      else
+        @route.update!(optimization_stale: false)
+      end
       flash[:notice] = ([ 'Optimization result:' ] + result.warnings).join('<br>').html_safe
     else
       flash[:alert] = result.errors.join('<br>').html_safe

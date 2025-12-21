@@ -122,6 +122,19 @@
           <span class="text-xs text-gray-500">(Remaining: <%= waste_summary[:remaining] %> gal)</span>
         <% end %>
       </span>
+      <span>
+        <span class="font-semibold text-gray-900">Est. drive:</span>
+        <% if @route.humanized_drive_time.present? %>
+          <span><%= @route.humanized_drive_time %></span>
+        <% else %>
+          <span class="text-gray-500">Run optimizer</span>
+        <% end %>
+        <% if @route.optimization_stale? && @route.humanized_drive_time.present? %>
+          <span class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+            Needs re-optimization
+          </span>
+        <% end %>
+      </span>
     </div>
   <% end %>
 

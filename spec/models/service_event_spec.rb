@@ -167,6 +167,30 @@ RSpec.describe ServiceEvent, type: :model do
       expect(truck.reload.waste_load_gal).to eq(0)
     end
   end
+
+  describe 'route optimization staleness' do
+    it 'marks the route stale when a new event is created' do
+      route = create(:route, optimization_stale: false)
+      order = create(:order, company: route.company, status: 'scheduled')
+
+      create(:service_event, :service, route: route, order: order)
+
+      expect(route.reload.optimization_stale).to be(true)
+    end
+
+    it 'marks both the previous and new route as stale when an event moves' do
+      company = create(:company)
+      route_a = create(:route, company: company, optimization_stale: false)
+      route_b = create(:route, company: company, optimization_stale: false)
+      order = create(:order, company: company, status: 'scheduled')
+      event = create(:service_event, :service, order: order, route: route_a)
+
+      event.update!(route: route_b)
+
+      expect(route_a.reload.optimization_stale).to be(true)
+      expect(route_b.reload.optimization_stale).to be(true)
+    end
+  end
   describe "route auto-assignment" do
     it "assigns a newly created event to a nearby route" do
       company = create(:company)

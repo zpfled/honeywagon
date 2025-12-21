@@ -26,10 +26,10 @@ class ServiceEvent < ApplicationRecord
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
   before_destroy :remember_route_for_cleanup
-  before_destroy :remember_route_for_cleanup
   after_commit :auto_assign_route, on: :create
   after_commit :refresh_truck_waste_load, if: :affects_truck_waste_load?
   after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
+  after_commit :flag_routes_for_reoptimization, on: [ :create, :update, :destroy ]
 
   # Scope returning only auto-generated events that can be safely regenerated.
   scope :auto_generated, -> { where(auto_generated: true) }
@@ -227,5 +227,30 @@ class ServiceEvent < ApplicationRecord
 
   def remember_route_for_cleanup
     @route_id_for_cleanup = route_id
+  end
+
+  def flag_routes_for_reoptimization
+    return if Route.auto_assignment_disabled?
+
+    return unless optimization_affecting_change?
+
+    ids = []
+    if destroyed?
+      ids << (@route_id_for_cleanup || saved_change_to_route_id&.first)
+    else
+      ids << route_id if route_id.present?
+      ids << saved_change_to_route_id&.first if saved_change_to_route_id?
+    end
+
+    ids.compact!
+    Route.where(id: ids).update_all(optimization_stale: true) if ids.present?
+  end
+
+  def optimization_affecting_change?
+    destroyed? ||
+      saved_change_to_route_id? ||
+      saved_change_to_route_date? ||
+      saved_change_to_scheduled_on? ||
+      saved_change_to_event_type?
   end
 end

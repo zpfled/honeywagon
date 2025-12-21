@@ -45,7 +45,9 @@ module Routes
           event_ids_in_order: event_ids,
           warnings: warnings,
           errors: [],
-          simulation: simulation
+          simulation: simulation,
+          total_distance_meters: optimization_result.total_distance_meters,
+          total_duration_seconds: optimization_result.total_duration_seconds
         )
       end
 
@@ -104,7 +106,8 @@ module Routes
         end
       end
       def failure_result(errors)
-        Result.new(event_ids_in_order: [], warnings: [], errors: errors, simulation: nil)
+        Result.new(event_ids_in_order: [], warnings: [], errors: Array(errors), simulation: nil,
+                   total_distance_meters: nil, total_duration_seconds: nil)
       end
 
       # Capacity simulator already formats violation strings; just duplicate so callers can mutate safely.

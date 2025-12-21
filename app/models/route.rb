@@ -53,6 +53,24 @@ class Route < ApplicationRecord
     service_line_units = service_scope.joins(order: :service_line_items).sum('service_line_items.units_serviced')
     rental_units + service_line_units
   end
+
+  def record_drive_time!(seconds)
+    update!(estimated_drive_seconds: seconds, optimization_stale: false)
+  end
+
+  def humanized_drive_time
+    return nil unless estimated_drive_seconds.to_i.positive?
+
+    hours = estimated_drive_seconds / 3600
+    minutes = (estimated_drive_seconds % 3600) / 60
+
+    if hours.positive?
+      "#{hours}h #{minutes}m"
+    else
+      "#{minutes}m"
+    end
+  end
+
   def capacity_summary = Routes::CapacitySummary.new(route: self)
   delegate :over_capacity?, :over_capacity_dimensions, :trailer_usage, :clean_water_usage, :waste_usage,
            to: :capacity_summary
