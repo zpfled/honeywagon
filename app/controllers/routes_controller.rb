@@ -48,7 +48,7 @@ class RoutesController < ApplicationController
     @service_events = presenter.service_events
     @previous_route = presenter.previous_route
     @next_route = presenter.next_route
-    @septage_load = presenter.septage_load
+    @waste_load = presenter.waste_load
     @dump_sites = current_user.company.dump_sites.includes(:location)
     @weather_forecast = presenter.weather_forecast
   end

@@ -1,9 +1,9 @@
 require 'rails_helper'
 
-RSpec.describe Routes::SeptageTracker do
+RSpec.describe Routes::WasteTracker do
   let(:company) { create(:company) }
-  let(:truck) { create(:truck, company: company, septage_capacity_gal: 100) }
-  let(:other_truck) { create(:truck, company: company, septage_capacity_gal: 50) }
+  let(:truck) { create(:truck, company: company, waste_capacity_gal: 100) }
+  let(:other_truck) { create(:truck, company: company, waste_capacity_gal: 50) }
   let(:trailer) { create(:trailer, company: company) }
 
   def create_route_with_usage(truck:, route_date:, gallons:)
@@ -16,9 +16,9 @@ RSpec.describe Routes::SeptageTracker do
     route
   end
 
-  it 'tracks cumulative septage usage per truck starting from existing load' do
-    truck.update!(septage_load_gal: 10)
-    other_truck.update!(septage_load_gal: 5)
+  it 'tracks cumulative waste usage per truck starting from existing load' do
+    truck.update!(waste_load_gal: 10)
+    other_truck.update!(waste_load_gal: 5)
 
     route1 = create_route_with_usage(truck: truck, route_date: Date.current, gallons: 20)
     route2 = create_route_with_usage(truck: truck, route_date: Date.current + 1, gallons: 30)

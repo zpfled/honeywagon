@@ -80,20 +80,20 @@ RSpec.describe ServiceEvent, type: :model do
     end
   end
 
-  describe 'truck septage load maintenance' do
+  describe 'truck waste load maintenance' do
     it 'recalculates truck load when override changes' do
-      truck = create(:truck, septage_capacity_gal: 200)
+      truck = create(:truck, waste_capacity_gal: 200)
       route = create(:route, truck: truck, company: truck.company)
       order = create(:order, company: route.company, status: 'scheduled')
       event = create(:service_event, :service, order: order, route: route, route_date: route.route_date, status: :completed)
 
       event.update!(estimated_gallons_override: 40)
 
-      expect(truck.reload.septage_load_gal).to eq(40)
+      expect(truck.reload.waste_load_gal).to eq(40)
 
       event.update!(estimated_gallons_override: 60)
 
-      expect(truck.reload.septage_load_gal).to eq(60)
+      expect(truck.reload.waste_load_gal).to eq(60)
     end
   end
 
@@ -152,19 +152,19 @@ RSpec.describe ServiceEvent, type: :model do
     end
 
     it 'reset truck load when completed' do
-      truck = create(:truck, septage_capacity_gal: 200)
+      truck = create(:truck, waste_capacity_gal: 200)
       route = create(:route, company: truck.company, truck: truck, route_date: Date.current)
       order = create(:order, company: truck.company, status: 'scheduled')
       create(:service_event, :service, order: order, route: route, route_date: route.route_date, status: :completed, estimated_gallons_override: 50)
       dump_site = create(:dump_site, company: truck.company)
       dump_event = create(:service_event, :dump, route: route, route_date: route.route_date, dump_site: dump_site)
 
-      expect(truck.reload.septage_load_gal).to eq(50)
+      expect(truck.reload.waste_load_gal).to eq(50)
 
       dump_event.update!(status: :completed)
-      truck.recalculate_septage_load!
+      truck.recalculate_waste_load!
 
-      expect(truck.reload.septage_load_gal).to eq(0)
+      expect(truck.reload.waste_load_gal).to eq(0)
     end
   end
   describe "route auto-assignment" do

@@ -4,14 +4,14 @@ class Truck < ApplicationRecord
   has_many :routes, dependent: :nullify
 
   validates :name, :number, presence: true
-  validates :clean_water_capacity_gal, :septage_capacity_gal,
+  validates :clean_water_capacity_gal, :waste_capacity_gal,
             numericality: { greater_than_or_equal_to: 0 }
 
   def label
     [ name, number ].compact.join(' • ')
   end
 
-  def recalculate_septage_load!
+  def recalculate_waste_load!
     events = ServiceEvent
              .joins(:route)
              .where(routes: { truck_id: id })
@@ -27,6 +27,6 @@ class Truck < ApplicationRecord
       end
     end
 
-    update_columns(septage_load_gal: total)
+    update_columns(waste_load_gal: total)
   end
 end

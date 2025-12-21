@@ -1,6 +1,6 @@
 module Routes
-  # Computes running septage tank usage for each truck across a set of routes.
-  class SeptageTracker
+  # Computes running waste tank usage for each truck across a set of routes.
+  class WasteTracker
     def initialize(routes)
       @routes = Array(routes).compact
     end
@@ -10,11 +10,11 @@ module Routes
         result = {}
         routes_grouped_by_truck.each do |truck, truck_routes|
           truck = truck&.reload
-          cumulative = truck&.septage_load_gal.to_i
-          capacity = truck&.septage_capacity_gal
+          cumulative = truck&.waste_load_gal.to_i
+          capacity = truck&.waste_capacity_gal
 
           truck_routes.sort_by(&:route_date).each do |route|
-            usage = route.capacity_summary.septage_usage[:used]
+            usage = route.capacity_summary.waste_usage[:used]
             cumulative += usage
             result[route.id] = {
               cumulative_used: cumulative,
