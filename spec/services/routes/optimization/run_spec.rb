@@ -21,6 +21,8 @@ RSpec.describe Routes::Optimization::Run do
     expect(result.warnings).to include('warn')
     expect(result.errors).to be_empty
     expect(result.simulation).to eq(fake_result.simulation)
+    expect(result.distance_meters).to eq(1000)
+    expect(result.duration_seconds).to eq(600)
   end
 
   it 'reports failure when optimizer returns errors' do
