@@ -180,6 +180,21 @@
     </div>
   <% end %>
 
+  <%= card classes: "mt-6" do %>
+    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Optimize route</p>
+        <p class="text-xs text-gray-600">Run the optimization preview to see potential stop order and capacity risks.</p>
+      </div>
+      <div>
+        <%= button_to "Optimize route",
+                      route_optimization_path(@route),
+                      method: :post,
+                      class: button_classes(variant: :secondary) %>
+      </div>
+    </div>
+  <% end %>
+
   <%= card classes: "mt-6 overflow-hidden" do %>
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
