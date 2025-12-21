@@ -15,11 +15,24 @@ RSpec.describe Routes::Optimization::GoogleOptimizer do
       order = create_order_with_location(lat: 43.0, lng: -90.0)
       event = create(:service_event, :service, order: order, route: route)
 
+      # Stub the client to avoid hitting Google during specs
+      fake_client = instance_double(Routes::Optimization::GoogleRoutesClient)
+      allow(Routes::Optimization::GoogleRoutesClient).to receive(:new).and_return(fake_client)
+      allow(fake_client).to receive(:optimize).and_return(
+        Routes::Optimization::GoogleRoutesClient::Result.new(
+          success?: true,
+          event_ids_in_order: [ event.id ],
+          warnings: [],
+          errors: [],
+          total_distance_meters: 1000,
+          total_duration_seconds: 600
+        )
+      )
+
       result = described_class.call(route)
 
       expect(result.errors).to be_empty
       expect(result.event_ids_in_order).to eq([ event.id ])
-      expect(result.warnings).to include(a_string_matching(/existing ordering/))
       expect(result.simulation).to be_present
     end
 

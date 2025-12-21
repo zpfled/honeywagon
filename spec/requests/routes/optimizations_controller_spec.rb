@@ -8,13 +8,15 @@ RSpec.describe 'Routes::OptimizationsController', type: :request do
   before { sign_in user }
 
   describe 'POST /routes/:route_id/optimization' do
-    def stub_result(success:, warnings: [], errors: [])
+    def stub_result(success:, warnings: [], errors: [], event_ids: [])
       Routes::Optimization::Run::Result.new(
         success?: success,
-        event_ids_in_order: [],
+        event_ids_in_order: event_ids,
         warnings: warnings,
         errors: errors,
-        simulation: nil
+        simulation: nil,
+        distance_meters: 0,
+        duration_seconds: 0
       )
     end
 
@@ -29,6 +31,18 @@ RSpec.describe 'Routes::OptimizationsController', type: :request do
         expect(response).to redirect_to(route_path(route))
         expect(flash[:notice]).to include('Optimization result')
         expect(flash[:notice]).to include('Simulated warning')
+      end
+
+      it 'reorders service events based on the returned sequence' do
+        event_a = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
+        event_b = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
+
+        allow(Routes::Optimization::Run).to receive(:call)
+          .and_return(stub_result(success: true, warnings: [], event_ids: [ event_b.id, event_a.id ]))
+
+        post route_optimization_path(route)
+
+        expect(event_b.reload.route_sequence).to be < event_a.reload.route_sequence
       end
     end
 

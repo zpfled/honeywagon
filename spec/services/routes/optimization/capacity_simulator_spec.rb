@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Routes::Optimization::CapacitySimulator do
   let(:company) { create(:company) }
-  let(:truck) { create(:truck, company: company, clean_water_capacity_gal: 40, septage_capacity_gal: 30) }
+  let(:truck) { create(:truck, company: company, clean_water_capacity_gal: 40, waste_capacity_gal: 30) }
   let(:trailer) { create(:trailer, company: company, capacity_spots: 4) }
   let(:route) { create(:route, company: company, truck: truck, trailer: trailer) }
 

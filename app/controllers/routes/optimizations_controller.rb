@@ -6,6 +6,7 @@ class Routes::OptimizationsController < ApplicationController
     result = Routes::Optimization::Run.call(@route)
 
     if result.success?
+      @route.resequence_service_events!(result.event_ids_in_order)
       flash[:notice] = ([ 'Optimization result:' ] + result.warnings).join('<br>').html_safe
     else
       flash[:alert] = result.errors.join('<br>').html_safe

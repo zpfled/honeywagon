@@ -45,8 +45,8 @@ module Routes
       attr_reader :route, :ordered_events
 
       def load_events_in_order(ids)
-        events = route.service_events.where(id: ids).index_by(&:id)
-        ids.map { |id| events[id] }.compact
+        @events_by_id = route.service_events.where(id: ids).includes(order: :customer, dump_site: :location).index_by(&:id)
+        ids.map { |id| @events_by_id[id] }.compact
       end
 
       def waste_used
@@ -85,6 +85,8 @@ module Routes
         end
         @clean_water_used = clean_water_used + clean_delta
         @trailer_used = trailer_used + trailer_delta
+
+        track_last_safe_stop(event)
       end
 
       def reset_for_dump!
@@ -94,7 +96,7 @@ module Routes
       def violations_for(event)
         [].tap do |list|
           if waste_capacity && waste_used > waste_capacity
-            list << violation_message(event, :waste, waste_used, waste_capacity)
+            list << waste_violation_message(event)
           end
 
           if clean_capacity && clean_water_used > clean_capacity
@@ -107,9 +109,31 @@ module Routes
         end
       end
 
+      def waste_violation_message(event)
+        message = violation_message(event, :waste, waste_used, waste_capacity)
+        if @last_safe_event && @last_safe_event != event
+          message += " Consider adding a dump stop after #{event_label(@last_safe_event)}."
+        end
+        message
+      end
+
       def violation_message(event, resource, used, capacity)
-        "#{resource.to_s.humanize} capacity exceeded after #{event.event_type} "\
-        "(#{used} / #{capacity})."
+        "#{resource.to_s.humanize} capacity exceeded after #{event.event_type} (#{used} / #{capacity})."
+      end
+
+      def track_last_safe_stop(event)
+        return unless waste_capacity
+        if waste_used <= waste_capacity
+          @last_safe_event = event
+        end
+      end
+
+      def event_label(event)
+        if event.event_type_dump?
+          event.dump_site&.name || 'dump event'
+        else
+          event.order&.customer&.display_name || 'service event'
+        end
       end
     end
   end

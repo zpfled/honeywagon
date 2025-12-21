@@ -8,7 +8,9 @@ RSpec.describe Routes::Optimization::Run do
       event_ids_in_order: [ 'event-id' ],
       warnings: [ 'warn' ],
       errors: [],
-      simulation: double(:simulation)
+      simulation: double(:simulation),
+      total_distance_meters: 1000,
+      total_duration_seconds: 600
     )
     allow(Routes::Optimization::GoogleOptimizer).to receive(:call).and_return(fake_result)
 
@@ -26,7 +28,9 @@ RSpec.describe Routes::Optimization::Run do
       event_ids_in_order: [],
       warnings: [],
       errors: [ 'missing coords' ],
-      simulation: nil
+      simulation: nil,
+      total_distance_meters: 0,
+      total_duration_seconds: 0
     )
     allow(Routes::Optimization::GoogleOptimizer).to receive(:call).and_return(fake_result)
 
