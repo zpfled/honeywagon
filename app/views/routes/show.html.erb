@@ -170,42 +170,42 @@
 
   <%= card classes: "mt-6" do %>
     <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-      <div>
-        <p class="text-sm font-semibold text-gray-900">Schedule dump stop</p>
-        <p class="text-xs text-gray-600">Add a dump event to this route to reset the truck's waste load.</p>
-      </div>
-      <% if @dump_sites.any? %>
-        <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex items-end gap-3" do |f| %>
-          <div>
-            <%= f.label :dump_site_id, "Dump site", class: "text-xs font-medium text-gray-700" %>
-            <%= f.select :dump_site_id,
-                         options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
-                         { include_blank: "Select a dump site" },
-                         class: "mt-1 block w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-          </div>
-          <div class="pb-1">
-            <%= f.submit "Add dump event", class: button_classes %>
+      <div class="space-y-2">
+        <div>
+          <p class="text-sm font-semibold text-gray-900">Schedule dump stop</p>
+          <p class="text-xs text-gray-600">Add a dump event to reset the truck’s waste load mid-route.</p>
+        </div>
+        <% if @dump_sites.any? %>
+          <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex flex-col gap-3 sm:flex-row sm:items-end" do |f| %>
+            <div>
+              <%= f.label :dump_site_id, "Dump site", class: "text-xs font-medium text-gray-700" %>
+              <%= f.select :dump_site_id,
+                           options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
+                           { include_blank: "Select a dump site" },
+                           class: "mt-1 block w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+            </div>
+            <div class="pb-1">
+              <%= f.submit "Add dump event", class: button_classes %>
+            </div>
+          <% end %>
+        <% else %>
+          <div class="text-sm text-gray-600">
+            No dump sites yet.
+            <%= link_to "Add one in settings.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
           </div>
         <% end %>
-      <% else %>
-        <div class="text-sm text-gray-600">
-          No dump sites yet. <%= link_to "Add one in company settings.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
-        </div>
-      <% end %>
-    </div>
-  <% end %>
-
-  <%= card classes: "mt-6" do %>
-    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <p class="text-sm font-semibold text-gray-900">Optimize route</p>
-        <p class="text-xs text-gray-600">Run the optimization preview to see potential stop order and capacity risks.</p>
       </div>
-      <div>
-        <%= button_to "Optimize route",
-                      route_optimization_path(@route),
-                      method: :post,
-                      class: button_classes(variant: :secondary) %>
+      <div class="space-y-2">
+        <div>
+          <p class="text-sm font-semibold text-gray-900">Optimize route</p>
+          <p class="text-xs text-gray-600">Get an updated stop order and drive estimate.</p>
+        </div>
+        <div class="pb-1">
+          <%= button_to "Optimize route",
+                        route_optimization_path(@route),
+                        method: :post,
+                        class: button_classes(variant: :secondary) %>
+        </div>
       </div>
     </div>
   <% end %>
