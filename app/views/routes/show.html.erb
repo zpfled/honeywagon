@@ -171,9 +171,9 @@
       <thead class="bg-gray-50">
         <tr>
           <th class="<%= table_header_class %>">Stop</th>
-          <th class="<%= table_header_class %>">Date</th>
-          <th class="<%= table_header_class %>">Event</th>
+          <th class="<%= table_header_class %>">Scheduled event</th>
           <th class="<%= table_header_class %>">Units</th>
+          <th class="<%= table_header_class %>">Usage</th>
           <th class="<%= table_header_class %>">Order</th>
           <th class="<%= table_header_class('text-right') %>">Actions</th>
         </tr>
@@ -182,6 +182,7 @@
         <% if @service_events.any? %>
           <% @service_events.each do |event| %>
             <% order = event.order %>
+            <% step = (@capacity_steps || {})[event.id] %>
             <% dump_site = event.dump_site if event.event_type_dump? %>
             <% completed = event.status_completed? %>
             <% disable_later = completed || event.prevent_move_later? %>
@@ -196,9 +197,12 @@
               <td class="<%= table_cell_class %> text-xs font-semibold text-gray-500">
                 <%= event.route_sequence.present? ? event.route_sequence + 1 : '—' %>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap">
+              <td class="px-4 py-3">
                 <div class="text-sm font-semibold <%= event.overdue? ? 'text-rose-600' : 'text-gray-900' %>">
                   <%= l(event.scheduled_on, format: :long) %>
+                </div>
+                <div class="mt-1">
+                  <%= badge(event.event_type.humanize, tone: :info) %>
                 </div>
                 <% if event.overdue? %>
                   <div class="mt-1 inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
@@ -206,11 +210,34 @@
                   </div>
                 <% end %>
               </td>
-              <td class="px-4 py-3">
-                <%= badge(event.event_type.humanize, tone: :info) %>
-              </td>
               <td class="<%= table_cell_class %>">
                 <%= event.event_type_dump? ? '—' : event.units_impacted_count %>
+              </td>
+              <td class="<%= table_cell_class %>">
+                <% if step %>
+                  <div class="flex flex-col gap-0.5 text-[11px] leading-tight">
+                    <% if step.waste_capacity %>
+                      <% waste_ratio = step.waste_capacity.zero? ? 0 : (step.waste_used.to_f / step.waste_capacity) %>
+                      <% waste_class = waste_ratio >= 1 ? 'text-rose-700 font-semibold' : waste_ratio >= 0.8 ? 'text-amber-600 font-semibold' : 'text-gray-600' %>
+                      <span class="<%= waste_class %>">Waste <%= step.waste_used %>/<%= step.waste_capacity %></span>
+                    <% end %>
+                    <% if step.clean_capacity %>
+                      <% clean_ratio = step.clean_capacity.zero? ? 0 : (step.clean_used.to_f / step.clean_capacity) %>
+                      <% clean_class = clean_ratio >= 1 ? 'text-rose-700 font-semibold' : clean_ratio >= 0.8 ? 'text-amber-600 font-semibold' : 'text-gray-600' %>
+                      <span class="<%= clean_class %>">Clean <%= step.clean_used %>/<%= step.clean_capacity %></span>
+                    <% end %>
+                    <% if step.trailer_capacity %>
+                      <% trailer_ratio = step.trailer_capacity.zero? ? 0 : (step.trailer_used.to_f / step.trailer_capacity) %>
+                      <% trailer_class = trailer_ratio >= 1 ? 'text-rose-700 font-semibold' : trailer_ratio >= 0.8 ? 'text-amber-600 font-semibold' : 'text-gray-600' %>
+                      <span class="<%= trailer_class %>">Trailer <%= step.trailer_used %>/<%= step.trailer_capacity %></span>
+                    <% end %>
+                    <% Array(step.violations).each do |violation| %>
+                      <span class="text-rose-700 font-semibold"><%= violation[:message] %></span>
+                    <% end %>
+                  </div>
+                <% else %>
+                  <span class="text-xs text-gray-400">—</span>
+                <% end %>
               </td>
               <td class="px-4 py-3">
                 <% if event.event_type_dump? %>

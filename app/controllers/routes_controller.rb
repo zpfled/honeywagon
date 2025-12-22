@@ -49,6 +49,7 @@ class RoutesController < ApplicationController
     @previous_route = presenter.previous_route
     @next_route = presenter.next_route
     @waste_load = presenter.waste_load
+    @capacity_steps = presenter.capacity_steps
     @dump_sites = current_user.company.dump_sites.includes(:location)
     @weather_forecast = presenter.weather_forecast
   end

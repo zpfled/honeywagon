@@ -5,7 +5,21 @@ module Routes
     # stops automatically, but for now we just report violations so the UX
     # can surface them.
     class CapacitySimulator
-      Step = Struct.new(:event_id, :waste_used, :clean_used, :trailer_used, keyword_init: true)
+      Step = Struct.new(
+        :event_id,
+        :waste_used,
+        :clean_used,
+        :trailer_used,
+        :waste_capacity,
+        :clean_capacity,
+        :trailer_capacity,
+        :violations,
+        keyword_init: true
+      ) do
+        def waste_over? = waste_capacity && waste_used > waste_capacity
+        def clean_over? = clean_capacity && clean_used > clean_capacity
+        def trailer_over? = trailer_capacity && trailer_used > trailer_capacity
+      end
       Result = Struct.new(:steps, :violations, keyword_init: true)
 
       def initialize(route:, ordered_event_ids:)
@@ -27,14 +41,20 @@ module Routes
           apply_usage(usage, event)
           reset_for_dump! if event.event_type_dump?
 
+          step_violations = violations_for(event)
+
           steps << Step.new(
             event_id: event.id,
             waste_used: waste_used,
             clean_used: clean_water_used,
-            trailer_used: trailer_used
+            trailer_used: trailer_used,
+            waste_capacity: waste_capacity,
+            clean_capacity: clean_capacity,
+            trailer_capacity: trailer_capacity,
+            violations: step_violations
           )
 
-          violations.concat(violations_for(event))
+          violations.concat(step_violations.map { |violation| violation[:message] })
         end
 
         Result.new(steps: steps, violations: violations)
@@ -96,29 +116,33 @@ module Routes
       def violations_for(event)
         [].tap do |list|
           if waste_capacity && waste_used > waste_capacity
-            list << waste_violation_message(event)
+            list << waste_violation_detail(event)
           end
 
           if clean_capacity && clean_water_used > clean_capacity
-            list << violation_message(event, :clean_water, clean_water_used, clean_capacity)
+            list << violation_detail(event, :clean_water, clean_water_used, clean_capacity)
           end
 
           if trailer_capacity && trailer_used > trailer_capacity
-            list << violation_message(event, :trailer, trailer_used, trailer_capacity)
+            list << violation_detail(event, :trailer, trailer_used, trailer_capacity)
           end
         end
       end
 
-      def waste_violation_message(event)
-        message = violation_message(event, :waste, waste_used, waste_capacity)
+      def waste_violation_detail(event)
+        detail = violation_detail(event, :waste, waste_used, waste_capacity)
         if @last_safe_event && @last_safe_event != event
-          message += " Consider adding a dump stop after #{event_label(@last_safe_event)}."
+          detail[:message] += " Consider adding a dump stop after #{event_label(@last_safe_event)}."
         end
-        message
+        detail
       end
 
-      def violation_message(event, resource, used, capacity)
-        "#{resource.to_s.humanize} capacity exceeded after #{event.event_type} (#{used} / #{capacity})."
+      def violation_detail(event, resource, used, capacity)
+        {
+          resource: resource,
+          message: "#{resource.to_s.humanize} capacity exceeded after #{event.event_type} (#{used} / #{capacity}).",
+          over_by: used - capacity
+        }
       end
 
       def track_last_safe_stop(event)

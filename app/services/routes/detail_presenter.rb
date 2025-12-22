@@ -1,6 +1,6 @@
 module Routes
   class DetailPresenter
-    attr_reader :route, :service_events
+    attr_reader :route, :service_events, :capacity_steps
 
     def initialize(route, company:)
       @route = route
@@ -8,6 +8,7 @@ module Routes
       @service_events = route.service_events
                                .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
                                .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+      build_capacity_data
     end
 
     def previous_route
@@ -45,11 +46,23 @@ module Routes
     private
 
     attr_reader :company
+    attr_reader :capacity_result
 
     def representative_location
       @representative_location ||= service_events.map { |event| event.order&.location }.compact.find do |location|
         location.lat.present? && location.lng.present?
       end
+    end
+
+    def build_capacity_data
+      result = Routes::Optimization::CapacitySimulator.call(
+        route: route,
+        ordered_event_ids: service_events.pluck(:id)
+      )
+      @capacity_result = result
+      @capacity_steps = result.steps.index_by(&:event_id)
+    rescue StandardError
+      @capacity_steps = {}
     end
   end
 end
