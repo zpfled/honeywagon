@@ -29,7 +29,7 @@ RSpec.describe 'Routes::OptimizationsController', type: :request do
         post route_optimization_path(route)
 
         expect(response).to redirect_to(route_path(route))
-        expect(flash[:notice]).to include('Optimization result')
+        expect(flash[:notice]).to include('Route optimized')
         expect(flash[:notice]).to include('Simulated warning')
       end
 

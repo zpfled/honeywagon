@@ -12,9 +12,9 @@ class Routes::OptimizationsController < ApplicationController
       else
         @route.update!(optimization_stale: false)
       end
-      flash[:notice] = ([ 'Optimization result:' ] + result.warnings).join('<br>').html_safe
+      flash[:notice] = ([ 'Route optimized:' ] + result.warnings).join(' ').html_safe
     else
-      flash[:alert] = result.errors.join('<br>').html_safe
+      flash[:alert] = result.errors.join(' ').html_safe
     end
 
     redirect_to route_path(@route)
