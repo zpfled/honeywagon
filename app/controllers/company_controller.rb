@@ -1,4 +1,5 @@
 class CompanyController < ApplicationController
+  include FormNormalizers
   def edit
     @company = current_user.company
     build_forms
@@ -15,6 +16,7 @@ class CompanyController < ApplicationController
       create_unit_type!
       create_rate_plan!
       create_dump_site!
+      create_expense!
       update_unit_inventory!
     end
 
@@ -32,7 +34,7 @@ class CompanyController < ApplicationController
   end
 
   def truck_params
-    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal)
+    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :fuel_price_per_gallon, :miles_per_gallon)
   end
 
   def trailer_params
@@ -59,6 +61,22 @@ class CompanyController < ApplicationController
     params.fetch(:dump_site, {}).permit(:name, location_attributes: %i[label street city state zip])
   end
 
+  def expense_params
+    params.fetch(:expense, {}).permit(
+      :name,
+      :description,
+      :category,
+      :cost_type,
+      :base_amount,
+      :package_size,
+      :unit_label,
+      :season_start,
+      :season_end,
+      :active,
+      applies_to: []
+    )
+  end
+
   def build_forms
     @truck ||= current_user.company.trucks.new
     @trailer ||= current_user.company.trailers.new
@@ -66,6 +84,7 @@ class CompanyController < ApplicationController
     @unit_type ||= current_user.company.unit_types.new
     @rate_plan ||= current_user.company.rate_plans.new
     @dump_site ||= current_user.company.dump_sites.new.tap { |site| site.build_location }
+    @expense ||= current_user.company.expenses.new
   end
 
   def update_company_details!
@@ -140,6 +159,19 @@ class CompanyController < ApplicationController
     @dump_site.save!
   end
 
+  def create_expense!
+    attrs = expense_params
+    return if attrs.blank? || attrs[:name].blank?
+
+    attrs[:base_amount] = normalize_decimal(attrs[:base_amount])
+    attrs[:package_size] = normalize_decimal(attrs[:package_size])
+    attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
+    attrs[:applies_to] = Array(attrs[:applies_to]).reject(&:blank?)
+
+    @expense = current_user.company.expenses.new(attrs.compact)
+    @expense.save!
+  end
+
   def update_unit_inventory!
     attrs = unit_inventory_params
     return if attrs.blank? || attrs[:unit_type_id].blank? || attrs[:quantity].blank?
@@ -167,11 +199,5 @@ class CompanyController < ApplicationController
     end
   end
 
-  def normalize_price(value)
-    return if value.blank?
-
-    (BigDecimal(value.to_s) * 100).to_i
-  rescue ArgumentError, TypeError
-    nil
-  end
+  # normalize helpers now provided by FormNormalizers concern
 end

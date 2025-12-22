@@ -10,12 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_123500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.decimal "fuel_price_per_gallon", precision: 8, scale: 3
     t.string "name", null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
@@ -45,6 +46,26 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
     t.datetime "updated_at", null: false
     t.index ["company_id"], name: "index_dump_sites_on_company_id"
     t.index ["location_id"], name: "index_dump_sites_on_location_id"
+  end
+
+  create_table "expenses", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "applies_to", default: [], array: true
+    t.decimal "base_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.string "category", null: false
+    t.uuid "company_id", null: false
+    t.string "cost_type", null: false
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.string "name", null: false
+    t.decimal "package_size", precision: 12, scale: 3
+    t.date "season_end"
+    t.date "season_start"
+    t.string "unit_label"
+    t.datetime "updated_at", null: false
+    t.index ["applies_to"], name: "index_expenses_on_applies_to", using: :gin
+    t.index ["company_id", "category"], name: "index_expenses_on_company_id_and_category"
+    t.index ["company_id"], name: "index_expenses_on_company_id"
   end
 
   create_table "locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -227,6 +248,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
     t.integer "clean_water_capacity_gal", default: 0, null: false
     t.uuid "company_id", null: false
     t.datetime "created_at", null: false
+    t.decimal "miles_per_gallon", precision: 6, scale: 2
     t.string "name", null: false
     t.string "number", null: false
     t.datetime "updated_at", null: false
@@ -296,6 +318,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
   add_foreign_key "customers", "companies"
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"
+  add_foreign_key "expenses", "companies"
   add_foreign_key "locations", "customers"
   add_foreign_key "order_units", "orders"
   add_foreign_key "order_units", "units"
