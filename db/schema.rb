@@ -10,13 +10,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_22_123500) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_140000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.decimal "fuel_price_per_gallon", precision: 8, scale: 3
+    t.integer "fuel_price_per_gal_cents", default: 0, null: false
     t.string "name", null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false

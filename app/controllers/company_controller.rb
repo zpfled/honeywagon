@@ -61,18 +61,18 @@ class CompanyController < ApplicationController
 
   def load_company_data
     @unit_types = @company.unit_types.includes(:units, :rate_plans).order(:name)
-    service_rows = @company.rate_plans.service_only.order(:service_schedule).map { |plan| [nil, plan] }
-    @rate_plan_rows = @unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ut, plan] } } + service_rows
+    service_rows = @company.rate_plans.service_only.order(:service_schedule).map { |plan| [ nil, plan ] }
+    @rate_plan_rows = @unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } + service_rows
     @trucks = @company.trucks.where.not(id: nil).order(:name).to_a
     @trailers = @company.trailers.where.not(id: nil).order(:name).to_a
     @dump_sites = @company.dump_sites.includes(:location).where.not(id: nil).order(:name).to_a
     @customers = @company.customers.where.not(id: nil).order(:display_name).to_a
     @expenses = @company.expenses.where.not(id: nil).order(:name).to_a
-    @service_schedule_options = RatePlan::SERVICE_SCHEDULES.values.map { |value| [value.humanize, value] }
-    @billing_period_options = RatePlan::BILLING_PERIODS.map { |period| [period.humanize, period] }
-    @expense_category_options = Expense::CATEGORIES.map { |value| [value.humanize, value] }
-    @expense_type_options = Expense::COST_TYPES.map { |value| [value.humanize, value] }
-    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [value.humanize, value] }
+    @service_schedule_options = RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] }
+    @billing_period_options = RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] }
+    @expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] }
+    @expense_type_options = Expense::COST_TYPES.map { |value| [ value.humanize, value ] }
+    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
   end
 
   def load_customers_page_data
@@ -81,9 +81,9 @@ class CompanyController < ApplicationController
 
   def load_expenses_page_data
     @expenses = @company.expenses.order(:name)
-    @expense_category_options = Expense::CATEGORIES.map { |value| [value.humanize, value] }
-    @expense_type_options = Expense::COST_TYPES.map { |value| [value.humanize, value] }
-    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [value.humanize, value] }
+    @expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] }
+    @expense_type_options = Expense::COST_TYPES.map { |value| [ value.humanize, value ] }
+    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
   end
 
   def company_params
@@ -143,8 +143,8 @@ class CompanyController < ApplicationController
     @rate_plan = @company.rate_plans.new
     locals = {
       company: @company,
-      service_schedule_options: @service_schedule_options || RatePlan::SERVICE_SCHEDULES.values.map { |value| [value.humanize, value] },
-      billing_period_options: @billing_period_options || RatePlan::BILLING_PERIODS.map { |period| [period.humanize, period] }
+      service_schedule_options: @service_schedule_options || RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] },
+      billing_period_options: @billing_period_options || RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] }
     }
     render partial: 'company/rate_plan_modal', locals: locals, layout: false
   end
@@ -162,9 +162,9 @@ class CompanyController < ApplicationController
   def new_expense
     @expense = @company.expenses.new
     locals = {
-      expense_category_options: @expense_category_options || Expense::CATEGORIES.map { |value| [value.humanize, value] },
-      expense_type_options: @expense_type_options || Expense::COST_TYPES.map { |value| [value.humanize, value] },
-      expense_applies_options: @expense_applies_options || Expense::APPLIES_TO_OPTIONS.map { |value| [value.humanize, value] }
+      expense_category_options: @expense_category_options || Expense::CATEGORIES.map { |value| [ value.humanize, value ] },
+      expense_type_options: @expense_type_options || Expense::COST_TYPES.map { |value| [ value.humanize, value ] },
+      expense_applies_options: @expense_applies_options || Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
     }
     render partial: 'company/expense_modal', locals: locals, layout: false
   end

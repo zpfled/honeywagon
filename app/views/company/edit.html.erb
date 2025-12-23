@@ -41,13 +41,6 @@
 
     <main class="mt-8 flex-1 space-y-10 lg:mt-0 lg:min-w-0 lg:max-w-5xl" id="overview">
       <section id="company-details" class="space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h2 class="text-xl font-semibold text-gray-900">Company details</h2>
-            <p class="text-sm text-gray-600">Update the basics like your name and fuel price.</p>
-          </div>
-          <%= link_to "Back to dashboard", authenticated_root_path, class: button_classes(variant: :outline, size: :sm) %>
-        </div>
         <%= card do %>
           <%= form_with model: @company, url: company_path, method: :put, local: true do |f| %>
             <div class="space-y-4">
