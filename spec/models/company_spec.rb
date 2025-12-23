@@ -1,6 +1,9 @@
 require "rails_helper"
 
 RSpec.describe Company, type: :model do
+
+  #TODO: Add simple tests for validations & associations
+
   describe "#fuel_price_per_gallon" do
     it "returns nil when cents are blank" do
       company = build(:company, fuel_price_per_gal_cents: nil)

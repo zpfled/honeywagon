@@ -1,6 +1,9 @@
 require "rails_helper"
 
 RSpec.describe Location, type: :model do
+
+  #TODO: test validations & associations
+  
   describe "#full_address" do
     it "combines street, city, state, and zip with commas" do
       location = Location.new(

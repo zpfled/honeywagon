@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_22_140000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -196,6 +196,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_140000) do
     t.datetime "deleted_at"
     t.uuid "deleted_by_id"
     t.uuid "dump_site_id"
+    t.integer "estimated_cost_cents", default: 0, null: false
     t.integer "estimated_gallons_override"
     t.integer "event_type"
     t.text "notes"
