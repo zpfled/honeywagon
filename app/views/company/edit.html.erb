@@ -1,15 +1,17 @@
 <%= page_shell do %>
-  <% company = current_user.company %>
-  <% trucks = company.trucks.reject(&:new_record?) %>
-  <% unit_types = company.unit_types.includes(:units, :rate_plans).order(:name) %>
-  <% service_rate_plan_rows = company.rate_plans.service_only.order(:service_schedule).map { |plan| [ nil, plan ] } %>
-  <% rate_plan_rows = unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } + service_rate_plan_rows %>
-  <% service_schedule_options = RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] } %>
-  <% billing_period_options = RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] } %>
-  <% expenses = company.expenses.order(:name) %>
-  <% expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] } %>
-  <% expense_type_options = Expense::COST_TYPES.map { |value| [ value.humanize, value ] } %>
-  <% expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] } %>
+  <% company = @company %>
+  <% trucks = @trucks %>
+  <% unit_types = @unit_types %>
+  <% rate_plan_rows = @rate_plan_rows %>
+  <% service_schedule_options = @service_schedule_options %>
+  <% billing_period_options = @billing_period_options %>
+  <% dump_sites = @dump_sites %>
+  <% trailers = @trailers %>
+  <% customers = @customers %>
+  <% expenses = @expenses %>
+  <% expense_category_options = @expense_category_options %>
+  <% expense_type_options = @expense_type_options %>
+  <% expense_applies_options = @expense_applies_options %>
   <div class="flex flex-wrap items-center justify-between gap-4">
     <div id="overview">
       <h1 class="text-2xl font-semibold text-gray-900">Company profile</h1>
@@ -260,8 +262,8 @@
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
-                <% if company.dump_sites.any? %>
-                  <% company.dump_sites.includes(:location).each do |site| %>
+                <% if dump_sites.any? %>
+                  <% dump_sites.each do |site| %>
                     <tr>
                       <td class="<%= table_cell_class %>"><%= site.name %></td>
                       <td class="<%= table_cell_class %>"><%= site.location&.display_label %></td>
@@ -409,8 +411,8 @@
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
-                  <% if company.trailers.any? %>
-                    <% company.trailers.each do |trailer| %>
+                    <% if trailers.any? %>
+                      <% trailers.each do |trailer| %>
                       <tr>
                         <td class="<%= table_cell_class %>"><%= trailer.name %></td>
                         <td class="<%= table_cell_class %>"><%= trailer.identifier %></td>
@@ -494,7 +496,7 @@
             <div class="mt-4">
               <h3 class="text-sm font-semibold text-gray-700">Customers</h3>
               <ul class="mt-2 divide-y divide-gray-200 text-sm text-gray-700">
-                <% company.customers.order(:display_name).each do |customer| %>
+                <% customers.each do |customer| %>
                   <li class="py-2">
                     <span class="font-medium"><%= customer.display_name %></span>
                     <span class="text-gray-500">• <%= customer.billing_email %></span>
