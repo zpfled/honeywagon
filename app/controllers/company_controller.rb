@@ -8,6 +8,7 @@ class CompanyController < ApplicationController
   end
 
   def update
+    redirect_target = params[:redirect_to].presence
     ActiveRecord::Base.transaction do
       update_company_details!
       create_truck!
@@ -20,13 +21,22 @@ class CompanyController < ApplicationController
       update_unit_inventory!
     end
 
-    redirect_to edit_company_path, notice: 'Company profile updated.'
+    redirect_to(redirect_target || edit_company_path, notice: 'Company profile updated.')
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    load_company_data
-    load_company_data
+    template = redirect_target == customers_company_path ? :customers : :edit
+    if template == :customers
+      load_customers_page_data
+    else
+      load_company_data
+    end
     build_forms
-    render :edit, status: :unprocessable_content
+    render template, status: :unprocessable_content
+  end
+
+  def customers
+    build_forms
+    load_customers_page_data
   end
 
   private
@@ -49,6 +59,10 @@ class CompanyController < ApplicationController
     @expense_category_options = Expense::CATEGORIES.map { |value| [value.humanize, value] }
     @expense_type_options = Expense::COST_TYPES.map { |value| [value.humanize, value] }
     @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [value.humanize, value] }
+  end
+
+  def load_customers_page_data
+    @customers = @company.customers.order(:display_name)
   end
 
   def company_params

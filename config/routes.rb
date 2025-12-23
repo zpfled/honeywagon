@@ -26,6 +26,7 @@ Rails.application.routes.draw do
   end
   resource :company, only: %i[edit update], controller: 'company' do
     collection do
+      get :customers
       get :new_unit_type
       get :new_rate_plan
       get :new_trailer
