@@ -43,12 +43,12 @@ RSpec.describe Expense, type: :model do
     end
 
     it 'true when includes all' do
-      expense = build(:expense, applies_to: ['all'])
+      expense = build(:expense, applies_to: [ 'all' ])
       expect(expense.applies_to_all?).to be true
     end
 
     it 'false otherwise' do
-      expense = build(:expense, applies_to: ['service'])
+      expense = build(:expense, applies_to: [ 'service' ])
       expect(expense.applies_to_all?).to be false
     end
   end

@@ -6,7 +6,7 @@ FactoryBot.define do
     cost_type { 'per_mile' }
     base_amount { 10 }
     package_size { nil }
-    applies_to { ['all'] }
+    applies_to { [ 'all' ] }
     active { true }
   end
 end

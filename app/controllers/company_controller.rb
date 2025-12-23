@@ -29,6 +29,11 @@ class CompanyController < ApplicationController
 
   private
 
+  def new_unit_type
+    build_forms
+    render partial: 'company/unit_type_modal', layout: false
+  end
+
   def company_params
     params.fetch(:company, {}).permit(:name)
   end
@@ -75,6 +80,41 @@ class CompanyController < ApplicationController
       :active,
       applies_to: []
     )
+  end
+
+  def new_unit_type
+    @unit_type = current_user.company.unit_types.new
+    render partial: 'company/unit_type_modal', layout: false
+  end
+
+  def new_rate_plan
+    @rate_plan = current_user.company.rate_plans.new
+    locals = {
+      company: current_user.company,
+      service_schedule_options: RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] },
+      billing_period_options: RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] }
+    }
+    render partial: 'company/rate_plan_modal', locals: locals, layout: false
+  end
+
+  def new_trailer
+    @trailer = current_user.company.trailers.new
+    render partial: 'company/trailer_modal', layout: false
+  end
+
+  def new_customer
+    @customer = current_user.company.customers.new
+    render partial: 'company/customer_modal', layout: false
+  end
+
+  def new_expense
+    @expense = current_user.company.expenses.new
+    locals = {
+      expense_category_options: Expense::CATEGORIES.map { |value| [ value.humanize, value ] },
+      expense_type_options: Expense::COST_TYPES.map { |value| [ value.humanize, value ] },
+      expense_applies_options: Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
+    }
+    render partial: 'company/expense_modal', locals: locals, layout: false
   end
 
   def build_forms

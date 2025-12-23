@@ -24,7 +24,15 @@ Rails.application.routes.draw do
   namespace :setup do
     resource :company, only: %i[show update]
   end
-  resource :company, only: %i[edit update], controller: 'company'
+  resource :company, only: %i[edit update], controller: 'company' do
+    collection do
+      get :new_unit_type
+      get :new_rate_plan
+      get :new_trailer
+      get :new_customer
+      get :new_expense
+    end
+  end
   namespace :api do
     get 'places/autocomplete', to: 'places#autocomplete', as: :places_autocomplete
     get 'places/details', to: 'places#details', as: :places_details

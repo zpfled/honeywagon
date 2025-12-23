@@ -13,7 +13,7 @@ RSpec.describe 'Company expenses', type: :request do
         category: 'fuel',
         cost_type: 'per_mile',
         base_amount: '4.25',
-        applies_to: ['all']
+        applies_to: [ 'all' ]
       }
     }
     expect(response).to redirect_to(edit_company_path)
