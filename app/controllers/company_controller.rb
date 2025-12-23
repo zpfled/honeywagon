@@ -24,9 +24,18 @@ class CompanyController < ApplicationController
     redirect_to(redirect_target || edit_company_path, notice: 'Company profile updated.')
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    template = redirect_target == customers_company_path ? :customers : :edit
-    if template == :customers
+    template =
+      case redirect_target
+      when customers_company_path then :customers
+      when expenses_company_path then :expenses
+      else :edit
+      end
+
+    case template
+    when :customers
       load_customers_page_data
+    when :expenses
+      load_expenses_page_data
     else
       load_company_data
     end
@@ -37,6 +46,11 @@ class CompanyController < ApplicationController
   def customers
     build_forms
     load_customers_page_data
+  end
+
+  def expenses
+    build_forms
+    load_expenses_page_data
   end
 
   private
@@ -65,8 +79,15 @@ class CompanyController < ApplicationController
     @customers = @company.customers.order(:display_name)
   end
 
+  def load_expenses_page_data
+    @expenses = @company.expenses.order(:name)
+    @expense_category_options = Expense::CATEGORIES.map { |value| [value.humanize, value] }
+    @expense_type_options = Expense::COST_TYPES.map { |value| [value.humanize, value] }
+    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [value.humanize, value] }
+  end
+
   def company_params
-    params.fetch(:company, {}).permit(:name)
+    params.fetch(:company, {}).permit(:name, :fuel_price_per_gallon)
   end
 
   def truck_params

@@ -10,6 +10,7 @@
         <button class="text-gray-400 hover:text-gray-700" data-action="click->modal#close">✕</button>
       </div>
       <%= form_with model: @expense, url: company_path, method: :put, local: true, class: "mt-6 space-y-4" do |f| %>
+        <%= hidden_field_tag :redirect_to, params[:redirect_to] if params[:redirect_to].present? %>
         <% if @expense.errors.any? %>
           <div class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"><%= @expense.errors.full_messages.to_sentence %></div>
         <% end %>
