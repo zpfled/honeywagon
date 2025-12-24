@@ -100,6 +100,13 @@ class ServiceEvent < ApplicationRecord
     end
   end
 
+  def humanized_leg_drive_distance
+    return nil unless drive_distance_meters.to_i.positive?
+
+    miles = drive_distance_meters.to_f / 1609.34
+    "#{miles.round(1)} mi"
+  end
+
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :deleted, -> { with_deleted.where.not(deleted_at: nil) }
 

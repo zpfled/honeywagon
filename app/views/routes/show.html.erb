@@ -194,8 +194,16 @@
                                 'Pickups must stay on their scheduled date.'
                               end %>
             <tr class="hover:bg-gray-50 <%= completed ? 'opacity-60 bg-emerald-50' : '' %>">
-              <td class="<%= table_cell_class %> text-xs font-semibold text-gray-500">
-                <%= event.route_sequence.present? ? event.route_sequence + 1 : '—' %>
+              <td class="<%= table_cell_class %>">
+                <% leg_distance = event.humanized_leg_drive_distance %>
+                <div class="flex flex-col leading-tight">
+                  <span class="text-xs font-semibold text-gray-500">
+                    <%= event.route_sequence.present? ? event.route_sequence + 1 : '—' %>
+                  </span>
+                  <span class="text-[11px] text-gray-400">
+                    <%= leg_distance || '—' %>
+                  </span>
+                </div>
               </td>
               <td class="px-4 py-3">
                 <div class="text-sm font-semibold <%= event.overdue? ? 'text-rose-600' : 'text-gray-900' %>">

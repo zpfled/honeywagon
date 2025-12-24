@@ -7,7 +7,7 @@ module Routes
   module Optimization
     class GoogleRoutesClient
       ENDPOINT = URI('https://routes.googleapis.com/directions/v2:computeRoutes')
-      FIELD_MASK = 'routes.distanceMeters,routes.duration,routes.optimizedIntermediateWaypointIndex'
+      FIELD_MASK = 'routes.distanceMeters,routes.duration,routes.optimizedIntermediateWaypointIndex,routes.legs.distanceMeters,routes.legs.duration'
 
       Result = Struct.new(
         :success?,
@@ -16,6 +16,7 @@ module Routes
         :errors,
         :total_distance_meters,
         :total_duration_seconds,
+        :legs,
         keyword_init: true
       )
 
@@ -29,6 +30,8 @@ module Routes
 
         body = build_payload(stops)
         response = request_json(ENDPOINT, body: body)
+        Rails.logger.debug('Google Optimizer Response')
+        Rails.logger.debug(response)
         return failure_result([ 'Google routing request failed.' ]) unless response
 
         error = response['error']
@@ -44,8 +47,20 @@ module Routes
         event_ids = reorder_ids(stops, waypoint_order)
         distance = route['distanceMeters'].to_i
         duration = parse_duration(route['duration'])
+        legs = Array(route['legs']).map do |leg|
+          {
+            distance_meters: leg['distanceMeters'].to_i,
+            duration_seconds: parse_duration(leg['duration'])
+          }
+        end
 
-        success_result(event_ids, warnings: [], total_distance_meters: distance, total_duration_seconds: duration)
+        success_result(
+          event_ids,
+          warnings: [],
+          total_distance_meters: distance,
+          total_duration_seconds: duration,
+          legs: legs
+        )
       end
 
       private
@@ -96,14 +111,15 @@ module Routes
         end
       end
 
-      def success_result(event_ids, warnings:, total_distance_meters:, total_duration_seconds:)
+      def success_result(event_ids, warnings:, total_distance_meters:, total_duration_seconds:, legs: [])
         Result.new(
           success?: true,
           event_ids_in_order: event_ids,
           warnings: warnings,
           errors: [],
           total_distance_meters: total_distance_meters,
-          total_duration_seconds: total_duration_seconds
+          total_duration_seconds: total_duration_seconds,
+          legs: legs
         )
       end
 

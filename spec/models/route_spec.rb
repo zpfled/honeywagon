@@ -68,4 +68,41 @@ RSpec.describe Route do
       expect(Route.find_by(id: route.id)).to be_nil
     end
   end
+
+  describe '#record_stop_drive_metrics' do
+    let(:route) { create(:route) }
+    let!(:events) { Array.new(5) { create(:service_event, route: route, route_date: route.route_date) } }
+    let(:event_ids) { events.map(&:id) }
+    let(:legs) do
+      [
+        { "distanceMeters" => 1470, "duration" => "161s" },
+        { "distanceMeters" => 6899, "duration" => "504s" },
+        { "distanceMeters" => 29426, "duration" => "1186s" },
+        { "distanceMeters" => 3058, "duration" => "205s" }
+      ]
+    end
+
+    it 'assigns per-leg drive distance and duration based on provided legs' do
+      route.record_stop_drive_metrics(event_ids: event_ids, legs: legs)
+
+      expect(events[0].reload.drive_distance_meters).to eq(0)
+      expect(events[0].drive_duration_seconds).to eq(0)
+
+      expect(events[1].reload.drive_distance_meters).to eq(1470)
+      expect(events[1].drive_duration_seconds).to eq(161)
+
+      expect(events[3].reload.drive_distance_meters).to eq(29426)
+      expect(events[3].drive_duration_seconds).to eq(1186)
+
+      expect(events[4].reload.drive_distance_meters).to eq(3058)
+      expect(events[4].drive_duration_seconds).to eq(205)
+    end
+
+    it 'defaults to zero metrics when a leg is missing' do
+      route.record_stop_drive_metrics(event_ids: event_ids, legs: legs.first(2))
+
+      expect(events[4].reload.drive_distance_meters).to eq(0)
+      expect(events[4].drive_duration_seconds).to eq(0)
+    end
+  end
 end

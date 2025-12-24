@@ -13,6 +13,7 @@ module Routes
         :simulation,
         :total_distance_meters,
         :total_duration_seconds,
+        :legs,
         keyword_init: true
       )
 
@@ -40,14 +41,15 @@ module Routes
         warnings = Array(optimization_result.warnings)
         warnings.concat(distance_warning(optimization_result))
         warnings.concat(base_warnings(simulation))
-
+        
         Result.new(
           event_ids_in_order: event_ids,
           warnings: warnings,
           errors: [],
           simulation: simulation,
           total_distance_meters: optimization_result.total_distance_meters,
-          total_duration_seconds: optimization_result.total_duration_seconds
+          total_duration_seconds: optimization_result.total_duration_seconds,
+          legs: optimization_result.legs
         )
       end
 
@@ -107,7 +109,7 @@ module Routes
       end
       def failure_result(errors)
         Result.new(event_ids_in_order: [], warnings: [], errors: Array(errors), simulation: nil,
-                   total_distance_meters: nil, total_duration_seconds: nil)
+                   total_distance_meters: nil, total_duration_seconds: nil, legs: [])
       end
 
       # Capacity simulator already formats violation strings; just duplicate so callers can mutate safely.
