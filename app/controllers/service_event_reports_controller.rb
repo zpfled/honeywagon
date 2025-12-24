@@ -3,8 +3,10 @@ class ServiceEventReportsController < ApplicationController
   before_action :set_report, only: [ :edit, :update ]
 
   def index
-    @reports = current_user.service_event_reports.includes(service_event: [ :service_event_type, { order: %i[customer location] } ])
-      .order(created_at: :desc)
+    @reports = current_user.service_event_reports
+                           .includes(service_event: [ :service_event_type, { order: %i[customer location] } ])
+                           .joins(:service_event)
+                           .order(Arel.sql('service_events.completed_on DESC NULLS LAST, service_event_reports.created_at DESC'))
   end
 
   def new

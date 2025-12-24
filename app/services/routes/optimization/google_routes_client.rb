@@ -24,11 +24,11 @@ module Routes
         @api_key = api_key
       end
 
-      def optimize(stops)
+      def optimize(stops, optimize_waypoint_order: true)
         return failure_result([ 'Google routing API key is not configured.' ]) if api_key.blank?
         return success_result(stops.map { |s| s[:id] }, warnings: [ 'Not enough stops to optimize.' ]) if stops.size <= 1
 
-        body = build_payload(stops)
+        body = build_payload(stops, optimize_waypoint_order: optimize_waypoint_order)
         response = request_json(ENDPOINT, body: body)
         Rails.logger.debug('Google Optimizer Response')
         Rails.logger.debug(response)
@@ -67,7 +67,7 @@ module Routes
 
       attr_reader :api_key
 
-      def build_payload(stops)
+      def build_payload(stops, optimize_waypoint_order: true)
         origin = build_waypoint(stops.first)
         destination = build_waypoint(stops.last)
         intermediates = stops[1...-1].map { |stop| build_waypoint(stop) }
@@ -77,7 +77,7 @@ module Routes
           destination: destination,
           intermediates: intermediates,
           travelMode: 'DRIVE',
-          optimizeWaypointOrder: intermediates.present?,
+          optimizeWaypointOrder: optimize_waypoint_order && intermediates.present?,
           requestedReferenceRoutes: []
         }
       end

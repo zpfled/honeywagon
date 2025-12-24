@@ -36,8 +36,13 @@ module Routes
       }
 
       if service_event.update(attrs)
+        Rails.logger.info(
+          "[ServiceEventMover] moved event=#{service_event.id} to route=#{target_route.id}, " \
+          "route_date=#{target_route.route_date}"
+        )
         Routes::ServiceEventActionResult.new(route: target_route, success: true, message: success_message)
       else
+        Rails.logger.warn("[ServiceEventMover] failed to move event=#{service_event.id} to route=#{target_route.id}: #{service_event.errors.full_messages.to_sentence}")
         failure(service_event.errors.full_messages.to_sentence.presence || 'Unable to update service event.')
       end
     end

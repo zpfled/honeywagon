@@ -19,6 +19,7 @@ Rails.application.routes.draw do
     end
     resources :dump_events, only: :create, module: :routes
     resource :optimization, only: :create, module: :routes
+    resource :ordering, only: :update, module: :routes
   end
   resources :service_event_reports, only: [ :index, :new, :create, :edit, :update ]
   namespace :setup do

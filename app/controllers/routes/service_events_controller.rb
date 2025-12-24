@@ -4,12 +4,16 @@ module Routes
     before_action :set_service_event
 
     def postpone
+      Rails.logger.info("[ServiceEventsController] postpone event=#{@service_event.id} route=#{@route.id}")
       result = Routes::ServiceEventMover.new(@service_event).move_to_next
+      Rails.logger.info("[ServiceEventsController] postpone result success=#{result.success?} message=#{result.message} target_route=#{result.route&.id}")
       redirect_with_result(result)
     end
 
     def advance
+      Rails.logger.info("[ServiceEventsController] advance event=#{@service_event.id} route=#{@route.id}")
       result = Routes::ServiceEventMover.new(@service_event).move_to_previous
+      Rails.logger.info("[ServiceEventsController] advance result success=#{result.success?} message=#{result.message} target_route=#{result.route&.id}")
       redirect_with_result(result)
     end
 
