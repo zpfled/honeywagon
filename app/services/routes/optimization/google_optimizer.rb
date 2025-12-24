@@ -41,7 +41,7 @@ module Routes
         warnings = Array(optimization_result.warnings)
         warnings.concat(distance_warning(optimization_result))
         warnings.concat(base_warnings(simulation))
-        
+
         Result.new(
           event_ids_in_order: event_ids,
           warnings: warnings,

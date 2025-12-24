@@ -75,10 +75,10 @@ RSpec.describe Route do
     let(:event_ids) { events.map(&:id) }
     let(:legs) do
       [
-        { "distanceMeters" => 1470, "duration" => "161s" },
-        { "distanceMeters" => 6899, "duration" => "504s" },
-        { "distanceMeters" => 29426, "duration" => "1186s" },
-        { "distanceMeters" => 3058, "duration" => "205s" }
+        { distance_meters: 1470, duration_seconds: 161 },
+        { distance_meters: 6899, duration_seconds: 504 },
+        { distance_meters: 29426, duration_seconds: 1186 },
+        { distance_meters: 3058, duration_seconds: 205 }
       ]
     end
 

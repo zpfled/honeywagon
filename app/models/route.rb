@@ -65,7 +65,7 @@ class Route < ApplicationRecord
   def record_stop_drive_metrics(event_ids:, legs: [])
     legs ||= []
     events = service_events.where(id: event_ids).index_by(&:id)
-    legs_with_defaults = legs + Array.new([ events.length - legs.length, 0 ].max) { { :distance_meters => 0, :duration_seconds => 0 } }
+    legs_with_defaults = legs + Array.new([ events.length - legs.length, 0 ].max) { { distance_meters: 0, duration_seconds: 0 } }
 
     ordered_ids = event_ids.compact.select { |id| events.key?(id) }
     ordered_ids.each_with_index do |event_id, index|
@@ -181,5 +181,4 @@ class Route < ApplicationRecord
   def nullify_deleted_service_events
     service_events_with_deleted.where.not(deleted_at: nil).update_all(route_id: nil)
   end
-
 end
