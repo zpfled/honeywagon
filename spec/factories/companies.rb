@@ -6,5 +6,9 @@ FactoryBot.define do
     trait :incomplete do
       setup_completed { false }
     end
+
+    trait :with_home_base do
+      association :home_base, factory: %i[location standalone]
+    end
   end
 end

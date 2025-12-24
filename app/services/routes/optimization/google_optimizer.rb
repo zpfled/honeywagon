@@ -17,25 +17,34 @@ module Routes
         keyword_init: true
       )
 
-      def initialize(route)
-        @route = route
-      end
+    def initialize(route)
+      @route = route
+    end
 
-      def self.call(route)
+    def self.call(route)
         new(route).call
       end
 
       def call
-        errors = missing_coordinate_events.map do |event|
-          "#{event_label(event)} is missing latitude/longitude"
+        base_coords = home_base_coordinates
+        errors = []
+
+        if base_coords.nil?
+          errors << 'Company location is not configured.'
+        elsif base_coords[:lat].blank? || base_coords[:lng].blank?
+          errors << 'Company location is missing latitude/longitude.'
         end
+
+        errors.concat(missing_coordinate_events.map do |event|
+          "#{event_label(event)} is missing latitude/longitude"
+        end)
 
         return failure_result(errors) if errors.any?
 
         optimization_result = routes_client.optimize(stop_payloads)
         return failure_result(optimization_result.errors) unless optimization_result.success?
 
-        event_ids = optimization_result.event_ids_in_order
+        event_ids = optimization_result.event_ids_in_order.compact
         simulation = Routes::Optimization::CapacitySimulator.call(route: route, ordered_event_ids: event_ids)
 
         warnings = Array(optimization_result.warnings)
@@ -68,6 +77,16 @@ module Routes
         @ordered_events ||= route.service_events.order(:route_date, :event_type, :created_at)
       end
 
+      def home_base_coordinates
+        location = route.company&.home_base
+        return nil unless location
+
+        {
+          lat: location.lat,
+          lng: location.lng
+        }
+      end
+
       def missing_coordinate_events
         ordered_events.reject { |event| stop_coordinate_present?(event) }
       end
@@ -91,12 +110,22 @@ module Routes
         }
       end
 
+      def home_base_stop
+        coords = home_base_coordinates
+        return unless coords && coords[:lat].present? && coords[:lng].present?
+
+        { id: nil, lat: coords[:lat], lng: coords[:lng] }
+      end
+
       # Shape the events for Google: { id:, lat:, lng: }
       def stop_payloads
-        ordered_events.map do |event|
+        base = home_base_stop
+        stops = ordered_events.map do |event|
           coords = coordinates_for(event)
           { id: event.id, lat: coords[:lat], lng: coords[:lng] }
         end
+
+        base ? [ base, *stops, base ] : stops
       end
 
       def event_label(event)

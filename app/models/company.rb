@@ -14,8 +14,10 @@ class Company < ApplicationRecord
   has_many :dump_sites, dependent: :destroy
   has_many :weather_forecasts, dependent: :destroy
   has_many :expenses, dependent: :destroy
+  belongs_to :home_base, class_name: 'Location', optional: true
 
   validates :name, presence: true
+  accepts_nested_attributes_for :home_base
 
   def inventory
     Company::Inventory.new(company: self)

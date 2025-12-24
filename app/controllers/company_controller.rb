@@ -87,7 +87,11 @@ class CompanyController < ApplicationController
   end
 
   def company_params
-    params.fetch(:company, {}).permit(:name, :fuel_price_per_gallon)
+    params.fetch(:company, {}).permit(
+      :name,
+      :fuel_price_per_gallon,
+      home_base_attributes: %i[id label street city state zip lat lng]
+    )
   end
 
   def truck_params
@@ -177,6 +181,7 @@ class CompanyController < ApplicationController
     @rate_plan ||= @company.rate_plans.new
     @dump_site ||= @company.dump_sites.new.tap { |site| site.build_location }
     @expense ||= @company.expenses.new
+    @company.build_home_base unless @company.home_base
   end
 
   def update_company_details!

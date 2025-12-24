@@ -65,14 +65,16 @@ class Route < ApplicationRecord
   def record_stop_drive_metrics(event_ids:, legs: [])
     legs ||= []
     events = service_events.where(id: event_ids).index_by(&:id)
-    legs_with_defaults = legs + Array.new([ events.length - legs.length, 0 ].max) { { distance_meters: 0, duration_seconds: 0 } }
+    leading_legs = [ legs.length - events.length, 0 ].max
+    legs_with_defaults = legs + Array.new([ events.length + leading_legs - legs.length, 0 ].max) { { distance_meters: 0, duration_seconds: 0 } }
 
     ordered_ids = event_ids.compact.select { |id| events.key?(id) }
     ordered_ids.each_with_index do |event_id, index|
       event = events[event_id]
       next unless event
 
-      leg = index.zero? ? nil : legs_with_defaults[index - 1]
+      leg_index = index + leading_legs - 1
+      leg = leg_index.negative? ? nil : legs_with_defaults[leg_index]
       distance = leg ? leg[:distance_meters].to_i : 0
       duration_seconds = leg ? leg[:duration_seconds] : 0
 

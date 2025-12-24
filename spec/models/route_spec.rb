@@ -104,5 +104,17 @@ RSpec.describe Route do
       expect(events[4].reload.drive_distance_meters).to eq(0)
       expect(events[4].drive_duration_seconds).to eq(0)
     end
+
+    it 'assigns the first leg when the route begins at a base location' do
+      base_legs = [
+        { distance_meters: 500, duration_seconds: 60 },
+        { distance_meters: 1000, duration_seconds: 120 },
+        { distance_meters: 1500, duration_seconds: 180 }
+      ]
+      route.record_stop_drive_metrics(event_ids: event_ids.first(2), legs: base_legs)
+
+      expect(events[0].reload.drive_distance_meters).to eq(500)
+      expect(events[1].reload.drive_distance_meters).to eq(1000)
+    end
   end
 end

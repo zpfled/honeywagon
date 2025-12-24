@@ -10,16 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_22_151000) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "fuel_price_per_gal_cents", default: 0, null: false
+    t.uuid "home_base_id"
     t.string "name", null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["home_base_id"], name: "index_companies_on_home_base_id"
   end
 
   create_table "customers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -318,6 +320,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_22_151000) do
     t.index ["company_id"], name: "index_weather_forecasts_on_company_id"
   end
 
+  add_foreign_key "companies", "locations", column: "home_base_id"
   add_foreign_key "customers", "companies"
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"

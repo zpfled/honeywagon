@@ -48,6 +48,45 @@
                 <%= f.label :name, "Company name", class: "text-sm font-medium text-gray-700" %>
                 <%= f.text_field :name, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
               </div>
+              <%= f.fields_for :home_base do |lf| %>
+                <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+                  <div class="flex items-center justify-between">
+                    <p class="text-sm font-medium text-gray-900">Home base address</p>
+                    <p class="text-xs text-gray-500">Used as the start/end for optimized routes.</p>
+                  </div>
+                  <%= lf.hidden_field :id %>
+                  <div>
+                    <%= lf.label :label, "Label (optional)", class: "text-xs font-medium text-gray-700" %>
+                    <%= lf.text_field :label, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                  </div>
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                      <%= lf.label :street, "Street", class: "text-xs font-medium text-gray-700" %>
+                      <%= lf.text_field :street, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                    </div>
+                    <div>
+                      <%= lf.label :city, "City", class: "text-xs font-medium text-gray-700" %>
+                      <%= lf.text_field :city, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                    </div>
+                    <div>
+                      <%= lf.label :state, "State", class: "text-xs font-medium text-gray-700" %>
+                      <%= lf.text_field :state, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                    </div>
+                    <div>
+                      <%= lf.label :zip, "ZIP", class: "text-xs font-medium text-gray-700" %>
+                      <%= lf.text_field :zip, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                    </div>
+                    <div>
+                      <%= lf.label :lat, "Latitude (optional)", class: "text-xs font-medium text-gray-700" %>
+                      <%= lf.number_field :lat, step: "0.000001", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                    </div>
+                    <div>
+                      <%= lf.label :lng, "Longitude (optional)", class: "text-xs font-medium text-gray-700" %>
+                      <%= lf.number_field :lng, step: "0.000001", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
               <div>
                 <%= f.label :fuel_price_per_gallon, "Fuel price (USD/gal)", class: "text-sm font-medium text-gray-700" %>
                 <%= f.number_field :fuel_price_per_gallon,

@@ -16,5 +16,9 @@ FactoryBot.define do
       customer  { nil }
       label { "WWTP" }
     end
+
+    trait :standalone do
+      customer { nil }
+    end
   end
 end
