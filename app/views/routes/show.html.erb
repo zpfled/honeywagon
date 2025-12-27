@@ -99,8 +99,8 @@
   <% waste_summary = @waste_load || default_summary %>
   <% waste_used = waste_summary[:cumulative_used] || waste_usage[:used] %>
   <% waste_capacity = waste_summary[:capacity] %>
-  <% drive_time = @route.humanized_drive_time %>
-  <% drive_distance = @route.humanized_drive_distance %>
+  <% drive_time = @route_presenter.humanized_drive_time %>
+  <% drive_distance = @route_presenter.humanized_drive_distance %>
 
   <%= card classes: "mt-4" do %>
     <div class="flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
