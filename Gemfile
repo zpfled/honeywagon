@@ -68,7 +68,7 @@ group :test do
   gem 'timecop'
 end
 
-gem 'rubocop', '~> 1.81', group: :development
+gem 'rubocop', '~> 1.82', group: :development
 gem 'rubocop-rails', '~> 2.34', group: :development
 gem 'rubocop-performance', '~> 1.26', group: :development
 
