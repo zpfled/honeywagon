@@ -8,6 +8,7 @@ module Routes
       @service_events = route.service_events
                                .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
                                .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+      # TODO: Build stop presenters here to keep view markup-only.
       build_capacity_data
     end
 
@@ -32,6 +33,7 @@ module Routes
     end
 
     def weather_forecast
+      # TODO: Guard when no geocoded location; return nil early to avoid noisy calls.
       @weather_forecast ||= begin
         location = representative_location
         Weather::ForecastFetcher.call(
@@ -62,6 +64,7 @@ module Routes
       @capacity_result = result
       @capacity_steps = result.steps.index_by(&:event_id)
     rescue StandardError
+      # TODO: Log/report failure so capacity issues surface; expose warning via presenter.
       @capacity_steps = {}
     end
   end

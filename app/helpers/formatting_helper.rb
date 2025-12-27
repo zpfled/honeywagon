@@ -2,6 +2,7 @@
 
 # TODO: Move common formatting (money, dates/times) here to reuse across presenters/views.
 # This helper can be split into narrower concerns later.
+# TODO: Add specs for nil/zero/time-zone edge cases once presenters adopt these helpers.
 module FormattingHelper
   include ActionView::Helpers::NumberHelper
   include ActionView::Helpers::TranslationHelper

@@ -46,6 +46,7 @@
     </div>
   </div>
 
+  <%# TODO: extract header/forecast into a partial backed by RoutePresenter %>
   <% if @previous_route || @next_route || @weather_forecast %>
     <div class="mt-4 flex flex-col gap-3 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
       <div class="sm:w-1/3">
@@ -86,6 +87,7 @@
     </div>
   <% end %>
 
+  <%# TODO: move capacity/waste/drive summary into RoutePresenter/RouteSummaryPresenter %>
   <% capacity = @route.capacity_summary %>
   <% trailer_usage = capacity.trailer_usage %>
   <% clean_usage = capacity.clean_water_usage %>
@@ -166,7 +168,7 @@
     </div>
   <% end %>
 
-  <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability %>
+  <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
   <%= card classes: "mt-6 overflow-hidden" do %>
     <%= form_with url: route_ordering_path(@route),
                   method: :patch,

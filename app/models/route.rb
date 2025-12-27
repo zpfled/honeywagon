@@ -39,7 +39,7 @@ class Route < ApplicationRecord
   }
 
   def service_event_count = service_events.count
-  # TODO: handled by RoutePresenter; keep until views migrate
+  # TODO: Move display-oriented aggregates to presenter; remove once index/show migrate.
   def estimated_gallons = service_events.sum(&:estimated_gallons_pumped)
   # TODO: handled by RoutePresenter; keep until views migrate
   def deliveries_count = service_events.event_type_delivery.count
@@ -167,4 +167,6 @@ class Route < ApplicationRecord
   def nullify_deleted_service_events
     service_events_with_deleted.where.not(deleted_at: nil).update_all(route_id: nil)
   end
+
+  # TODO: Evaluate indexes to support presenter aggregations (service_events counts/sums).
 end

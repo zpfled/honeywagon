@@ -3,6 +3,7 @@ class RoutePresenter
     @route = route
   end
 
+  # TODO: Add route-level summary helpers (capacity/waste/drive) to thin views.
   def humanized_drive_time
     seconds = route.estimated_drive_seconds.to_i
     return nil unless seconds.positive?

@@ -3,6 +3,7 @@ class RoutesController < ApplicationController
   before_action :load_fleet_assets, only: %i[index create show update]
 
   def index
+    # TODO: Replace with RouteIndexPresenter to batch aggregates and avoid view queries.
     @routes = current_user.company.routes.includes(:truck, :trailer,
                                                    service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
                           .order(route_date: :desc)
@@ -23,8 +24,9 @@ class RoutesController < ApplicationController
     if @route.save
       redirect_to @route, notice: 'Route created.'
     else
+      # TODO: Use presenter-backed collection (with includes) to keep parity with index render.
       @routes = current_user.company.routes.order(route_date: :desc)
-      render :index, status: :unprocessable_content
+      render :index, status: :unprocessable_entity
     end
   end
 
@@ -33,7 +35,7 @@ class RoutesController < ApplicationController
       redirect_to @route, notice: 'Route updated.'
     else
       load_route_details
-      render :show, status: :unprocessable_content
+      render :show, status: :unprocessable_entity
     end
   end
 
@@ -44,6 +46,7 @@ class RoutesController < ApplicationController
   end
 
   def load_route_details
+    # TODO: Expose stop presenters from Routes::DetailPresenter to remove view logic.
     presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
     @service_events = presenter.service_events
     @previous_route = presenter.previous_route

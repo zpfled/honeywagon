@@ -1,5 +1,6 @@
 <%= page_shell do %>
   <h1 class="text-2xl font-semibold text-gray-900">Routes</h1>
+  <%# TODO: move to `_route_row` partial driven by RouteIndexPresenter %>
   <%= card classes: "mt-4" do %>
     <%= form_with model: @route, url: routes_path, local: true do |f| %>
       <div class="grid gap-4 md:flex md:items-end">
