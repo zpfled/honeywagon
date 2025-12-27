@@ -1,12 +1,14 @@
 class CompanyController < ApplicationController
+  include FormNormalizers
+  before_action :set_company
+
   def edit
-    @company = current_user.company
     build_forms
+    load_company_data
   end
 
   def update
-    @company = current_user.company
-
+    redirect_target = params[:redirect_to].presence
     ActiveRecord::Base.transaction do
       update_company_details!
       create_truck!
@@ -15,24 +17,85 @@ class CompanyController < ApplicationController
       create_unit_type!
       create_rate_plan!
       create_dump_site!
+      create_expense!
       update_unit_inventory!
     end
 
-    redirect_to edit_company_path, notice: 'Company profile updated.'
+    redirect_to(redirect_target || edit_company_path, notice: 'Company profile updated.')
   rescue ActiveRecord::RecordInvalid => e
     flash.now[:alert] = e.record.errors.full_messages.to_sentence
+    template =
+      case redirect_target
+      when customers_company_path then :customers
+      when expenses_company_path then :expenses
+      else :edit
+      end
+
+    case template
+    when :customers
+      load_customers_page_data
+    when :expenses
+      load_expenses_page_data
+    else
+      load_company_data
+    end
     build_forms
-    render :edit, status: :unprocessable_content
+    render template, status: :unprocessable_content
+  end
+
+  def customers
+    build_forms
+    load_customers_page_data
+  end
+
+  def expenses
+    build_forms
+    load_expenses_page_data
   end
 
   private
 
+  def set_company
+    @company = current_user.company
+  end
+
+  def load_company_data
+    @unit_types = @company.unit_types.includes(:units, :rate_plans).order(:name)
+    service_rows = @company.rate_plans.service_only.order(:service_schedule).map { |plan| [ nil, plan ] }
+    @rate_plan_rows = @unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } + service_rows
+    @trucks = @company.trucks.where.not(id: nil).order(:name).to_a
+    @trailers = @company.trailers.where.not(id: nil).order(:name).to_a
+    @dump_sites = @company.dump_sites.includes(:location).where.not(id: nil).order(:name).to_a
+    @customers = @company.customers.where.not(id: nil).order(:display_name).to_a
+    @expenses = @company.expenses.where.not(id: nil).order(:name).to_a
+    @service_schedule_options = RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] }
+    @billing_period_options = RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] }
+    @expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] }
+    @expense_type_options = Expense::COST_TYPES.map { |value| [ value.humanize, value ] }
+    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
+  end
+
+  def load_customers_page_data
+    @customers = @company.customers.order(:display_name)
+  end
+
+  def load_expenses_page_data
+    @expenses = @company.expenses.order(:name)
+    @expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] }
+    @expense_type_options = Expense::COST_TYPES.map { |value| [ value.humanize, value ] }
+    @expense_applies_options = Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
+  end
+
   def company_params
-    params.fetch(:company, {}).permit(:name)
+    params.fetch(:company, {}).permit(
+      :name,
+      :fuel_price_per_gallon,
+      home_base_attributes: %i[id label street city state zip lat lng]
+    )
   end
 
   def truck_params
-    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal)
+    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :fuel_price_per_gallon, :miles_per_gallon)
   end
 
   def trailer_params
@@ -59,13 +122,66 @@ class CompanyController < ApplicationController
     params.fetch(:dump_site, {}).permit(:name, location_attributes: %i[label street city state zip])
   end
 
+  def expense_params
+    params.fetch(:expense, {}).permit(
+      :name,
+      :description,
+      :category,
+      :cost_type,
+      :base_amount,
+      :package_size,
+      :unit_label,
+      :season_start,
+      :season_end,
+      :active,
+      applies_to: []
+    )
+  end
+
+  def new_unit_type
+    @unit_type = @company.unit_types.new
+    render partial: 'company/unit_type_modal', layout: false
+  end
+
+  def new_rate_plan
+    @rate_plan = @company.rate_plans.new
+    locals = {
+      company: @company,
+      service_schedule_options: @service_schedule_options || RatePlan::SERVICE_SCHEDULES.values.map { |value| [ value.humanize, value ] },
+      billing_period_options: @billing_period_options || RatePlan::BILLING_PERIODS.map { |period| [ period.humanize, period ] }
+    }
+    render partial: 'company/rate_plan_modal', locals: locals, layout: false
+  end
+
+  def new_trailer
+    @trailer = @company.trailers.new
+    render partial: 'company/trailer_modal', layout: false
+  end
+
+  def new_customer
+    @customer = @company.customers.new
+    render partial: 'company/customer_modal', layout: false
+  end
+
+  def new_expense
+    @expense = @company.expenses.new
+    locals = {
+      expense_category_options: @expense_category_options || Expense::CATEGORIES.map { |value| [ value.humanize, value ] },
+      expense_type_options: @expense_type_options || Expense::COST_TYPES.map { |value| [ value.humanize, value ] },
+      expense_applies_options: @expense_applies_options || Expense::APPLIES_TO_OPTIONS.map { |value| [ value.humanize, value ] }
+    }
+    render partial: 'company/expense_modal', locals: locals, layout: false
+  end
+
   def build_forms
-    @truck ||= current_user.company.trucks.new
-    @trailer ||= current_user.company.trailers.new
-    @customer ||= current_user.company.customers.new
-    @unit_type ||= current_user.company.unit_types.new
-    @rate_plan ||= current_user.company.rate_plans.new
-    @dump_site ||= current_user.company.dump_sites.new.tap { |site| site.build_location }
+    @truck ||= @company.trucks.new
+    @trailer ||= @company.trailers.new
+    @customer ||= @company.customers.new
+    @unit_type ||= @company.unit_types.new
+    @rate_plan ||= @company.rate_plans.new
+    @dump_site ||= @company.dump_sites.new.tap { |site| site.build_location }
+    @expense ||= @company.expenses.new
+    @company.build_home_base unless @company.home_base
   end
 
   def update_company_details!
@@ -79,21 +195,21 @@ class CompanyController < ApplicationController
     attrs = truck_params
     return if attrs.values.all?(&:blank?)
 
-    current_user.company.trucks.create!(attrs)
+    @company.trucks.create!(attrs)
   end
 
   def create_trailer!
     attrs = trailer_params
     return if attrs.values.all?(&:blank?)
 
-    current_user.company.trailers.create!(attrs)
+    @company.trailers.create!(attrs)
   end
 
   def create_customer!
     attrs = customer_params
     return if attrs.values.all?(&:blank?)
 
-    current_user.company.customers.create!(attrs)
+    @company.customers.create!(attrs)
   end
 
   def create_unit_type!
@@ -104,7 +220,7 @@ class CompanyController < ApplicationController
     attrs[:prefix] = attrs[:prefix].to_s.upcase if attrs[:prefix].present?
     attrs[:next_serial] = 1
 
-    @unit_type = current_user.company.unit_types.new(attrs.compact)
+    @unit_type = @company.unit_types.new(attrs.compact)
     @unit_type.save!
   end
 
@@ -117,13 +233,13 @@ class CompanyController < ApplicationController
     attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
 
     if unit_type_id.present?
-      unit_type = current_user.company.unit_types.find(unit_type_id)
+      unit_type = @company.unit_types.find(unit_type_id)
       @rate_plan = unit_type.rate_plans.new(attrs.compact)
     else
-      @rate_plan = current_user.company.rate_plans.new(attrs.compact)
+      @rate_plan = @company.rate_plans.new(attrs.compact)
     end
 
-    @rate_plan.company = current_user.company
+    @rate_plan.company = @company
     @rate_plan.save!
   end
 
@@ -136,15 +252,28 @@ class CompanyController < ApplicationController
     location.dump_site = true
     location.save!
 
-    @dump_site = current_user.company.dump_sites.new(attrs.merge(location: location))
+    @dump_site = @company.dump_sites.new(attrs.merge(location: location))
     @dump_site.save!
+  end
+
+  def create_expense!
+    attrs = expense_params
+    return if attrs.blank? || attrs[:name].blank?
+
+    attrs[:base_amount] = normalize_decimal(attrs[:base_amount])
+    attrs[:package_size] = normalize_decimal(attrs[:package_size])
+    attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
+    attrs[:applies_to] = Array(attrs[:applies_to]).reject(&:blank?)
+
+    @expense = @company.expenses.new(attrs.compact)
+    @expense.save!
   end
 
   def update_unit_inventory!
     attrs = unit_inventory_params
     return if attrs.blank? || attrs[:unit_type_id].blank? || attrs[:quantity].blank?
 
-    unit_type = current_user.company.unit_types.find(attrs[:unit_type_id])
+    unit_type = @company.unit_types.find(attrs[:unit_type_id])
     target = attrs[:quantity].to_i
     raise ActiveRecord::RecordInvalid.new(unit_type), 'Quantity must be zero or greater.' if target.negative?
 
@@ -153,9 +282,7 @@ class CompanyController < ApplicationController
     return if difference.zero?
 
     if difference.positive?
-      difference.times do
-        current_user.company.units.create!(unit_type: unit_type, status: 'available')
-      end
+      difference.times { @company.units.create!(unit_type: unit_type, status: 'available') }
     else
       removable = unit_type.units.where(status: 'available').order(created_at: :desc)
       needed = difference.abs
@@ -167,11 +294,5 @@ class CompanyController < ApplicationController
     end
   end
 
-  def normalize_price(value)
-    return if value.blank?
-
-    (BigDecimal(value.to_s) * 100).to_i
-  rescue ArgumentError, TypeError
-    nil
-  end
+  # normalize helpers now provided by FormNormalizers concern
 end

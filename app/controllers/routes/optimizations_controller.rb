@@ -7,6 +7,7 @@ class Routes::OptimizationsController < ApplicationController
 
     if result.success?
       @route.resequence_service_events!(result.event_ids_in_order)
+      @route.record_stop_drive_metrics(event_ids: result.event_ids_in_order, legs: result.legs)
       if result.duration_seconds.present? || result.distance_meters.present?
         @route.record_drive_metrics(seconds: result.duration_seconds, meters: result.distance_meters)
       else

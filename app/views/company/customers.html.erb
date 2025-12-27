@@ -1,0 +1,89 @@
+<%= page_shell do %>
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Customers</h1>
+      <p class="mt-1 text-sm text-gray-600">Capture billing information for new clients.</p>
+    </div>
+    <%= link_to "Back to company profile", edit_company_path, class: button_classes(variant: :outline, size: :sm) %>
+  </div>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-2">
+    <%= card do %>
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Add customer</h2>
+        <%= link_to "Advanced form", new_customer_company_path, data: { turbo_frame: "customer_modal_inline" }, class: button_classes(variant: :outline, size: :sm) %>
+      </div>
+      <%= form_with model: @customer, url: company_path, method: :put, local: true do |_f| %>
+        <%= hidden_field_tag :redirect_to, customers_company_path %>
+        <div class="mt-3 grid gap-3">
+          <div>
+            <%= label_tag :customer_business_name, "Business name", class: "text-xs font-medium text-gray-600" %>
+            <%= text_field_tag "customer[business_name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div>
+              <%= label_tag :customer_first_name, "First name", class: "text-xs font-medium text-gray-600" %>
+              <%= text_field_tag "customer[first_name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= label_tag :customer_last_name, "Last name", class: "text-xs font-medium text-gray-600" %>
+              <%= text_field_tag "customer[last_name]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+          </div>
+          <div>
+            <%= label_tag :customer_billing_email, "Billing email", class: "text-xs font-medium text-gray-600" %>
+            <%= email_field_tag "customer[billing_email]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div>
+            <%= label_tag :customer_phone, "Phone", class: "text-xs font-medium text-gray-600" %>
+            <%= telephone_field_tag "customer[phone]", nil, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+          </div>
+          <div>
+            <%= submit_tag "Add customer", class: button_classes(variant: :primary, size: :sm) %>
+          </div>
+        </div>
+      <% end %>
+    <% end %>
+
+    <%= card do %>
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-gray-900">Customer list</h2>
+        <span class="text-sm text-gray-500"><%= pluralize(@customers.size, "customer") %></span>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="<%= table_header_class %>">Name</th>
+              <th class="<%= table_header_class %>">Contact</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% if @customers.any? %>
+              <% @customers.each do |customer| %>
+                <tr>
+                  <td class="<%= table_cell_class %>">
+                    <div class="font-medium text-gray-900"><%= customer.display_name %></div>
+                    <% if customer.business_name.present? %>
+                      <p class="text-xs text-gray-500"><%= customer.business_name %></p>
+                    <% end %>
+                  </td>
+                  <td class="<%= table_cell_class %>">
+                    <p class="text-sm text-gray-700"><%= customer.billing_email %></p>
+                    <% if customer.phone.present? %>
+                      <p class="text-xs text-gray-500"><%= customer.phone %></p>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="2" class="<%= table_cell_class('text-center', tone: :muted) %>">No customers yet.</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+<% end %>

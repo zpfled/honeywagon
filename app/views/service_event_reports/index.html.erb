@@ -28,7 +28,9 @@
             <% dump_event = event.event_type_dump? %>
             <tr class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm text-gray-900">
-                <%= l(event.updated_at, format: :long) %>
+                <% central_time = event.updated_at.in_time_zone('Central Time (US & Canada)') %>
+                <div class="font-semibold"><%= l(central_time.to_date, format: :long) %></div>
+                <div class="text-xs text-gray-500"><%= central_time.strftime("%I:%M %p") %></div>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">

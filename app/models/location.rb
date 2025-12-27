@@ -14,6 +14,7 @@ class Location < ApplicationRecord
     [ street, city, state, zip ].compact.join(', ')
   end
 
+  # TODO: extract to a presenter
   def display_label
     return label if label.present?
 

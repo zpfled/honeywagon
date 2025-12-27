@@ -68,4 +68,53 @@ RSpec.describe Route do
       expect(Route.find_by(id: route.id)).to be_nil
     end
   end
+
+  describe '#record_stop_drive_metrics' do
+    let(:route) { create(:route) }
+    let!(:events) { Array.new(5) { create(:service_event, route: route, route_date: route.route_date) } }
+    let(:event_ids) { events.map(&:id) }
+    let(:legs) do
+      [
+        { distance_meters: 1470, duration_seconds: 161 },
+        { distance_meters: 6899, duration_seconds: 504 },
+        { distance_meters: 29426, duration_seconds: 1186 },
+        { distance_meters: 3058, duration_seconds: 205 }
+      ]
+    end
+
+    it 'assigns per-leg drive distance and duration based on provided legs' do
+      route.record_stop_drive_metrics(event_ids: event_ids, legs: legs)
+
+      expect(events[0].reload.drive_distance_meters).to eq(0)
+      expect(events[0].drive_duration_seconds).to eq(0)
+
+      expect(events[1].reload.drive_distance_meters).to eq(1470)
+      expect(events[1].drive_duration_seconds).to eq(161)
+
+      expect(events[3].reload.drive_distance_meters).to eq(29426)
+      expect(events[3].drive_duration_seconds).to eq(1186)
+
+      expect(events[4].reload.drive_distance_meters).to eq(3058)
+      expect(events[4].drive_duration_seconds).to eq(205)
+    end
+
+    it 'defaults to zero metrics when a leg is missing' do
+      route.record_stop_drive_metrics(event_ids: event_ids, legs: legs.first(2))
+
+      expect(events[4].reload.drive_distance_meters).to eq(0)
+      expect(events[4].drive_duration_seconds).to eq(0)
+    end
+
+    it 'assigns the first leg when the route begins at a base location' do
+      base_legs = [
+        { distance_meters: 500, duration_seconds: 60 },
+        { distance_meters: 1000, duration_seconds: 120 },
+        { distance_meters: 1500, duration_seconds: 180 }
+      ]
+      route.record_stop_drive_metrics(event_ids: event_ids.first(2), legs: base_legs)
+
+      expect(events[0].reload.drive_distance_meters).to eq(500)
+      expect(events[1].reload.drive_distance_meters).to eq(1000)
+    end
+  end
 end

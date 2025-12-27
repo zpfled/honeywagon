@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class RatePlansController < ApplicationController
+  include FormNormalizers
   before_action :load_unit_types
 
   def new
@@ -60,10 +61,7 @@ class RatePlansController < ApplicationController
   def rate_plan_params
     attrs = params.require(:rate_plan).permit(:unit_type_id, :service_schedule, :billing_period, :price)
     attrs[:unit_type_id] = attrs[:unit_type_id].presence
-    if attrs[:price].present?
-      amount = BigDecimal(attrs.delete(:price))
-      attrs[:price_cents] = (amount * 100).to_i
-    end
+    attrs[:price_cents] = normalize_price(attrs.delete(:price)) if attrs[:price].present?
     attrs[:active] = true
     attrs
   end

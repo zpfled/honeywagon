@@ -7,7 +7,7 @@ module Routes
   module Optimization
     class GoogleRoutesClient
       ENDPOINT = URI('https://routes.googleapis.com/directions/v2:computeRoutes')
-      FIELD_MASK = 'routes.distanceMeters,routes.duration,routes.optimizedIntermediateWaypointIndex'
+      FIELD_MASK = 'routes.distanceMeters,routes.duration,routes.optimizedIntermediateWaypointIndex,routes.legs.distanceMeters,routes.legs.duration'
 
       Result = Struct.new(
         :success?,
@@ -16,6 +16,7 @@ module Routes
         :errors,
         :total_distance_meters,
         :total_duration_seconds,
+        :legs,
         keyword_init: true
       )
 
@@ -23,12 +24,14 @@ module Routes
         @api_key = api_key
       end
 
-      def optimize(stops)
+      def optimize(stops, optimize_waypoint_order: true)
         return failure_result([ 'Google routing API key is not configured.' ]) if api_key.blank?
         return success_result(stops.map { |s| s[:id] }, warnings: [ 'Not enough stops to optimize.' ]) if stops.size <= 1
 
-        body = build_payload(stops)
+        body = build_payload(stops, optimize_waypoint_order: optimize_waypoint_order)
         response = request_json(ENDPOINT, body: body)
+        Rails.logger.debug('Google Optimizer Response')
+        Rails.logger.debug(response)
         return failure_result([ 'Google routing request failed.' ]) unless response
 
         error = response['error']
@@ -44,15 +47,27 @@ module Routes
         event_ids = reorder_ids(stops, waypoint_order)
         distance = route['distanceMeters'].to_i
         duration = parse_duration(route['duration'])
+        legs = Array(route['legs']).map do |leg|
+          {
+            distance_meters: leg['distanceMeters'].to_i,
+            duration_seconds: parse_duration(leg['duration'])
+          }
+        end
 
-        success_result(event_ids, warnings: [], total_distance_meters: distance, total_duration_seconds: duration)
+        success_result(
+          event_ids,
+          warnings: [],
+          total_distance_meters: distance,
+          total_duration_seconds: duration,
+          legs: legs
+        )
       end
 
       private
 
       attr_reader :api_key
 
-      def build_payload(stops)
+      def build_payload(stops, optimize_waypoint_order: true)
         origin = build_waypoint(stops.first)
         destination = build_waypoint(stops.last)
         intermediates = stops[1...-1].map { |stop| build_waypoint(stop) }
@@ -62,7 +77,7 @@ module Routes
           destination: destination,
           intermediates: intermediates,
           travelMode: 'DRIVE',
-          optimizeWaypointOrder: intermediates.present?,
+          optimizeWaypointOrder: optimize_waypoint_order && intermediates.present?,
           requestedReferenceRoutes: []
         }
       end
@@ -96,14 +111,15 @@ module Routes
         end
       end
 
-      def success_result(event_ids, warnings:, total_distance_meters:, total_duration_seconds:)
+      def success_result(event_ids, warnings:, total_distance_meters:, total_duration_seconds:, legs: [])
         Result.new(
           success?: true,
           event_ids_in_order: event_ids,
           warnings: warnings,
           errors: [],
           total_distance_meters: total_distance_meters,
-          total_duration_seconds: total_duration_seconds
+          total_duration_seconds: total_duration_seconds,
+          legs: legs
         )
       end
 

@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe Routes::Optimization::GoogleOptimizer do
-  let(:company) { create(:company) }
+  let(:company) { create(:company, :with_home_base) }
   let(:route) { create(:route, company: company) }
 
   def create_order_with_location(lat:, lng:)
@@ -46,6 +46,46 @@ RSpec.describe Routes::Optimization::GoogleOptimizer do
 
       expect(result.errors).not_to be_empty
       expect(result.event_ids_in_order).to be_empty
+    end
+
+    it 'fails when the company base location is missing' do
+      company.update!(home_base: nil)
+      order = create_order_with_location(lat: 43.0, lng: -90.0)
+      create(:service_event, :service, order: order, route: route)
+
+      result = described_class.call(route)
+
+      expect(result.errors).to include('Company location is not configured.')
+      expect(result.event_ids_in_order).to be_empty
+    end
+
+    it 'passes the base location as start/end stops' do
+      order = create_order_with_location(lat: 43.0, lng: -90.0)
+      event = create(:service_event, :service, order: order, route: route)
+      base = company.home_base
+      fake_client = instance_double(Routes::Optimization::GoogleRoutesClient)
+      allow(Routes::Optimization::GoogleRoutesClient).to receive(:new).and_return(fake_client)
+
+      expect(fake_client).to receive(:optimize) do |stops|
+        expect(stops.first).to include(lat: base.lat, lng: base.lng)
+        expect(stops.last).to include(lat: base.lat, lng: base.lng)
+        expect(stops.map { |s| s[:id] }).to include(event.id)
+
+        Routes::Optimization::GoogleRoutesClient::Result.new(
+          success?: true,
+          event_ids_in_order: [ nil, event.id, nil ],
+          warnings: [],
+          errors: [],
+          total_distance_meters: 1000,
+          total_duration_seconds: 600,
+          legs: [ { distance_meters: 10, duration_seconds: 5 }, { distance_meters: 10, duration_seconds: 5 } ]
+        )
+      end
+
+      result = described_class.call(route)
+
+      expect(result.errors).to be_empty
+      expect(result.event_ids_in_order).to eq([ event.id ])
     end
   end
 end

@@ -133,6 +133,34 @@ RSpec.describe ServiceEvent, type: :model do
     end
   end
 
+  describe '#estimated_fuel_cost_cents' do
+    let(:company) { create(:company, fuel_price_per_gal_cents: 300) }
+    let(:truck) { create(:truck, company: company, miles_per_gallon: 10) }
+    let(:route) { create(:route, company: company, truck: truck) }
+
+    it 'returns nil when required data is missing' do
+      event = create(:service_event, route: route, drive_distance_meters: 0)
+      expect(event.estimated_fuel_cost_cents).to be_nil
+
+      event.update!(drive_distance_meters: 1000)
+      truck.update!(miles_per_gallon: nil)
+      expect(event.estimated_fuel_cost_cents).to be_nil
+    end
+
+    it 'returns nil when company fuel price is not set' do
+      company.update!(fuel_price_per_gal_cents: 0)
+      event = create(:service_event, route: route, drive_distance_meters: 1609.34)
+
+      expect(event.estimated_fuel_cost_cents).to be_nil
+    end
+
+    it 'calculates cost in cents from distance, mpg, and price' do
+      event = create(:service_event, route: route, drive_distance_meters: 1609.34)
+
+      expect(event.estimated_fuel_cost_cents).to eq(30) # 1 mile @ 10 mpg @ $3.00/gal
+    end
+  end
+
   describe 'dump events' do
     it 'require a dump site' do
       event = build(:service_event, :dump, dump_site: nil)

@@ -100,6 +100,26 @@ class ServiceEvent < ApplicationRecord
     end
   end
 
+  def humanized_leg_drive_distance
+    return nil unless drive_distance_meters.to_i.positive?
+
+    miles = drive_distance_meters.to_f / 1609.34
+    "#{miles.round(1)} mi"
+  end
+
+  def estimated_fuel_cost_cents
+    return nil unless drive_distance_meters.to_f.positive?
+
+    truck = route&.truck
+    mpg = truck&.miles_per_gallon.to_f
+    price_cents = route&.company&.fuel_price_per_gal_cents.to_i
+    return nil if mpg <= 0 || price_cents <= 0
+
+    miles = drive_distance_meters.to_f / 1609.34
+    gallons = miles / mpg
+    (gallons * price_cents).round
+  end
+
   scope :with_deleted, -> { unscope(where: :deleted_at) }
   scope :deleted, -> { with_deleted.where.not(deleted_at: nil) }
 

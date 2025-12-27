@@ -6,6 +6,7 @@ class Truck < ApplicationRecord
   validates :name, :number, presence: true
   validates :clean_water_capacity_gal, :waste_capacity_gal,
             numericality: { greater_than_or_equal_to: 0 }
+  validates :miles_per_gallon, numericality: { greater_than: 0 }, allow_nil: true
 
   def label
     [ name, number ].compact.join(' • ')

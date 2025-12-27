@@ -19,17 +19,29 @@ Rails.application.routes.draw do
     end
     resources :dump_events, only: :create, module: :routes
     resource :optimization, only: :create, module: :routes
+    resource :ordering, only: :update, module: :routes
   end
   resources :service_event_reports, only: [ :index, :new, :create, :edit, :update ]
   namespace :setup do
     resource :company, only: %i[show update]
   end
-  resource :company, only: %i[edit update], controller: 'company'
+  resource :company, only: %i[edit update], controller: 'company' do
+    collection do
+      get :customers
+      get :expenses
+      get :new_unit_type
+      get :new_rate_plan
+      get :new_trailer
+      get :new_customer
+      get :new_expense
+    end
+  end
   namespace :api do
     get 'places/autocomplete', to: 'places#autocomplete', as: :places_autocomplete
     get 'places/details', to: 'places#details', as: :places_details
   end
   resources :locations, only: [ :new, :create ]
+  resources :trucks, only: %i[edit update]
   resources :rate_plans, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
   devise_for :users, controllers: { registrations: 'users/registrations' }

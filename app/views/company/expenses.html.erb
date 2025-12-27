@@ -1,0 +1,78 @@
+<%= page_shell do %>
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-gray-900">Costs & expenses</h1>
+      <p class="mt-1 text-sm text-gray-600">Track recurring costs so Dumpr can estimate route profitability.</p>
+    </div>
+    <%= link_to "Back to company profile", edit_company_path, class: button_classes(variant: :outline, size: :sm) %>
+  </div>
+
+  <%= card do %>
+    <div class="flex items-center justify-between">
+      <h2 class="text-lg font-semibold text-gray-900">Expense catalog</h2>
+      <%= link_to "Add expense",
+                  new_expense_company_path(redirect_to: expenses_company_path),
+                  data: { turbo_frame: "expense_modal" },
+                  class: button_classes(variant: :outline, size: :sm) %>
+    </div>
+    <div class="mt-3 overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="<%= table_header_class %>">Name</th>
+            <th class="<%= table_header_class %>">Category</th>
+            <th class="<%= table_header_class %>">Type</th>
+            <th class="<%= table_header_class('text-right') %>">Amount</th>
+            <th class="<%= table_header_class %>">Applies to</th>
+            <th class="<%= table_header_class %>">Season</th>
+            <th class="<%= table_header_class %>">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% if @expenses.any? %>
+            <% @expenses.each do |expense| %>
+              <tr>
+                <td class="<%= table_cell_class %>">
+                  <div class="font-medium text-gray-900"><%= expense.name %></div>
+                  <% if expense.description.present? %>
+                    <p class="text-xs text-gray-500"><%= expense.description %></p>
+                  <% end %>
+                </td>
+                <td class="<%= table_cell_class %>"><%= expense.category.humanize %></td>
+                <td class="<%= table_cell_class %>"><%= expense.cost_type.humanize %></td>
+                <td class="<%= table_cell_class('', align: :right) %>">
+                  <div class="text-gray-900"><%= number_to_currency(expense.base_amount) %></div>
+                  <% if expense.package_size.present? %>
+                    <p class="text-xs text-gray-500">Package: <%= expense.package_size %> <%= expense.unit_label %></p>
+                  <% end %>
+                </td>
+                <td class="<%= table_cell_class %>">
+                  <% applies = expense.applies_to.presence || ['all'] %>
+                  <span class="text-xs text-gray-700"><%= applies.map(&:humanize).join(', ') %></span>
+                </td>
+                <td class="<%= table_cell_class %>">
+                  <% if expense.season_start && expense.season_end %>
+                    <span class="text-xs text-gray-700"><%= expense.season_start %> → <%= expense.season_end %></span>
+                  <% else %>
+                    <span class="text-xs text-gray-500">Year-round</span>
+                  <% end %>
+                </td>
+                <td class="<%= table_cell_class %>">
+                  <% if expense.active? %>
+                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
+                  <% else %>
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Inactive</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          <% else %>
+            <tr>
+              <td colspan="7" class="<%= table_cell_class('text-center', tone: :muted) %>">No expenses have been added.</td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  <% end %>
+<% end %>

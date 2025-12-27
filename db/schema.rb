@@ -10,15 +10,18 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
+ActiveRecord::Schema[8.1].define(version: 2025_12_22_170000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "fuel_price_per_gal_cents", default: 0, null: false
+    t.uuid "home_base_id"
     t.string "name", null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
+    t.index ["home_base_id"], name: "index_companies_on_home_base_id"
   end
 
   create_table "customers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -45,6 +48,26 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
     t.datetime "updated_at", null: false
     t.index ["company_id"], name: "index_dump_sites_on_company_id"
     t.index ["location_id"], name: "index_dump_sites_on_location_id"
+  end
+
+  create_table "expenses", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.string "applies_to", default: [], array: true
+    t.decimal "base_amount", precision: 12, scale: 2, default: "0.0", null: false
+    t.string "category", null: false
+    t.uuid "company_id", null: false
+    t.string "cost_type", null: false
+    t.datetime "created_at", null: false
+    t.string "description"
+    t.string "name", null: false
+    t.decimal "package_size", precision: 12, scale: 3
+    t.date "season_end"
+    t.date "season_start"
+    t.string "unit_label"
+    t.datetime "updated_at", null: false
+    t.index ["applies_to"], name: "index_expenses_on_applies_to", using: :gin
+    t.index ["company_id", "category"], name: "index_expenses_on_company_id_and_category"
+    t.index ["company_id"], name: "index_expenses_on_company_id"
   end
 
   create_table "locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -174,7 +197,10 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.uuid "deleted_by_id"
+    t.integer "drive_distance_meters", default: 0, null: false
+    t.integer "drive_duration_seconds", default: 0, null: false
     t.uuid "dump_site_id"
+    t.integer "estimated_cost_cents", default: 0, null: false
     t.integer "estimated_gallons_override"
     t.integer "event_type"
     t.text "notes"
@@ -227,6 +253,7 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
     t.integer "clean_water_capacity_gal", default: 0, null: false
     t.uuid "company_id", null: false
     t.datetime "created_at", null: false
+    t.decimal "miles_per_gallon", precision: 6, scale: 2
     t.string "name", null: false
     t.string "number", null: false
     t.datetime "updated_at", null: false
@@ -293,9 +320,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_12_21_151500) do
     t.index ["company_id"], name: "index_weather_forecasts_on_company_id"
   end
 
+  add_foreign_key "companies", "locations", column: "home_base_id"
   add_foreign_key "customers", "companies"
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"
+  add_foreign_key "expenses", "companies"
   add_foreign_key "locations", "customers"
   add_foreign_key "order_units", "orders"
   add_foreign_key "order_units", "units"
