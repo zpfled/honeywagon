@@ -6,6 +6,10 @@ The product is unapologetically opinionated toward how portable toilet operators
 
 ---
 
+## Code Hardening Plan
+
+- See [`CODE_HARDENING_PLAN.md`](CODE_HARDENING_PLAN.md) for the step-by-step refactor roadmap.
+
 ## Highlights
 
 - ✅ **Inventory truth** — every order reserves physical units; availability checks prevent double booking.  

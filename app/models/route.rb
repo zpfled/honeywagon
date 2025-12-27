@@ -39,9 +39,13 @@ class Route < ApplicationRecord
   }
 
   def service_event_count = service_events.count
+  # TODO: Move display-oriented aggregates to presenter; remove once index/show migrate.
   def estimated_gallons = service_events.sum(&:estimated_gallons_pumped)
+  # TODO: handled by RoutePresenter; keep until views migrate
   def deliveries_count = service_events.event_type_delivery.count
+  # TODO: handled by RoutePresenter; keep until views migrate
   def services_count = service_events.event_type_service.count
+  # TODO: handled by RoutePresenter; keep until views migrate
   def pickups_count = service_events.event_type_pickup.count
   def delivery_unit_breakdown = unit_breakdown_for(service_events.event_type_delivery)
   def pickup_unit_breakdown = unit_breakdown_for(service_events.event_type_pickup)
@@ -83,26 +87,6 @@ class Route < ApplicationRecord
         drive_duration_seconds: duration_seconds
       )
     end
-  end
-
-  def humanized_drive_time
-    return nil unless estimated_drive_seconds.to_i.positive?
-
-    hours = estimated_drive_seconds / 3600
-    minutes = (estimated_drive_seconds % 3600) / 60
-
-    if hours.positive?
-      "#{hours}h #{minutes}m"
-    else
-      "#{minutes}m"
-    end
-  end
-
-  def humanized_drive_distance
-    return nil unless estimated_drive_meters.to_i.positive?
-
-    miles = estimated_drive_meters / 1609.34
-    "#{miles.round(1)} mi"
   end
 
   def capacity_summary = Routes::CapacitySummary.new(route: self)
@@ -183,4 +167,6 @@ class Route < ApplicationRecord
   def nullify_deleted_service_events
     service_events_with_deleted.where.not(deleted_at: nil).update_all(route_id: nil)
   end
+
+  # TODO: Evaluate indexes to support presenter aggregations (service_events counts/sums).
 end

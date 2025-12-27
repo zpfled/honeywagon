@@ -3,6 +3,7 @@ class RoutesController < ApplicationController
   before_action :load_fleet_assets, only: %i[index create show update]
 
   def index
+    # TODO: Replace with RouteIndexPresenter to batch aggregates and avoid view queries.
     @routes = current_user.company.routes.includes(:truck, :trailer,
                                                    service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
                           .order(route_date: :desc)
@@ -14,7 +15,7 @@ class RoutesController < ApplicationController
   end
 
   def show
-    build_presenter
+    load_route_details
   end
 
   def create
@@ -23,8 +24,9 @@ class RoutesController < ApplicationController
     if @route.save
       redirect_to @route, notice: 'Route created.'
     else
+      # TODO: Use presenter-backed collection (with includes) to keep parity with index render.
       @routes = current_user.company.routes.order(route_date: :desc)
-      render :index, status: :unprocessable_content
+      render :index, status: :unprocessable_entity
     end
   end
 
@@ -32,8 +34,8 @@ class RoutesController < ApplicationController
     if @route.update(route_params)
       redirect_to @route, notice: 'Route updated.'
     else
-      build_presenter
-      render :show, status: :unprocessable_content
+      load_route_details
+      render :show, status: :unprocessable_entity
     end
   end
 
@@ -43,7 +45,8 @@ class RoutesController < ApplicationController
     @route = current_user.company.routes.find(params[:id])
   end
 
-  def build_presenter
+  def load_route_details
+    # TODO: Expose stop presenters from Routes::DetailPresenter to remove view logic.
     presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
     @service_events = presenter.service_events
     @previous_route = presenter.previous_route
@@ -52,6 +55,7 @@ class RoutesController < ApplicationController
     @capacity_steps = presenter.capacity_steps
     @dump_sites = current_user.company.dump_sites.includes(:location)
     @weather_forecast = presenter.weather_forecast
+    @route_presenter = RoutePresenter.new(@route)
   end
 
   def load_fleet_assets

@@ -100,6 +100,7 @@ class ServiceEvent < ApplicationRecord
     end
   end
 
+  # TODO: move presentation helpers into a presenter/helper
   def humanized_leg_drive_distance
     return nil unless drive_distance_meters.to_i.positive?
 
@@ -107,6 +108,7 @@ class ServiceEvent < ApplicationRecord
     "#{miles.round(1)} mi"
   end
 
+  # TODO: move presentation helpers into a presenter/helper
   def estimated_fuel_cost_cents
     return nil unless drive_distance_meters.to_f.positive?
 
