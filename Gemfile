@@ -45,6 +45,9 @@ group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem 'debug', platforms: %i[ mri mingw x64_mingw mswin ], require: 'debug/prelude'
 
+  # N+1 detection in dev/test (raise in CI request specs)
+  gem 'bullet'
+
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem 'bundler-audit', require: false
 
@@ -67,6 +70,7 @@ group :test do
   gem 'capybara'
   gem 'selenium-webdriver'
   gem 'timecop'
+  gem 'simplecov', require: false
 end
 
 gem 'rubocop', '~> 1.82', group: :development

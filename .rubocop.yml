@@ -3,6 +3,9 @@ inherit_from: .rubocop_todo.yml
 # Omakase Ruby styling for Rails
 inherit_gem: { rubocop-rails-omakase: rubocop.yml }
 
+require:
+  - ./rubocop/project_cops.rb
+
 AllCops:
   NewCops: enable
 
@@ -17,3 +20,9 @@ Style/StringLiteralsInInterpolation:
 
 Layout/IndentationWidth:
   Width: 2
+
+Project/ArCallsInViews:
+  Enabled: true
+  Severity: warning
+  Include:
+    - 'app/views/**/*.erb'
