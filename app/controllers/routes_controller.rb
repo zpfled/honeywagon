@@ -14,7 +14,7 @@ class RoutesController < ApplicationController
   end
 
   def show
-    build_presenter
+    load_route_details
   end
 
   def create
@@ -32,7 +32,7 @@ class RoutesController < ApplicationController
     if @route.update(route_params)
       redirect_to @route, notice: 'Route updated.'
     else
-      build_presenter
+      load_route_details
       render :show, status: :unprocessable_content
     end
   end
@@ -43,7 +43,7 @@ class RoutesController < ApplicationController
     @route = current_user.company.routes.find(params[:id])
   end
 
-  def build_presenter
+  def load_route_details
     presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
     @service_events = presenter.service_events
     @previous_route = presenter.previous_route
