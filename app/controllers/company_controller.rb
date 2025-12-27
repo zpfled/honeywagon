@@ -10,6 +10,7 @@ class CompanyController < ApplicationController
   def update
     redirect_target = params[:redirect_to].presence
     ActiveRecord::Base.transaction do
+      # TODO: extract these create/update steps into dedicated services/form objects to slim the controller
       update_company_details!
       create_truck!
       create_trailer!

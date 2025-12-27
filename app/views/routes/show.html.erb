@@ -166,6 +166,7 @@
     </div>
   <% end %>
 
+  <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability %>
   <%= card classes: "mt-6 overflow-hidden" do %>
     <%= form_with url: route_ordering_path(@route),
                   method: :patch,

@@ -4,6 +4,7 @@ class Routes::OrderingsController < ApplicationController
 
   def update
     ordered_ids = Array(params[:event_ids]).map(&:presence).compact
+    # TODO: delegate sequencing/metrics application to a dedicated service to keep controller thin
     result = Routes::Optimization::ManualRun.call(@route, ordered_ids)
 
     if result.success?

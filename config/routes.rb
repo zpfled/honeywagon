@@ -19,9 +19,10 @@ Rails.application.routes.draw do
     end
     resources :dump_events, only: :create, module: :routes
     resource :optimization, only: :create, module: :routes
+    # TODO: paginate route stops if lists grow large (consider turbo streams)
     resource :ordering, only: :update, module: :routes
   end
-  resources :service_event_reports, only: [ :index, :new, :create, :edit, :update ]
+  resources :service_event_reports, only: [ :index, :new, :create, :edit, :update ] # TODO: paginate index
   namespace :setup do
     resource :company, only: %i[show update]
   end
