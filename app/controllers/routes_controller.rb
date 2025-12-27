@@ -52,6 +52,7 @@ class RoutesController < ApplicationController
     @capacity_steps = presenter.capacity_steps
     @dump_sites = current_user.company.dump_sites.includes(:location)
     @weather_forecast = presenter.weather_forecast
+    @route_presenter = RoutePresenter.new(@route)
   end
 
   def load_fleet_assets
