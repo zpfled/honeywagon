@@ -57,7 +57,7 @@ class CompanyController < ApplicationController
   private
 
   def set_company
-    @company = current_user.company
+    @company = Company.find(current_user.company_id)
   end
 
   def load_company_data

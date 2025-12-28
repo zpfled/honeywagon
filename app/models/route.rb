@@ -38,7 +38,7 @@ class Route < ApplicationRecord
     where(route_date: today..horizon).order(:route_date)
   }
 
-  def service_event_count = service_events.count
+  def service_event_count = service_events.size
   # TODO: Move display-oriented aggregates to presenter; remove once index/show migrate.
   def estimated_gallons = service_events.sum(&:estimated_gallons_pumped)
   # TODO: handled by RoutePresenter; keep until views migrate
@@ -95,7 +95,7 @@ class Route < ApplicationRecord
 
   def resequence_service_events!(ordered_ids)
     transaction do
-      events = service_events.index_by(&:id)
+      events = service_events.includes(:order).index_by(&:id)
       sequence = 0
 
       Array(ordered_ids).each do |id|

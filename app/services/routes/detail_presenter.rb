@@ -63,8 +63,15 @@ module Routes
       )
       @capacity_result = result
       @capacity_steps = result.steps.index_by(&:event_id)
-    rescue StandardError
-      # TODO: Log/report failure so capacity issues surface; expose warning via presenter.
+    rescue StandardError => e
+      Rails.logger.warn(
+        message: 'Routes::DetailPresenter failed to build capacity data',
+        route_id: route.id,
+        company_id: company.id,
+        error_class: e.class.name,
+        error_message: e.message
+      )
+      # TODO: expose warning via presenter so the view can surface the failure state.
       @capacity_steps = {}
     end
   end

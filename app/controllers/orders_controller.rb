@@ -76,6 +76,13 @@ class OrdersController < ApplicationController
     @order.schedule!
     redirect_to @order, notice: 'Order scheduled.'
   rescue StandardError => e
+    Rails.logger.error(
+      message: 'Order schedule failed',
+      order_id: @order.id,
+      company_id: current_user.company_id,
+      error_class: e.class.name,
+      error_message: e.message
+    )
     redirect_to @order, alert: "Unable to schedule order: #{e.message}"
   end
 
@@ -114,7 +121,7 @@ class OrdersController < ApplicationController
                                   .where(company_id: current_user.company_id)
                                   .order(:service_schedule)
     @customers = current_user.company.customers.order(:display_name)
-    @locations = current_user.company.locations.includes(:customer).order(:label)
+    @locations = current_user.company.locations.order(:label)
   end
 
   def selected_month
