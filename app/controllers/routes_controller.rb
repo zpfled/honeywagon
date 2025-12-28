@@ -3,10 +3,10 @@ class RoutesController < ApplicationController
   before_action :load_fleet_assets, only: %i[index create show update]
 
   def index
-    # TODO: Replace with RouteIndexPresenter to batch aggregates and avoid view queries.
     @routes = current_user.company.routes.includes(:truck, :trailer,
                                                    service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
                           .order(route_date: :desc)
+    @route_rows = Routes::IndexPresenter.new(@routes).rows
     @route = current_user.company.routes.new(
       route_date: Date.current,
       truck: @trucks.first,
@@ -24,9 +24,11 @@ class RoutesController < ApplicationController
     if @route.save
       redirect_to @route, notice: 'Route created.'
     else
-      # TODO: Use presenter-backed collection (with includes) to keep parity with index render.
-      @routes = current_user.company.routes.order(route_date: :desc)
-      render :index, status: :unprocessable_entity
+      @routes = current_user.company.routes.includes(:truck, :trailer,
+                                                     service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
+                            .order(route_date: :desc)
+      @route_rows = Routes::IndexPresenter.new(@routes).rows
+      render :index, status: :unprocessable_content
     end
   end
 
@@ -35,7 +37,7 @@ class RoutesController < ApplicationController
       redirect_to @route, notice: 'Route updated.'
     else
       load_route_details
-      render :show, status: :unprocessable_entity
+      render :show, status: :unprocessable_content
     end
   end
 

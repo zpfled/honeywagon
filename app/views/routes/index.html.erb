@@ -1,6 +1,5 @@
 <%= page_shell do %>
   <h1 class="text-2xl font-semibold text-gray-900">Routes</h1>
-  <%# TODO: move to `_route_row` partial driven by RouteIndexPresenter %>
   <%= card classes: "mt-4" do %>
     <%= form_with model: @route, url: routes_path, local: true do |f| %>
       <div class="grid gap-4 md:flex md:items-end">
@@ -45,18 +44,19 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100 bg-white">
-        <% @routes.each do |route| %>
+        <% @route_rows.each do |row| %>
+          <% route = row.route %>
           <tr>
             <td class="<%= table_cell_class('font-semibold') %>"><%= l(route.route_date) %></td>
-            <td class="<%= table_cell_class %>"><%= route.service_event_count %></td>
-            <td class="<%= table_cell_class %>"><%= route.estimated_gallons %></td>
-            <td class="<%= table_cell_class %>"><%= route.deliveries_count %></td>
-            <td class="<%= table_cell_class %>"><%= route.pickups_count %></td>
+            <td class="<%= table_cell_class %>"><%= row.service_event_count %></td>
+            <td class="<%= table_cell_class %>"><%= row.estimated_gallons %></td>
+            <td class="<%= table_cell_class %>"><%= row.deliveries_count %></td>
+            <td class="<%= table_cell_class %>"><%= row.pickups_count %></td>
             <td class="<%= table_cell_class %>"><%= route.truck&.label || "—" %></td>
             <td class="<%= table_cell_class %>"><%= route.trailer&.label || "—" %></td>
             <td class="<%= table_cell_class('', align: :right) %>">
-              <% if route.over_capacity? %>
-                <% dims = route.over_capacity_dimensions.map { |dim| dim.to_s.humanize.downcase }.join(', ') %>
+              <% if row.over_capacity? %>
+                <% dims = row.over_capacity_dimensions.map { |dim| dim.to_s.humanize.downcase }.join(', ') %>
                 <%= badge("Over capacity (#{dims})", tone: :danger) %>
               <% end %>
               <%= link_to "View", route_path(route), class: "ml-2 text-sm font-semibold text-emerald-600 hover:text-emerald-500" %>
