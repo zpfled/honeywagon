@@ -217,7 +217,7 @@ class OrderPresenter
 
   def service_events
     @service_events ||= order.service_events
-                              .includes(:service_event_type, :route)
+                              .includes(:route)
                               .order(:scheduled_on, :event_type)
   end
 

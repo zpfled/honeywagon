@@ -114,7 +114,7 @@ class OrdersController < ApplicationController
                                   .where(company_id: current_user.company_id)
                                   .order(:service_schedule)
     @customers = current_user.company.customers.order(:display_name)
-    @locations = current_user.company.locations.includes(:customer).order(:label)
+    @locations = current_user.company.locations.order(:label)
   end
 
   def selected_month

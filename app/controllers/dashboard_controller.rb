@@ -1,11 +1,7 @@
 class DashboardController < ApplicationController
   def index
     @routes = current_user.company.routes.upcoming
-                          .includes(:truck, :trailer,
-                                    service_events: [ order: [ :customer,
-                                                               :location,
-                                                               { rental_line_items: :unit_type },
-                                                               :service_events ] ])
+                          .includes(:truck, :trailer, :service_events)
     tracker = Routes::WasteTracker.new(@routes)
     @waste_loads = tracker.loads_by_route_id
     @trucks = current_user.company.trucks.order(:name, :number)

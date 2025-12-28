@@ -4,7 +4,7 @@ class ServiceEventReportsController < ApplicationController
 
   def index
     @reports = current_user.service_event_reports
-                           .includes(service_event: [ :service_event_type, { order: %i[customer location] } ])
+                           .includes(service_event: [ { order: %i[customer location] } ])
                            .joins(:service_event)
                            .order(Arel.sql('service_events.completed_on DESC NULLS LAST, service_event_reports.created_at DESC'))
   end
@@ -80,11 +80,11 @@ class ServiceEventReportsController < ApplicationController
 
   def set_service_event
     service_event_id = params.permit(:service_event_id).require(:service_event_id)
-    @service_event = current_user.service_events.includes(order: [ :customer, :location, :units ]).find(service_event_id)
+    @service_event = current_user.service_events.includes(order: [ :customer, :location ]).find(service_event_id)
   end
 
   def set_report
-    @report = current_user.service_event_reports.includes(service_event: [ :service_event_type, { order: %i[customer location units] } ]).find(params[:id])
+    @report = current_user.service_event_reports.includes(service_event: [ { order: %i[customer location] } ]).find(params[:id])
   end
 
   def report_params

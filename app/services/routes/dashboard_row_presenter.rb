@@ -95,7 +95,7 @@ module Routes
     # TODO: Extract the per-customer aggregation into a Routes::OrderSummary builder.
     def orders_summary
       route.service_events
-           .includes(order: :customer, dump_site: :location)
+           .includes(order: :customer)
            .group_by do |event|
              if event.event_type_dump?
                [ :dump, event.dump_site_id ]

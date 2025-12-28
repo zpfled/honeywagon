@@ -93,10 +93,10 @@
        }
      end %>
   <% required_rate_plan_ids = existing_line_items_payload.map { |li| li[:rate_plan_id] }.compact %>
-  <% active_rate_plans = RatePlan.active.rental.where(company_id: current_user.company_id).includes(:unit_type).to_a %>
+  <% active_rate_plans = RatePlan.active.rental.where(company_id: current_user.company_id).to_a %>
   <% missing_rate_plans = if required_rate_plan_ids.any?
        missing = required_rate_plan_ids - active_rate_plans.map(&:id)
-       missing.any? ? RatePlan.includes(:unit_type).where(id: missing).to_a : []
+       missing.any? ? RatePlan.where(id: missing).to_a : []
      else
        []
      end %>
