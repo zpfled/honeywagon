@@ -66,14 +66,14 @@ class ServiceEventReportsController < ApplicationController
     if @report.update(data: data)
       apply_estimated_gallons_override(@report)
       redirect_to(params[:redirect_path].presence || service_event_reports_path, notice: 'Service report updated.')
-      else
+    else
         flash.now[:alert] = @report.errors.full_messages.to_sentence
         if turbo_frame_request?
           render :edit, status: :unprocessable_entity, layout: false
         else
           render :edit, status: :unprocessable_entity
         end
-      end
+    end
     end
 
   private
