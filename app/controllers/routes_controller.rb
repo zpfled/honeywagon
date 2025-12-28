@@ -4,7 +4,7 @@ class RoutesController < ApplicationController
 
   def index
     @routes = current_user.company.routes.includes(:truck, :trailer,
-                                                   service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
+                                                   service_events: { order: [ { rental_line_items: :unit_type } ] })
                           .order(route_date: :desc)
     @route_rows = Routes::IndexPresenter.new(@routes).rows
     @route = current_user.company.routes.new(
@@ -25,10 +25,10 @@ class RoutesController < ApplicationController
       redirect_to @route, notice: 'Route created.'
     else
       @routes = current_user.company.routes.includes(:truck, :trailer,
-                                                     service_events: { order: [ :location, { rental_line_items: :unit_type } ] })
+                                                     service_events: { order: [ { rental_line_items: :unit_type } ] })
                             .order(route_date: :desc)
       @route_rows = Routes::IndexPresenter.new(@routes).rows
-      render :index, status: :unprocessable_content
+      render :index, status: :unprocessable_entity
     end
   end
 
@@ -51,6 +51,7 @@ class RoutesController < ApplicationController
     # TODO: Expose stop presenters from Routes::DetailPresenter to remove view logic.
     presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
     @service_events = presenter.service_events
+    @stop_presenters = presenter.stop_presenters
     @previous_route = presenter.previous_route
     @next_route = presenter.next_route
     @waste_load = presenter.waste_load
@@ -58,6 +59,7 @@ class RoutesController < ApplicationController
     @dump_sites = current_user.company.dump_sites.includes(:location)
     @weather_forecast = presenter.weather_forecast
     @route_presenter = RoutePresenter.new(@route)
+    @route_summary = Routes::ShowSummaryPresenter.new(route: @route, waste_load: @waste_load)
   end
 
   def load_fleet_assets
