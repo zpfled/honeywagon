@@ -18,7 +18,7 @@ This document outlines an incremental, low-risk path to align the codebase with 
 - ~Verify CI covers presenters/helpers; add coverage thresholds for new code paths.~
 
 2) **Controllers Slim-Down**
-- Fix incorrect response statuses (e.g., `:unprocessable_content` → `:unprocessable_entity`) to ensure correct HTTP behavior.
+- ~Fix incorrect response statuses (e.g., `:unprocessable_content` → `:unprocessable_entity`) to ensure correct HTTP behavior.~
 - Ensure controller actions preload what views need; push aggregation logic into presenters/services.
 - Introduce service objects for multi-step workflows invoked by controllers (e.g., route creation/update side effects).
 

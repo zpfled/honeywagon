@@ -53,7 +53,7 @@ RSpec.describe "Api::Places", type: :request do
 
       get api_places_details_path, params: { place_id: "missing" }
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end

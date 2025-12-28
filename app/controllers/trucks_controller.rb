@@ -10,7 +10,7 @@ class TrucksController < ApplicationController
       redirect_to edit_company_path, notice: 'Truck updated'
     else
       flash.now[:alert] = @truck.errors.full_messages.to_sentence
-      render :edit, layout: false, status: :unprocessable_content
+      render :edit, layout: false, status: :unprocessable_entity
     end
   end
 

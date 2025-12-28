@@ -41,7 +41,7 @@ class CompanyController < ApplicationController
       load_company_data
     end
     build_forms
-    render template, status: :unprocessable_content
+    render template, status: :unprocessable_entity
   end
 
   def customers

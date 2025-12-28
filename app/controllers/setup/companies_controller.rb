@@ -21,7 +21,7 @@ module Setup
     rescue ActiveRecord::RecordInvalid => e
       flash.now[:alert] = e.record.errors.full_messages.to_sentence
       build_form_models
-      render :show, status: :unprocessable_content
+      render :show, status: :unprocessable_entity
     end
 
     private

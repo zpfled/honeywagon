@@ -17,8 +17,8 @@ class LocationsController < ApplicationController
 
     if @location.errors[:customer].present?
       respond_to do |format|
-        format.turbo_stream { render :new, status: :unprocessable_content }
-        format.html { render :new, status: :unprocessable_content }
+        format.turbo_stream { render :new, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_entity }
       end
       return
     end
@@ -31,8 +31,8 @@ class LocationsController < ApplicationController
                       notice: 'Location created.'
         end
       else
-        format.turbo_stream { render :new, status: :unprocessable_content }
-        format.html { render :new, status: :unprocessable_content }
+        format.turbo_stream { render :new, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_entity }
       end
     end
   end
@@ -53,8 +53,8 @@ class LocationsController < ApplicationController
 
   def render_missing_customer
     respond_to do |format|
-      format.turbo_stream { render plain: 'Select a customer before adding a location.', status: :unprocessable_content }
-      format.html { render plain: 'Select a customer before adding a location.', status: :unprocessable_content }
+      format.turbo_stream { render plain: 'Select a customer before adding a location.', status: :unprocessable_entity }
+      format.html { render plain: 'Select a customer before adding a location.', status: :unprocessable_entity }
     end
   end
 

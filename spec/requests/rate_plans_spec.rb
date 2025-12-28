@@ -10,7 +10,7 @@ RSpec.describe "/rate_plans", type: :request do
     it "requires a unit type" do
       get new_rate_plan_path
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 
@@ -47,7 +47,7 @@ RSpec.describe "/rate_plans", type: :request do
         }
       end.not_to change(RatePlan, :count)
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end

@@ -46,15 +46,15 @@ class RatePlansController < ApplicationController
 
   def render_missing_unit_type
     respond_to do |format|
-      format.turbo_stream { render plain: 'Select a unit type before adding a rate plan.', status: :unprocessable_content }
-      format.html { render plain: 'Select a unit type before adding a rate plan.', status: :unprocessable_content }
+      format.turbo_stream { render plain: 'Select a unit type before adding a rate plan.', status: :unprocessable_entity }
+      format.html { render plain: 'Select a unit type before adding a rate plan.', status: :unprocessable_entity }
     end
   end
 
   def render_new_with_error
     respond_to do |format|
-      format.turbo_stream { render :new, status: :unprocessable_content }
-      format.html { render :new, status: :unprocessable_content }
+      format.turbo_stream { render :new, status: :unprocessable_entity }
+      format.html { render :new, status: :unprocessable_entity }
     end
   end
 

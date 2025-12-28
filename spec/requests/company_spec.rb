@@ -47,7 +47,7 @@ RSpec.describe "Company settings", type: :request do
         }
       end.not_to change { unit_type.rate_plans.count }
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:unprocessable_entity)
       expect(response.body).to match(/not a number/i)
     end
   end

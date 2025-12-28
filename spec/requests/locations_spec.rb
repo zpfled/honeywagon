@@ -9,7 +9,7 @@ RSpec.describe "/locations", type: :request do
     it "requires a customer" do
       get new_location_path
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:unprocessable_entity)
     end
 
     it "renders the modal when customer is provided" do
@@ -55,7 +55,7 @@ RSpec.describe "/locations", type: :request do
         }
       end.not_to change(Location, :count)
 
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end

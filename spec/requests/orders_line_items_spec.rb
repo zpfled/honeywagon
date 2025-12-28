@@ -54,7 +54,7 @@ RSpec.describe "Order line item form behaviour", type: :request do
       }
     }
 
-    expect(response).to have_http_status(:unprocessable_content)
+    expect(response).to have_http_status(:unprocessable_entity)
 
     doc = Nokogiri::HTML.parse(response.body)
     widget = doc.at_css('[data-controller="order-items"]')
@@ -109,7 +109,7 @@ RSpec.describe "Order line item form behaviour", type: :request do
       }
     }
 
-    expect(response).to have_http_status(:unprocessable_content)
+    expect(response).to have_http_status(:unprocessable_entity)
 
     doc = Nokogiri::HTML.parse(response.body)
     widget = doc.at_css('[data-controller="order-items"]')

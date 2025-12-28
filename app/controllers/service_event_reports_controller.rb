@@ -39,17 +39,17 @@ class ServiceEventReportsController < ApplicationController
     redirect_target = params[:redirect_path].presence ||
                       (@service_event.route ? route_path(@service_event.route) : authenticated_root_path)
     redirect_to redirect_target, notice: 'Service event reported and completed.'
-  rescue ActiveRecord::RecordInvalid => e
-    @report = report
-    @report_fields = Array(@service_event.service_event_type&.report_fields)
-    @prefill = default_prefill_data
-    flash.now[:alert] = e.record.errors.full_messages.to_sentence
-    if turbo_frame_request?
-      render :new, status: :unprocessable_content, layout: false
-    else
-      render :new, status: :unprocessable_content
+    rescue ActiveRecord::RecordInvalid => e
+      @report = report
+      @report_fields = Array(@service_event.service_event_type&.report_fields)
+      @prefill = default_prefill_data
+      flash.now[:alert] = e.record.errors.full_messages.to_sentence
+      if turbo_frame_request?
+        render :new, status: :unprocessable_entity, layout: false
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
-  end
 
   def edit
     @service_event = @report.service_event
@@ -66,15 +66,15 @@ class ServiceEventReportsController < ApplicationController
     if @report.update(data: data)
       apply_estimated_gallons_override(@report)
       redirect_to(params[:redirect_path].presence || service_event_reports_path, notice: 'Service report updated.')
-    else
-      flash.now[:alert] = @report.errors.full_messages.to_sentence
-      if turbo_frame_request?
-        render :edit, status: :unprocessable_content, layout: false
       else
-        render :edit, status: :unprocessable_content
+        flash.now[:alert] = @report.errors.full_messages.to_sentence
+        if turbo_frame_request?
+          render :edit, status: :unprocessable_entity, layout: false
+        else
+          render :edit, status: :unprocessable_entity
+        end
       end
     end
-  end
 
   private
 

@@ -46,7 +46,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order created.'
     else
-      render :new, status: :unprocessable_content
+      render :new, status: :unprocessable_entity
     end
   end
 
@@ -63,7 +63,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order updated.'
     else
-      render :edit, status: :unprocessable_content
+      render :edit, status: :unprocessable_entity
     end
   end
 
@@ -94,7 +94,7 @@ class OrdersController < ApplicationController
     )
 
     unless summary.valid_range?
-      return render json: { error: 'Enter a valid start and end date.' }, status: :unprocessable_content
+      return render json: { error: 'Enter a valid start and end date.' }, status: :unprocessable_entity
     end
 
     render json: {

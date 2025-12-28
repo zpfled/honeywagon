@@ -12,8 +12,8 @@ class CustomersController < ApplicationController
         format.turbo_stream
         format.html { redirect_to new_order_path(customer_id: @customer.id), notice: 'Customer created.' }
       else
-        format.turbo_stream { render :new, status: :unprocessable_content }
-        format.html { render :new, status: :unprocessable_content }
+        format.turbo_stream { render :new, status: :unprocessable_entity }
+        format.html { render :new, status: :unprocessable_entity }
       end
     end
   end

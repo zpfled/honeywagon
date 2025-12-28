@@ -18,7 +18,7 @@ module Api
         render json: details
       else
         Rails.logger.warn("[Places] details place_id=#{params[:place_id]} returned no data")
-        head :unprocessable_content
+        head :unprocessable_entity
       end
     end
 
