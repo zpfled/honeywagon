@@ -31,7 +31,13 @@ module Weather
         icon_url: (daytime || target_periods.first)['icon']
       }
     rescue StandardError => e
-      Rails.logger.warn("Weather forecast parsing failed: #{e.class} #{e.message}")
+      Rails.logger.warn(
+        message: 'Weather forecast parsing failed',
+        error_class: e.class.name,
+        error_message: e.message,
+        latitude: latitude,
+        longitude: longitude
+      )
       nil
     end
 

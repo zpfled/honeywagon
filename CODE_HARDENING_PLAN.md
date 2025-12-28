@@ -14,7 +14,7 @@ This document outlines an incremental, low-risk path to align the codebase with 
 
 1) **Baseline & Safety**
 - ~Add a short-lived “display audit” section to PR template to force checks for view-query violations.~
-- Enable logging/notifications for unexpected errors currently rescued (e.g., capacity simulator failures) to surface hidden issues.
+- ~Enable logging/notifications for unexpected errors currently rescued (e.g., capacity simulator failures) to surface hidden issues.~
 - Verify CI covers presenters/helpers; add coverage thresholds for new code paths.
 
 2) **Controllers Slim-Down**

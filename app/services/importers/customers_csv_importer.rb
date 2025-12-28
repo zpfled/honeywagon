@@ -48,6 +48,12 @@ module Importers
         rescue StandardError => e
           summary[:failed] += 1
           summary[:errors] << "Row #{row_number}: #{e.message}"
+          logger.error(
+            message: 'CustomersCsvImporter row failure',
+            row_number: row_number,
+            error_class: e.class.name,
+            error_message: e.message
+          )
         end
       end
 

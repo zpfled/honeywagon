@@ -37,7 +37,15 @@ module Weather
       forecast.save!
       forecast
     rescue StandardError => e
-      Rails.logger.warn("Weather forecast fetch failed: #{e.class} #{e.message}")
+      Rails.logger.warn(
+        message: 'Weather forecast fetch failed',
+        error_class: e.class.name,
+        error_message: e.message,
+        company_id: company.id,
+        forecast_date: date,
+        latitude: latitude,
+        longitude: longitude
+      )
       cached
     end
 

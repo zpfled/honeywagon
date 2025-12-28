@@ -223,10 +223,15 @@ class OrderPresenter
 
   def service_events_count
     service_events.size
+  rescue StandardError => e
+    Rails.logger.warn(
+      message: 'OrderPresenter service_events_count failed',
+      order_id: order.id,
+      error_class: e.class.name,
+      error_message: e.message
+    )
+    0
   end
-
-
-
   #
   # ---- Status badge ----
   #
