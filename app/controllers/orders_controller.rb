@@ -22,9 +22,13 @@ class OrdersController < ApplicationController
 
     @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
 
-    @orders = monthly_scope.includes(:customer, :location, :units, rental_line_items: :unit_type, service_line_items: :rate_plan)
+    @orders = monthly_scope.includes(:customer, :location, rental_line_items: :unit_type, service_line_items: :rate_plan)
                            .order(:start_date)
-    @order_presenters = @orders.map { |order| OrderPresenter.new(order, view_context: view_context) }
+    order_ids = @orders.map(&:id)
+    units_by_order_id = OrderUnit.where(order_id: order_ids).group(:order_id).count
+    @order_presenters = @orders.map do |order|
+      OrderPresenter.new(order, view_context: view_context, units_count: units_by_order_id[order.id].to_i)
+    end
   end
 
   def show

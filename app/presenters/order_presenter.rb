@@ -18,9 +18,10 @@ class OrderPresenter
 
   # Builds the presenter with the order and a view context for helpers.
   # `view` lets you call things like `l(...)` safely (I18n localization) from the presenter.
-  def initialize(order, view_context:)
+  def initialize(order, view_context:, units_count: nil)
     @order = order
     @view = view_context
+    @units_count = units_count
   end
 
   #
@@ -310,11 +311,13 @@ class OrderPresenter
 
   # Returns how many units are assigned to the order.
   def units_count
-    order.respond_to?(:units) ? order.units.size : 0
+    return @units_count if defined?(@units_count)
+    @units_count = order.respond_to?(:units) ? order.units.size : 0
   end
 
   private
 
+  # TODO: Use a universal currency formatter for this. This should leverage the FormattingHelper.
   # Formats an amount either in cents or dollars using ActionView helpers.
   def format_currency(value, from_cents: false)
     return '—' if value.blank?
@@ -330,6 +333,7 @@ class OrderPresenter
   end
 
   # Converts integer cents into a float dollar amount for calculations.
+  # TODO: Use a universal currency converter for this.
   def dollars_from_cents(cents)
     return nil if cents.blank?
     cents.to_f / 100

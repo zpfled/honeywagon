@@ -87,9 +87,9 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-gray-100">
-        <% if @routes.any? %>
-          <% @routes.each_with_index do |route, idx| %>
-            <% row = Routes::DashboardRowPresenter.new(route, waste_load: @waste_loads[route.id]) %>
+        <% if @dashboard_rows&.any? %>
+          <% @dashboard_rows.each_with_index do |row, idx| %>
+            <% route = row.route %>
             <% base_background = row.row_background_class.presence || (idx.even? ? 'bg-white' : 'bg-gray-50') %>
             <tr class="<%= class_names(base_background, 'hover:bg-gray-50 transition') %>">
               <td class="<%= table_cell_class('font-semibold') %>">

@@ -9,11 +9,17 @@ class DashboardController < ApplicationController
     # TODO: Changes needed:
     # - Move DashboardRowPresenter instantiation out of the view (build collection in controller/presenter).
     # - Preload associations used by DashboardRowPresenter (service_events -> order -> customer/location, dump_site -> location).
-    # - AR reads in view: app/views/dashboard/index.html.erb:92-190 (row presenter methods hit route.service_events).
-    @routes = current_user.company.routes.upcoming
-                          .includes(:truck, :trailer, :service_events)
+    base_scope = current_user.company.routes.upcoming
+                                   .includes(:truck, :trailer, service_events: { order: %i[customer location] })
+    if ServiceEvent.where(route_id: base_scope.select(:id), event_type: ServiceEvent.event_types[:dump]).exists?
+      base_scope = base_scope.includes(service_events: { dump_site: :location })
+    end
+    @routes = base_scope
     tracker = Routes::WasteTracker.new(@routes)
     @waste_loads = tracker.loads_by_route_id
+    @dashboard_rows = @routes.map do |route|
+      Routes::DashboardRowPresenter.new(route, waste_load: @waste_loads[route.id])
+    end
     @trucks = current_user.company.trucks.order(:name, :number)
     @trailers = current_user.company.trailers.order(:name, :identifier)
     @new_route = current_user.company.routes.new(

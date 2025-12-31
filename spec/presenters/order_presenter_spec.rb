@@ -32,4 +32,13 @@ RSpec.describe OrderPresenter do
       expect(presenter.line_item_subtotal(line_item)).to eq("$25.00")
     end
   end
+
+  describe "#units_count" do
+    it "prefers the provided units count when present" do
+      order = build_stubbed(:order)
+      presenter = described_class.new(order, view_context: double("view", l: nil), units_count: 7)
+
+      expect(presenter.units_count).to eq(7)
+    end
+  end
 end
