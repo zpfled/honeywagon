@@ -10,7 +10,6 @@ class OrdersController < ApplicationController
     # TODO: Changes needed:
     # - Preload associations needed by OrderPresenter (customer, location, units, rental_line_items, service_line_items).
     # - Move presenter instantiation/row aggregation out of the view (use a collection presenter).
-    # - AR reads in view: app/views/orders/index.html.erb:52-95 (OrderPresenter methods pull customer/location/units/line_items).
     @month = selected_month
     @previous_month = (@month - 1.month).beginning_of_month
     @next_month = (@month + 1.month).beginning_of_month
@@ -23,8 +22,9 @@ class OrdersController < ApplicationController
 
     @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
 
-    @orders = monthly_scope.includes(:customer, :location)
+    @orders = monthly_scope.includes(:customer, :location, :units, rental_line_items: :unit_type, service_line_items: :rate_plan)
                            .order(:start_date)
+    @order_presenters = @orders.map { |order| OrderPresenter.new(order, view_context: view_context) }
   end
 
   def show

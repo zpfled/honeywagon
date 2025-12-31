@@ -23,7 +23,7 @@ This document outlines an incremental, low-risk path to align the codebase with 
     - Here’s the refactor list based on the view audit and controller notes:
       - ~Move route header counts (deliveries_count, services_count, pickups_count, estimated_gallons) out of show.html.erb (lines 6-9) into a presenter and preload required data in routes_controller.rb.~
       - ~Extract order form payload building from _form.html.erb (lines 84-123) into a presenter/service and have orders_controller.rb supply the payload data.~
-      - Preload OrderPresenter dependencies for index.html.erb (lines 52-95) in orders_controller.rb and build presenters in the controller (collection presenter).
+      - ~Preload OrderPresenter dependencies for index.html.erb (lines 52-95) in orders_controller.rb and build presenters in the controller (collection presenter).~
       - Build dashboard row presenters in dashboard_controller.rb and preload all associations used by Routes::DashboardRowPresenter (service events, orders, customers, locations, dump sites).
       - Replace unit_type.units.count calls in edit.html.erb:137,144 with precomputed counts from company_controller.rb (or a presenter).
       - Replace report-row formatting in index.html.erb (lines 26-49) with a presenter and preload dump_site + location in service_event_reports_controller.rb.
