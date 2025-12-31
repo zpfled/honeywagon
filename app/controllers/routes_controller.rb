@@ -1,5 +1,6 @@
 class RoutesController < ApplicationController
-  before_action :set_route, only: %i[show update]
+  before_action :set_route, only: %i[update]
+  before_action :set_route_with_service_events, only: %i[show ]
   before_action :load_fleet_assets, only: %i[index create show update]
 
   def index
@@ -73,6 +74,10 @@ class RoutesController < ApplicationController
 
   def set_route
     @route = current_user.company.routes.find(params[:id])
+  end
+
+  def set_route_with_service_events
+    @route = current_user.company.routes.includes(:service_events).find(params[:id])
   end
 
   def load_route_details

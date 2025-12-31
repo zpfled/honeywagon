@@ -3,10 +3,10 @@
     <div>
       <h1 class="text-2xl font-semibold text-gray-900">Route for <%= l(@route.route_date, format: "%A, %B %-d") %></h1>
       <ul class="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-        <li><%= pluralize(@route.deliveries_count, 'delivery') %></li>
-        <li><%= pluralize(@route.services_count, 'service') %> (<%= pluralize(@route.serviced_units_count, 'unit') %>)</li>
-        <li><%= pluralize(@route.pickups_count, 'pickup') %></li>
-        <li><%= number_to_human(@route.estimated_gallons, units: { unit: 'gal' }, format: '%n %u') %> pumped</li>
+        <li><%= pluralize(@route_presenter.deliveries_count, 'delivery') %></li>
+        <li><%= pluralize(@route_presenter.services_count, 'service') %> (<%= pluralize(@route.serviced_units_count, 'unit') %>)</li>
+        <li><%= pluralize(@route_presenter.pickups_count, 'pickup') %></li>
+        <li><%= number_to_human(@route_presenter.estimated_gallons, units: { unit: 'gal' }, format: '%n %u') %> pumped</li>
       </ul>
     </div>
     <div>
