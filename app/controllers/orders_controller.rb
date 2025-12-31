@@ -10,6 +10,7 @@ class OrdersController < ApplicationController
     # TODO: Changes needed:
     # - Preload associations needed by OrderPresenter (customer, location, units, rental_line_items, service_line_items).
     # - Move presenter instantiation/row aggregation out of the view (use a collection presenter).
+    # - AR reads in view: app/views/orders/index.html.erb:52-95 (OrderPresenter methods pull customer/location/units/line_items).
     @month = selected_month
     @previous_month = (@month - 1.month).beginning_of_month
     @next_month = (@month + 1.month).beginning_of_month
@@ -45,6 +46,7 @@ class OrdersController < ApplicationController
     # TODO: Changes needed:
     # - Move rate-plan payload building out of the view (presenter/service).
     # - Preload rate plans and unit types needed for the form to avoid queries in the view.
+    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
     @order = current_user.company.orders.new(
       start_date: Date.today,
       end_date:   Date.today + 7.days,
@@ -60,6 +62,7 @@ class OrdersController < ApplicationController
     # - Same as new: @order, @customers, @locations, @unit_types, @service_rate_plans
     # TODO: Changes needed:
     # - Ensure load_form_options runs on failure so the form does not query in the view.
+    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
     @order = current_user.company.orders.new(created_by: current_user)
     builder = Orders::Builder.new(@order)
     builder.assign(
@@ -81,6 +84,7 @@ class OrdersController < ApplicationController
     # TODO: Changes needed:
     # - Move rate-plan payload building out of the view (presenter/service).
     # - Preload rate plans and unit types needed for the form to avoid queries in the view.
+    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
   end
 
   def update
@@ -88,6 +92,7 @@ class OrdersController < ApplicationController
     # - Same as new/edit: @order, @customers, @locations, @unit_types, @service_rate_plans
     # TODO: Changes needed:
     # - Ensure load_form_options runs on failure so the form does not query in the view.
+    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
     builder = Orders::Builder.new(@order)
     builder.assign(
       params:               order_params,

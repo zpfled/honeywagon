@@ -8,6 +8,7 @@ class ServiceEventReportsController < ApplicationController
     # TODO: Changes needed:
     # - Preload dump_site + location to avoid N+1 in report rows.
     # - Move row formatting into a presenter (already TODO in view).
+    # - AR reads in view: app/views/service_event_reports/index.html.erb:26-49 (report.service_event/order/dump_site/location).
     @reports = current_user.service_event_reports
                            .includes(service_event: [ { order: %i[customer location] } ])
                            .joins(:service_event)

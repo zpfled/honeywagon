@@ -11,6 +11,7 @@ class CompanyController < ApplicationController
     # TODO: Changes needed:
     # - Ensure preloads cover unit_type units/counts and dump_site locations.
     # - Move any aggregation/formatting for rate_plan_rows into presenters/services if it grows.
+    # - AR reads in view: app/views/company/edit.html.erb:137,144 (unit_type.units.count).
     build_forms
     load_company_data
   end
@@ -24,6 +25,7 @@ class CompanyController < ApplicationController
     # TODO: Changes needed:
     # - Extract the create/update workflow into services/form objects to slim controller (already TODO).
     # - Keep view aggregation in presenters/services as it expands.
+    # - AR reads in view: app/views/company/edit.html.erb:137,144 (unit_type.units.count).
     redirect_target = params[:redirect_to].presence
     ActiveRecord::Base.transaction do
       # TODO: extract these create/update steps into dedicated services/form objects to slim the controller
