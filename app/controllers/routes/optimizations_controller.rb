@@ -3,6 +3,10 @@ class Routes::OptimizationsController < ApplicationController
   before_action :set_route
 
   def create
+    # TODO: View reads:
+    # - None (redirect only).
+    # TODO: Changes needed:
+    # - Move optimization apply logic into a service (already TODO in controller).
     result = Routes::Optimization::Run.call(@route)
 
     if result.success?

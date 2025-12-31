@@ -3,6 +3,11 @@ class ServiceEventReportsController < ApplicationController
   before_action :set_report, only: [ :edit, :update ]
 
   def index
+    # TODO: View reads:
+    # - @reports (service_event -> order/customer/location, dump_site/location, report data)
+    # TODO: Changes needed:
+    # - Preload dump_site + location to avoid N+1 in report rows.
+    # - Move row formatting into a presenter (already TODO in view).
     @reports = current_user.service_event_reports
                            .includes(service_event: [ { order: %i[customer location] } ])
                            .joins(:service_event)
@@ -10,6 +15,13 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def new
+    # TODO: View reads:
+    # - @service_event (for form hidden id, event type)
+    # - @report (form model)
+    # - @report_fields (field list)
+    # - @prefill (customer name/address)
+    # TODO: Changes needed:
+    # - Keep prefill/fields building in presenter/service if it grows.
     unless @service_event.report_required?
       redirect_to authenticated_root_path, alert: 'This service event does not require a report.'
       return
@@ -22,6 +34,10 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def create
+    # TODO: View reads (on failure render :new):
+    # - @service_event, @report, @report_fields, @prefill
+    # TODO: Changes needed:
+    # - None.
     @prefill = default_prefill_data
     report = @service_event.service_event_report || @service_event.build_service_event_report(data: {})
     report.user ||= current_user
@@ -52,6 +68,13 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def edit
+    # TODO: View reads:
+    # - @service_event (for form hidden id, event type)
+    # - @report (form model)
+    # - @report_fields (field list)
+    # - @prefill (customer name/address)
+    # TODO: Changes needed:
+    # - Keep prefill/fields building in presenter/service if it grows.
     @service_event = @report.service_event
     @report_fields = Array(@service_event.service_event_type&.report_fields)
     @prefill = default_prefill_data
@@ -59,6 +82,10 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def update
+    # TODO: View reads (on failure render :edit):
+    # - @service_event, @report, @report_fields, @prefill
+    # TODO: Changes needed:
+    # - None.
     @service_event = @report.service_event
     @prefill = default_prefill_data
     data = @report.data.merge(report_params.compact)

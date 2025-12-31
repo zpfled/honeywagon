@@ -5,6 +5,11 @@ class RatePlansController < ApplicationController
   before_action :load_unit_types
 
   def new
+    # TODO: View reads:
+    # - @rate_plan (form model)
+    # - @unit_type (header + hidden field)
+    # TODO: Changes needed:
+    # - None.
     @unit_type = find_unit_type
     return render_missing_unit_type unless @unit_type
 
@@ -13,6 +18,11 @@ class RatePlansController < ApplicationController
   end
 
   def create
+    # TODO: View reads (on failure render :new):
+    # - @rate_plan (form model with errors)
+    # - @unit_type (header + hidden field)
+    # TODO: Changes needed:
+    # - None.
     @rate_plan = RatePlan.new(rate_plan_params)
     @unit_type = find_unit_type(@rate_plan.unit_type_id)
 

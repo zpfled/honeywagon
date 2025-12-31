@@ -19,6 +19,12 @@ This document outlines an incremental, low-risk path to align the codebase with 
 
 2) **Controllers Slim-Down**
 - Ensure controller actions preload what views need; push aggregation logic into presenters/services.
+  - Map each controller action to its view(s) and list what the view reads (models, associations, computed values).
+  - Identify view-side queries/aggregation and decide the right home (presenter/service), plus any missing includes/preloads.
+  - Draft a refactor checklist per controller (action → preload changes → logic to move).
+  - Implement preloads and move aggregation/formatting to presenters/services; slim controllers accordingly.
+  - Update or add presenter/service specs; add request/controller specs where behavior changes.
+  - Run relevant specs (or ask you to run rspec if I can’t).
 - Introduce service objects for multi-step workflows invoked by controllers (e.g., route creation/update side effects).
 
 3) **Route Index Hardening**

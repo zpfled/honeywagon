@@ -3,6 +3,10 @@ module Orders
     before_action :set_order
 
     def create
+      # TODO: View reads:
+      # - None (redirect only).
+      # TODO: Changes needed:
+      # - None.
       @service_event = @order.service_events.new(service_event_params.merge(user: current_user, auto_generated: false))
 
       if @service_event.save
@@ -13,6 +17,10 @@ module Orders
     end
 
     def destroy
+      # TODO: View reads:
+      # - None (redirect only).
+      # TODO: Changes needed:
+      # - None.
       service_event = @order.service_events.find(params[:id])
       destination_route = service_event.route
 

@@ -3,6 +3,13 @@ class OrdersController < ApplicationController
   before_action :load_form_options, only: %i[new create edit update]
 
   def index
+    # TODO: View reads:
+    # - @orders (iterated; OrderPresenter built in view)
+    # - @month, @previous_month, @next_month (header navigation)
+    # - @monthly_revenue_cents (header summary)
+    # TODO: Changes needed:
+    # - Preload associations needed by OrderPresenter (customer, location, units, rental_line_items, service_line_items).
+    # - Move presenter instantiation/row aggregation out of the view (use a collection presenter).
     @month = selected_month
     @previous_month = (@month - 1.month).beginning_of_month
     @next_month = (@month + 1.month).beginning_of_month
@@ -20,11 +27,24 @@ class OrdersController < ApplicationController
   end
 
   def show
+    # TODO: View reads:
+    # - @order_presenter (customer/location labels, line items, units, service events)
+    # - @service_event_types (event type select)
+    # TODO: Changes needed:
+    # - Preload order associations used by OrderPresenter (customer, location, units->unit_type,
+    #   rental_line_items->unit_type, service_line_items, service_events->route).
+    # - Keep service event type list in a presenter/helper if it grows.
     @order_presenter = OrderPresenter.new(@order, view_context: view_context)
     @service_event_types = ServiceEvent.event_types.keys
   end
 
   def new
+    # TODO: View reads:
+    # - @order (form model)
+    # - @customers, @locations, @unit_types, @service_rate_plans (form selects)
+    # TODO: Changes needed:
+    # - Move rate-plan payload building out of the view (presenter/service).
+    # - Preload rate plans and unit types needed for the form to avoid queries in the view.
     @order = current_user.company.orders.new(
       start_date: Date.today,
       end_date:   Date.today + 7.days,
@@ -36,6 +56,10 @@ class OrdersController < ApplicationController
   end
 
   def create
+    # TODO: View reads (on failure render :new):
+    # - Same as new: @order, @customers, @locations, @unit_types, @service_rate_plans
+    # TODO: Changes needed:
+    # - Ensure load_form_options runs on failure so the form does not query in the view.
     @order = current_user.company.orders.new(created_by: current_user)
     builder = Orders::Builder.new(@order)
     builder.assign(
@@ -50,9 +74,20 @@ class OrdersController < ApplicationController
     end
   end
 
-  def edit; end
+  def edit
+    # TODO: View reads:
+    # - @order (form model)
+    # - @customers, @locations, @unit_types, @service_rate_plans (form selects)
+    # TODO: Changes needed:
+    # - Move rate-plan payload building out of the view (presenter/service).
+    # - Preload rate plans and unit types needed for the form to avoid queries in the view.
+  end
 
   def update
+    # TODO: View reads (on failure render :edit):
+    # - Same as new/edit: @order, @customers, @locations, @unit_types, @service_rate_plans
+    # TODO: Changes needed:
+    # - Ensure load_form_options runs on failure so the form does not query in the view.
     builder = Orders::Builder.new(@order)
     builder.assign(
       params:               order_params,
@@ -68,11 +103,19 @@ class OrdersController < ApplicationController
   end
 
   def destroy
+    # TODO: View reads:
+    # - None (redirect only).
+    # TODO: Changes needed:
+    # - None.
     @order.destroy
     redirect_to orders_path, notice: 'Order deleted.'
   end
 
   def schedule
+    # TODO: View reads:
+    # - None (redirect only).
+    # TODO: Changes needed:
+    # - None.
     @order.schedule!
     redirect_to @order, notice: 'Order scheduled.'
   rescue StandardError => e
@@ -87,6 +130,10 @@ class OrdersController < ApplicationController
   end
 
   def availability
+    # TODO: View reads:
+    # - JSON response with unit type id/name and available count.
+    # TODO: Changes needed:
+    # - Consider a serializer/presenter if this response grows.
     summary = Units::AvailabilitySummary.new(
       company: current_user.company,
       start_date: params[:start_date],

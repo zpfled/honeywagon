@@ -2,6 +2,10 @@ class ServiceEventsController < ApplicationController
   before_action :set_service_event, only: :update
 
   def update
+    # TODO: View reads:
+    # - None (redirect only).
+    # TODO: Changes needed:
+    # - None.
     if @service_event.update(service_event_params)
       redirect_to authenticated_root_path, notice: 'Service event updated.'
     else

@@ -4,6 +4,10 @@ module Routes
     before_action :set_service_event
 
     def postpone
+      # TODO: View reads:
+      # - None (redirect only).
+      # TODO: Changes needed:
+      # - None.
       Rails.logger.info("[ServiceEventsController] postpone event=#{@service_event.id} route=#{@route.id}")
       result = Routes::ServiceEventMover.new(@service_event).move_to_next
       Rails.logger.info("[ServiceEventsController] postpone result success=#{result.success?} message=#{result.message} target_route=#{result.route&.id}")
@@ -11,6 +15,10 @@ module Routes
     end
 
     def advance
+      # TODO: View reads:
+      # - None (redirect only).
+      # TODO: Changes needed:
+      # - None.
       Rails.logger.info("[ServiceEventsController] advance event=#{@service_event.id} route=#{@route.id}")
       result = Routes::ServiceEventMover.new(@service_event).move_to_previous
       Rails.logger.info("[ServiceEventsController] advance result success=#{result.success?} message=#{result.message} target_route=#{result.route&.id}")
@@ -18,11 +26,19 @@ module Routes
     end
 
     def complete
+      # TODO: View reads:
+      # - None (redirect only).
+      # TODO: Changes needed:
+      # - None.
       result = Routes::ServiceEventCompleter.new(@service_event).call
       redirect_with_result(result)
     end
 
     def destroy
+      # TODO: View reads:
+      # - None (redirect only).
+      # TODO: Changes needed:
+      # - None.
       @service_event.soft_delete!(user: current_user)
       redirect_to route_path(@route), notice: 'Service event deleted.'
     rescue ActiveRecord::RecordInvalid => e

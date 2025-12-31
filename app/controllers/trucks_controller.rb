@@ -2,10 +2,18 @@ class TrucksController < ApplicationController
   before_action :set_truck
 
   def edit
+    # TODO: View reads:
+    # - @truck (form model)
+    # TODO: Changes needed:
+    # - None.
     render layout: false
   end
 
   def update
+    # TODO: View reads (on failure render :edit):
+    # - @truck (form model with errors)
+    # TODO: Changes needed:
+    # - None.
     if @truck.update(truck_params)
       redirect_to edit_company_path, notice: 'Truck updated'
     else
