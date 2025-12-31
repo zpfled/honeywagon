@@ -91,6 +91,7 @@ class CompanyController < ApplicationController
 
   def load_company_data
     @unit_types = @company.unit_types.includes(:units, :rate_plans).order(:name)
+    @unit_counts_by_type = @company.units.group(:unit_type_id).count
     service_rows = @company.rate_plans.service_only.order(:service_schedule).map { |plan| [ nil, plan ] }
     @rate_plan_rows = @unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } + service_rows
     @trucks = @company.trucks.where.not(id: nil).order(:name).to_a
