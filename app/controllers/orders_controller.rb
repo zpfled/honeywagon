@@ -44,9 +44,6 @@ class OrdersController < ApplicationController
     # - @order (form model)
     # - @customers, @locations, @unit_types, @service_rate_plans (form selects)
     # TODO: Changes needed:
-    # - Move rate-plan payload building out of the view (presenter/service).
-    # - Preload rate plans and unit types needed for the form to avoid queries in the view.
-    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
     @order = current_user.company.orders.new(
       start_date: Date.today,
       end_date:   Date.today + 7.days,
@@ -55,14 +52,13 @@ class OrdersController < ApplicationController
       location_id: params[:location_id],
       created_by: current_user
     )
+    build_order_form_payload
   end
 
   def create
     # TODO: View reads (on failure render :new):
     # - Same as new: @order, @customers, @locations, @unit_types, @service_rate_plans
     # TODO: Changes needed:
-    # - Ensure load_form_options runs on failure so the form does not query in the view.
-    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
     @order = current_user.company.orders.new(created_by: current_user)
     builder = Orders::Builder.new(@order)
     builder.assign(
@@ -73,6 +69,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order created.'
     else
+      build_order_form_payload
       render :new, status: :unprocessable_content
     end
   end
@@ -82,17 +79,13 @@ class OrdersController < ApplicationController
     # - @order (form model)
     # - @customers, @locations, @unit_types, @service_rate_plans (form selects)
     # TODO: Changes needed:
-    # - Move rate-plan payload building out of the view (presenter/service).
-    # - Preload rate plans and unit types needed for the form to avoid queries in the view.
-    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
+    build_order_form_payload
   end
 
   def update
     # TODO: View reads (on failure render :edit):
     # - Same as new/edit: @order, @customers, @locations, @unit_types, @service_rate_plans
     # TODO: Changes needed:
-    # - Ensure load_form_options runs on failure so the form does not query in the view.
-    # - AR reads in view: app/views/orders/_form.html.erb:84-123 (unit_types/rate_plans/line_items queries).
     builder = Orders::Builder.new(@order)
     builder.assign(
       params:               order_params,
@@ -103,6 +96,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order updated.'
     else
+      build_order_form_payload
       render :edit, status: :unprocessable_content
     end
   end
@@ -201,6 +195,15 @@ class OrdersController < ApplicationController
       :tax_cents,
       :total_cents
     )
+  end
+
+  def build_order_form_payload
+    @order_form_payload = Orders::FormPayloadBuilder.new(
+      order: @order,
+      unit_types: @unit_types,
+      service_rate_plans: @service_rate_plans,
+      company_id: current_user.company_id
+    ).call
   end
 
   def unit_type_requests_params

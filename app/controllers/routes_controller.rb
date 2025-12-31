@@ -34,7 +34,6 @@ class RoutesController < ApplicationController
     # TODO: Changes needed:
     # - Move header/forecast/summary computations into presenters (reduce inline view logic).
     # - Ensure stop presenters are built from preloaded data (orders, customers, locations, dump sites).
-    # - AR read in view: app/views/routes/show.html.erb:6-9 (route counts/estimated gallons); move into presenter.
     load_route_details
   end
 
