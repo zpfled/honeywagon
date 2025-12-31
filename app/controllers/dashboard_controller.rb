@@ -7,7 +7,6 @@ class DashboardController < ApplicationController
     # - @new_route (form model)
     # - @inventory_stats, @ytd_order_total_cents (header stats)
     # TODO: Changes needed:
-    # - Move DashboardRowPresenter instantiation out of the view (build collection in controller/presenter).
     # - Preload associations used by DashboardRowPresenter (service_events -> order -> customer/location, dump_site -> location).
     base_scope = current_user.company.routes.upcoming
                                    .includes(:truck, :trailer, service_events: { order: %i[customer location] })

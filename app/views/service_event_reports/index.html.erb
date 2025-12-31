@@ -21,49 +21,29 @@
       </thead>
 
       <tbody class="divide-y divide-gray-100 bg-white">
-        <% if @reports.any? %>
-          <% @reports.each do |report| %>
-            <% event = report.service_event %>
-            <% order = event.order %>
-            <% dump_site = event.dump_site %>
-            <% dump_event = event.event_type_dump? %>
+        <% if @report_presenters&.any? %>
+          <% @report_presenters.each do |presenter| %>
+            <% report = presenter.report %>
             <tr class="hover:bg-gray-50">
               <td class="px-4 py-3 text-sm text-gray-900">
-                <% central_time = event.updated_at.in_time_zone('Central Time (US & Canada)') %>
-                <div class="font-semibold"><%= l(central_time.to_date, format: :long) %></div>
-                <div class="text-xs text-gray-500"><%= central_time.strftime("%I:%M %p") %></div>
+                <div class="font-semibold"><%= presenter.date_label %></div>
+                <div class="text-xs text-gray-500"><%= presenter.time_label %></div>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <% if dump_event %>
-                  <div class="font-semibold"><%= dump_site&.name || 'Dump site' %></div>
-                <% else %>
-                  <div class="font-semibold"><%= order&.customer&.display_name %></div>
-                <% end %>
+                <div class="font-semibold"><%= presenter.customer_name %></div>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <% if dump_event %>
-                  <%= dump_site&.location&.full_address || '—' %>
-                <% else %>
-                  <%= [order&.location&.street, order&.location&.city, order&.location&.state, order&.location&.zip].compact.join(", ") %>
-                <% end %>
+                <%= presenter.address_label %>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <% if dump_event %>
-                  —
-                <% else %>
-                  <%= report.data["units_pumped"].presence || "—" %>
-                <% end %>
+                <%= presenter.units_serviced_label %>
               </td>
 
               <td class="px-4 py-3 text-sm text-gray-900">
-                <% if dump_event %>
-                  <%= report.data["estimated_gallons_dumped"].presence || "—" %>
-                <% else %>
-                  <%= report.data["estimated_gallons_pumped"].presence || "—" %>
-                <% end %>
+                <%= presenter.estimated_gallons_label %>
               </td>
               <td class="px-4 py-3 text-right">
                 <%= link_to "Edit", edit_service_event_report_path(report, redirect_path: service_event_reports_path),

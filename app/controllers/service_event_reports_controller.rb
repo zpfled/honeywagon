@@ -7,12 +7,17 @@ class ServiceEventReportsController < ApplicationController
     # - @reports (service_event -> order/customer/location, dump_site/location, report data)
     # TODO: Changes needed:
     # - Preload dump_site + location to avoid N+1 in report rows.
-    # - Move row formatting into a presenter (already TODO in view).
-    # - AR reads in view: app/views/service_event_reports/index.html.erb:26-49 (report.service_event/order/dump_site/location).
-    @reports = current_user.service_event_reports
-                           .includes(service_event: [ { order: %i[customer location] } ])
+    base_scope = current_user.service_event_reports
+                              .includes(service_event: { order: %i[customer location] })
+    if ServiceEvent.where(id: base_scope.select(:service_event_id), event_type: ServiceEvent.event_types[:dump]).exists?
+      base_scope = base_scope.includes(service_event: { dump_site: :location })
+    end
+    @reports = base_scope
                            .joins(:service_event)
                            .order(Arel.sql('service_events.completed_on DESC NULLS LAST, service_event_reports.created_at DESC'))
+    @report_presenters = @reports.map do |report|
+      ServiceEventReportPresenter.new(report, view_context: view_context)
+    end
   end
 
   def new
