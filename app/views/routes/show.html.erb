@@ -1,12 +1,12 @@
 <%= page_shell do %>
   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900">Route for <%= l(@route.route_date, format: "%A, %B %-d") %></h1>
+      <h1 class="text-2xl font-semibold text-gray-900">Route for <%= @route_header.route_date_label %></h1>
       <ul class="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-        <li><%= pluralize(@route_presenter.deliveries_count, 'delivery') %></li>
-        <li><%= pluralize(@route_presenter.services_count, 'service') %> (<%= pluralize(@route.serviced_units_count, 'unit') %>)</li>
-        <li><%= pluralize(@route_presenter.pickups_count, 'pickup') %></li>
-        <li><%= number_to_human(@route_presenter.estimated_gallons, units: { unit: 'gal' }, format: '%n %u') %> pumped</li>
+        <li><%= @route_header.deliveries_label %></li>
+        <li><%= @route_header.services_label %></li>
+        <li><%= @route_header.pickups_label %></li>
+        <li><%= @route_header.gallons_label %></li>
       </ul>
     </div>
     <div>
@@ -46,55 +46,45 @@
     </div>
   </div>
 
-  <%# TODO: extract header/forecast into a partial backed by RoutePresenter %>
-  <% if @previous_route || @next_route || @weather_forecast %>
+  <% if @route_header.navigation_present? %>
     <div class="mt-4 flex flex-col gap-3 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
       <div class="sm:w-1/3">
-        <% if @previous_route %>
-          <%= link_to route_path(@previous_route),
+        <% if @route_header.previous_route %>
+          <%= link_to route_path(@route_header.previous_route),
               class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
-            ← <%= l(@previous_route.route_date, format: "%A, %B %-d") %>
+            ← <%= @route_header.previous_route_label %>
           <% end %>
         <% end %>
       </div>
       <div class="text-center sm:w-1/3">
-        <% if @weather_forecast %>
+        <% if @route_header.weather_forecast_present? %>
           <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Forecast</p>
           <div class="mt-1 flex flex-wrap items-center justify-center gap-3 text-sm">
-            <% if @weather_forecast.high_temp.present? %>
-              <span class="<%= freeze_risk_class(@weather_forecast.high_temp) %>">High <%= @weather_forecast.high_temp %>°F</span>
+            <% if @route_header.forecast_high %>
+              <span class="<%= @route_header.forecast_high[:css_class] %>"><%= @route_header.forecast_high[:text] %></span>
             <% end %>
-            <% if @weather_forecast.low_temp.present? %>
-              <span class="<%= freeze_risk_class(@weather_forecast.low_temp) %>">Low <%= @weather_forecast.low_temp %>°F</span>
+            <% if @route_header.forecast_low %>
+              <span class="<%= @route_header.forecast_low[:css_class] %>"><%= @route_header.forecast_low[:text] %></span>
             <% end %>
-            <% if @weather_forecast.precip_percent.present? %>
-              <span><%= @weather_forecast.precip_percent %>% precip</span>
+            <% if @route_header.forecast_precip %>
+              <span><%= @route_header.forecast_precip %></span>
             <% end %>
           </div>
-          <% if @weather_forecast.summary.present? %>
-            <p class="mt-1 text-xs text-gray-600"><%= @weather_forecast.summary %></p>
+          <% if @route_header.forecast_summary.present? %>
+            <p class="mt-1 text-xs text-gray-600"><%= @route_header.forecast_summary %></p>
           <% end %>
         <% end %>
       </div>
       <div class="sm:w-1/3 sm:text-right">
-        <% if @next_route %>
-          <%= link_to route_path(@next_route),
+        <% if @route_header.next_route %>
+          <%= link_to route_path(@route_header.next_route),
               class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
-            <%= l(@next_route.route_date, format: "%A, %B %-d") %> →
+            <%= @route_header.next_route_label %> →
           <% end %>
         <% end %>
       </div>
     </div>
   <% end %>
-
-  <%# TODO: move capacity/waste/drive summary into RoutePresenter/RouteSummaryPresenter %>
-  <% trailer_usage = @route_summary.trailer_usage %>
-  <% clean_usage = @route_summary.clean_usage %>
-  <% waste_summary = @route_summary.waste_summary %>
-  <% waste_used = waste_summary[:cumulative_used] %>
-  <% waste_capacity = waste_summary[:capacity] %>
-  <% drive_time = @route_summary.drive_time %>
-  <% drive_distance = @route_summary.drive_distance %>
 
   <%= card classes: "mt-4" do %>
     <div class="flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
@@ -102,26 +92,26 @@
       <span><span class="font-semibold text-gray-900">Trailer:</span> <%= @route_summary.trailer_label %></span>
       <span>
         <span class="font-semibold text-gray-900">Trailer spots:</span>
-        <span class="<%= trailer_usage[:capacity] && trailer_usage[:used] > trailer_usage[:capacity] ? 'text-rose-700' : '' %>">
-          <%= trailer_usage[:used] %> / <%= trailer_usage[:capacity] || '—' %>
+        <span class="<%= @route_summary.trailer_usage_class %>">
+          <%= @route_summary.trailer_usage_label %>
         </span>
       </span>
       <span>
         <span class="font-semibold text-gray-900">Clean water:</span>
-        <span class="<%= clean_usage[:capacity] && clean_usage[:used] > clean_usage[:capacity] ? 'text-rose-700' : '' %>">
-          <%= clean_usage[:used] %> / <%= clean_usage[:capacity] || '—' %> gal
+        <span class="<%= @route_summary.clean_usage_class %>">
+          <%= @route_summary.clean_usage_label %>
         </span>
       </span>
       <span>
         <span class="font-semibold text-gray-900">Waste:</span>
-        <span class="<%= waste_summary[:over_capacity] ? 'text-rose-700' : '' %>">
-          <%= waste_used %> / <%= waste_capacity || '—' %> gal
+        <span class="<%= @route_summary.waste_usage_class %>">
+          <%= @route_summary.waste_usage_label %>
         </span>
       </span>
       <span>
         <span class="font-semibold text-gray-900">Est. drive:</span>
-        <% if drive_time.present? || drive_distance.present? %>
-          <span><%= [ drive_time, drive_distance ].compact.join(' • ') %></span>
+        <% if @route_summary.drive_label.present? %>
+          <span><%= @route_summary.drive_label %></span>
         <% else %>
           <span class="text-gray-500">Run optimizer</span>
         <% end %>

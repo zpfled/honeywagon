@@ -22,10 +22,6 @@ This document outlines an incremental, low-risk path to align the codebase with 
   - Map each controller action to its view(s) and list what the view reads (models, associations, computed values).
     - Here’s the refactor list based on the view audit and controller notes:
       Checklist to satisfy remaining controller TODOs:
-      - routes_controller.rb
-        - Move route header/forecast/summary computations into presenters.
-        - Ensure stop presenters are built from fully preloaded data (orders, customers, locations, dump sites).
-        - Expose stop presenters from Routes::DetailPresenter to remove view logic.
       - orders_controller.rb
         - Preload full OrderPresenter dependencies for show (units→unit_type, rental_line_items→unit_type, service_line_items, service_events→route).
         - Decide if service_event_types should move to a presenter/helper (only if it grows).

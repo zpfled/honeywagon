@@ -19,9 +19,6 @@ class RoutesController < ApplicationController
   end
 
   def show
-    # TODO: Changes needed:
-    # - Move header/forecast/summary computations into presenters (reduce inline view logic).
-    # - Ensure stop presenters are built from preloaded data (orders, customers, locations, dump sites).
     load_route_details
   end
 
@@ -43,8 +40,6 @@ class RoutesController < ApplicationController
 
   def update
     #   @route_summary, @dump_sites, @stop_presenters
-    # TODO: Changes needed:
-    # - Ensure load_route_details keeps view-only aggregation out of controller.
     if @route.update(route_params)
       redirect_to @route, notice: 'Route updated.'
     else
@@ -64,7 +59,6 @@ class RoutesController < ApplicationController
   end
 
   def load_route_details
-    # TODO: Expose stop presenters from Routes::DetailPresenter to remove view logic.
     presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
     @service_events = presenter.service_events
     @stop_presenters = presenter.stop_presenters
@@ -74,8 +68,14 @@ class RoutesController < ApplicationController
     @capacity_steps = presenter.capacity_steps
     @dump_sites = current_user.company.dump_sites.includes(:location)
     @weather_forecast = presenter.weather_forecast
-    @route_presenter = RoutePresenter.new(@route)
     @route_summary = Routes::ShowSummaryPresenter.new(route: @route, waste_load: @waste_load)
+    @route_header = Routes::ShowHeaderPresenter.new(
+      route: @route,
+      previous_route: @previous_route,
+      next_route: @next_route,
+      weather_forecast: @weather_forecast,
+      view_context: view_context
+    )
   end
 
   def load_fleet_assets

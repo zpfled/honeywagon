@@ -47,6 +47,39 @@ module Routes
       route.trailer&.label || 'None'
     end
 
+    def trailer_usage_label
+      usage = trailer_usage
+      "#{usage[:used]} / #{usage[:capacity] || '—'}"
+    end
+
+    def trailer_usage_class
+      usage = trailer_usage
+      usage[:capacity] && usage[:used] > usage[:capacity] ? 'text-rose-700' : ''
+    end
+
+    def clean_usage_label
+      usage = clean_usage
+      "#{usage[:used]} / #{usage[:capacity] || '—'} gal"
+    end
+
+    def clean_usage_class
+      usage = clean_usage
+      usage[:capacity] && usage[:used] > usage[:capacity] ? 'text-rose-700' : ''
+    end
+
+    def waste_usage_label
+      summary = waste_summary
+      "#{summary[:cumulative_used]} / #{summary[:capacity] || '—'} gal"
+    end
+
+    def waste_usage_class
+      waste_summary[:over_capacity] ? 'text-rose-700' : ''
+    end
+
+    def drive_label
+      [drive_time, drive_distance].compact.join(' • ').presence
+    end
+
     private
 
     attr_reader :route, :waste_load
