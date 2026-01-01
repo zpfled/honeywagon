@@ -1,13 +1,5 @@
 class DashboardController < ApplicationController
   def index
-    # TODO: View reads:
-    # - @routes (iterated; DashboardRowPresenter built in view)
-    # - @waste_loads (per-route waste summary)
-    # - @trucks, @trailers (new route form)
-    # - @new_route (form model)
-    # - @inventory_stats, @ytd_order_total_cents (header stats)
-    # TODO: Changes needed:
-    # - Preload associations used by DashboardRowPresenter (service_events -> order -> customer/location, dump_site -> location).
     base_scope = current_user.company.routes.upcoming
                                    .includes(:truck, :trailer, service_events: { order: %i[customer location] })
     if ServiceEvent.where(route_id: base_scope.select(:id), event_type: ServiceEvent.event_types[:dump]).exists?

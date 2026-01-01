@@ -3,10 +3,6 @@ module Routes
     before_action :set_route
 
     def create
-      # TODO: View reads:
-      # - None (redirect only).
-      # TODO: Changes needed:
-      # - None.
       dump_site = current_user.company.dump_sites.find_by(id: dump_event_params[:dump_site_id])
       unless dump_site
         return redirect_to route_path(@route), alert: 'Select a valid dump site.'

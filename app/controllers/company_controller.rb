@@ -3,29 +3,19 @@ class CompanyController < ApplicationController
   before_action :set_company
 
   def edit
-    # TODO: View reads:
-    # - @company (profile form)
-    # - @unit_types, @rate_plan_rows, @service_schedule_options, @billing_period_options
-    # - @dump_sites, @trucks, @trailers
-    # - @unit_type, @rate_plan, @dump_site, @truck, @trailer (inline forms/modals)
     # TODO: Changes needed:
-    # - Ensure preloads cover unit_type units/counts and dump_site locations.
     # - Move any aggregation/formatting for rate_plan_rows into presenters/services if it grows.
-    # - AR reads in view: app/views/company/edit.html.erb:137,144 (unit_type.units.count).
     build_forms
     load_company_data
   end
 
   def update
-    # TODO: View reads (on error render :edit/:customers/:expenses):
-    # - edit: @company, @unit_types, @rate_plan_rows, @service_schedule_options, @billing_period_options,
     #   @dump_sites, @trucks, @trailers, @unit_type, @rate_plan, @dump_site, @truck, @trailer
     # - customers: @customers, @customer
     # - expenses: @expenses, @expense_category_options, @expense_type_options, @expense_applies_options, @expense
     # TODO: Changes needed:
     # - Extract the create/update workflow into services/form objects to slim controller (already TODO).
     # - Keep view aggregation in presenters/services as it expands.
-    # - AR reads in view: app/views/company/edit.html.erb:137,144 (unit_type.units.count).
     redirect_target = params[:redirect_to].presence
     ActiveRecord::Base.transaction do
       # TODO: extract these create/update steps into dedicated services/form objects to slim the controller
@@ -63,22 +53,11 @@ class CompanyController < ApplicationController
   end
 
   def customers
-    # TODO: View reads:
-    # - @customers (list)
-    # - @customer (inline form model)
-    # TODO: Changes needed:
-    # - None.
     build_forms
     load_customers_page_data
   end
 
   def expenses
-    # TODO: View reads:
-    # - @expenses (list)
-    # - @expense_category_options, @expense_type_options, @expense_applies_options (form selects)
-    # - @expense (inline form model)
-    # TODO: Changes needed:
-    # - None.
     build_forms
     load_expenses_page_data
   end

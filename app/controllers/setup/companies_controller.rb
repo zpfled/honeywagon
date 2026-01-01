@@ -3,22 +3,11 @@ module Setup
     skip_before_action :ensure_company_setup!
 
     def show
-      # TODO: View reads:
-      # - @company (form model)
-      # - @unit_types (setup unit type entries)
-      # - @customers (setup customer entries)
-      # TODO: Changes needed:
-      # - None.
       @company = current_user.company
       build_form_models
     end
 
     def update
-      # TODO: View reads (on failure render :show):
-      # - @company (form model with errors)
-      # - @unit_types, @customers (setup entries)
-      # TODO: Changes needed:
-      # - None.
       @company = current_user.company
 
       ActiveRecord::Base.transaction do

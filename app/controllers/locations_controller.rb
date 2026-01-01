@@ -2,11 +2,6 @@ class LocationsController < ApplicationController
   before_action :set_customer_scope
 
   def new
-    # TODO: View reads:
-    # - @location (form model)
-    # - @location.customer (header summary when present)
-    # TODO: Changes needed:
-    # - None.
     @customer = find_customer_from_params
     return render_missing_customer unless @customer
 
@@ -15,11 +10,6 @@ class LocationsController < ApplicationController
   end
 
   def create
-    # TODO: View reads (on failure render :new):
-    # - @location (form model with errors)
-    # - @location.customer (header summary when present)
-    # TODO: Changes needed:
-    # - None.
     place_id = location_params[:place_id]
     @location = Location.new(location_params.except(:customer_id, :place_id))
     assign_customer!

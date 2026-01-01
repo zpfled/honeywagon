@@ -4,10 +4,6 @@ class RoutesController < ApplicationController
   before_action :load_fleet_assets, only: %i[index create show update]
 
   def index
-    # TODO: View reads:
-    # - @route (new Route for form)
-    # - @trucks, @trailers (fleet dropdowns)
-    # - @route_rows (Routes::IndexPresenter rows; row.route, row counts, over_capacity badges)
     # TODO: Changes needed:
     # - Ensure preloads cover row presenter usage (service_events -> order -> rental_line_items -> unit_type, plus truck/trailer).
     # - Move per-row label formatting (over-capacity dimension text) into presenter.
@@ -23,14 +19,6 @@ class RoutesController < ApplicationController
   end
 
   def show
-    # TODO: View reads:
-    # - @route (header counts, form)
-    # - @trucks, @trailers (edit form)
-    # - @previous_route, @next_route (navigation)
-    # - @weather_forecast (forecast panel)
-    # - @route_summary (capacity/drive summary)
-    # - @dump_sites (dump-site selector; uses dump_site.location)
-    # - @stop_presenters (route stops table)
     # TODO: Changes needed:
     # - Move header/forecast/summary computations into presenters (reduce inline view logic).
     # - Ensure stop presenters are built from preloaded data (orders, customers, locations, dump sites).
@@ -38,8 +26,6 @@ class RoutesController < ApplicationController
   end
 
   def create
-    # TODO: View reads (on failure render :index):
-    # - Same as index: @route, @trucks, @trailers, @route_rows
     # TODO: Changes needed:
     # - Ensure index preloads still applied on error branch.
     @route = current_user.company.routes.new(route_params)
@@ -56,8 +42,6 @@ class RoutesController < ApplicationController
   end
 
   def update
-    # TODO: View reads (on failure render :show):
-    # - Same as show: @route, @trucks, @trailers, @previous_route, @next_route, @weather_forecast,
     #   @route_summary, @dump_sites, @stop_presenters
     # TODO: Changes needed:
     # - Ensure load_route_details keeps view-only aggregation out of controller.

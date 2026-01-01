@@ -3,8 +3,6 @@ class Routes::OrderingsController < ApplicationController
   before_action :set_route
 
   def update
-    # TODO: View reads:
-    # - None (redirect only).
     # TODO: Changes needed:
     # - Move sequencing/metrics application into a service (already TODO in controller).
     ordered_ids = Array(params[:event_ids]).map(&:presence).compact

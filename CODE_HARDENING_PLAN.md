@@ -21,12 +21,23 @@ This document outlines an incremental, low-risk path to align the codebase with 
 - Ensure controller actions preload what views need; push aggregation logic into presenters/services.
   - Map each controller action to its view(s) and list what the view reads (models, associations, computed values).
     - Here’s the refactor list based on the view audit and controller notes:
-      - ~Move route header counts (deliveries_count, services_count, pickups_count, estimated_gallons) out of show.html.erb (lines 6-9) into a presenter and preload required data in routes_controller.rb.~
-      - ~Extract order form payload building from _form.html.erb (lines 84-123) into a presenter/service and have orders_controller.rb supply the payload data.~
-      - ~Preload OrderPresenter dependencies for index.html.erb (lines 52-95) in orders_controller.rb and build presenters in the controller (collection presenter).~
-      - ~Build dashboard row presenters in dashboard_controller.rb and preload all associations used by Routes::DashboardRowPresenter (service events, orders, customers, locations, dump sites).~
-      - ~Replace unit_type.units.count calls in edit.html.erb:137,144 with precomputed counts from company_controller.rb (or a presenter).~
-      - Replace report-row formatting in index.html.erb (lines 26-49) with a presenter and preload dump_site + location in service_event_reports_controller.rb.
+      Checklist to satisfy remaining controller TODOs:
+      - routes_controller.rb
+        - Move route header/forecast/summary computations into presenters.
+        - Ensure stop presenters are built from fully preloaded data (orders, customers, locations, dump sites).
+        - Expose stop presenters from Routes::DetailPresenter to remove view logic.
+      - orders_controller.rb
+        - Preload full OrderPresenter dependencies for show (units→unit_type, rental_line_items→unit_type, service_line_items, service_events→route).
+        - Decide if service_event_types should move to a presenter/helper (only if it grows).
+      - company_controller.rb
+        - Extract update workflow into services/form objects to slim controller.
+        - Move rate plan row aggregation/formatting to a presenter if it grows.
+      - service_event_reports_controller.rb
+        - If prefill/fields logic grows, move into a presenter/service (new/edit actions).
+      - orderings_controller.rb
+        - Move sequencing/metrics application into a dedicated service (ApplyResult).
+      - optimizations_controller.rb
+        - Move sequencing/metrics persistence into a dedicated service (ApplyResult).
   - Identify view-side queries/aggregation and decide the right home (presenter/service), plus any missing includes/preloads.
   - Draft a refactor checklist per controller (action → preload changes → logic to move).
   - Implement preloads and move aggregation/formatting to presenters/services; slim controllers accordingly.

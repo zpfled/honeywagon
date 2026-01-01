@@ -1,18 +1,10 @@
 class CustomersController < ApplicationController
   def new
-    # TODO: View reads:
-    # - @customer (form model)
-    # TODO: Changes needed:
-    # - None.
     @customer = current_user.company.customers.new
     render layout: false if turbo_frame_request?
   end
 
   def create
-    # TODO: View reads (on failure render :new):
-    # - @customer (form model with errors)
-    # TODO: Changes needed:
-    # - None.
     @customer = current_user.company.customers.new(customer_params)
 
     respond_to do |format|

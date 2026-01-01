@@ -1,10 +1,6 @@
 module Users
   class RegistrationsController < Devise::RegistrationsController
     def create
-      # TODO: View reads:
-      # - Devise registration form on validation errors (resource + company_name).
-      # TODO: Changes needed:
-      # - None.
       permitted_params = sign_up_params
       company_name = permitted_params[:company_name]
       build_resource(permitted_params.except(:company_name))
