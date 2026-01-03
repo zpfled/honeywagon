@@ -46,3 +46,7 @@
 - Routing API dependency: start with in-app heuristics; if external API is used, wrap behind a service with graceful fallbacks.
 - Overbooking bugs: rely on database constraints plus tests that attempt concurrent bookings.
 - Data quality for reporting: enforce required fields on service logs; provide exports for annual filings.
+
+## Decisions
+- Company profile updates are orchestrated via `Companies::ProfileUpdater` with dedicated form objects for each workflow branch to keep controllers thin and logic testable.
+- Rate plan row aggregation lives in `Companies::RatePlanRowsPresenter` to keep view formatting out of controllers.

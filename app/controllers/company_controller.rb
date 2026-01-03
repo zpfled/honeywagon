@@ -1,38 +1,39 @@
 class CompanyController < ApplicationController
-  include FormNormalizers
   before_action :set_company
 
   def edit
-    # TODO: Changes needed:
-    # - Move any aggregation/formatting for rate_plan_rows into presenters/services if it grows.
     build_forms
     load_company_data
   end
 
   def update
-    #   @dump_sites, @trucks, @trailers, @unit_type, @rate_plan, @dump_site, @truck, @trailer
-    # - customers: @customers, @customer
-    # - expenses: @expenses, @expense_category_options, @expense_type_options, @expense_applies_options, @expense
-    # TODO: Changes needed:
-    # - Extract the create/update workflow into services/form objects to slim controller (already TODO).
-    # - Keep view aggregation in presenters/services as it expands.
     redirect_target = params[:redirect_to].presence
-    ActiveRecord::Base.transaction do
-      # TODO: extract these create/update steps into dedicated services/form objects to slim the controller
-      update_company_details!
-      create_truck!
-      create_trailer!
-      create_customer!
-      create_unit_type!
-      create_rate_plan!
-      create_dump_site!
-      create_expense!
-      update_unit_inventory!
+    result = Companies::ProfileUpdater.new(
+      company: @company,
+      company_params: company_params,
+      truck_params: truck_params,
+      trailer_params: trailer_params,
+      customer_params: customer_params,
+      unit_type_params: unit_type_params,
+      rate_plan_params: rate_plan_params,
+      dump_site_params: dump_site_params,
+      expense_params: expense_params,
+      unit_inventory_params: unit_inventory_params
+    ).call
+
+    if result.success?
+      redirect_to(redirect_target || edit_company_path, notice: 'Company profile updated.')
+      return
     end
 
-    redirect_to(redirect_target || edit_company_path, notice: 'Company profile updated.')
-  rescue ActiveRecord::RecordInvalid => e
-    flash.now[:alert] = e.record.errors.full_messages.to_sentence
+    error_record = result.error_record
+    flash.now[:alert] =
+      if error_record.present?
+        error_record.errors.full_messages.to_sentence
+      else
+        'Unable to update company profile.'
+      end
+
     template =
       case redirect_target
       when customers_company_path then :customers
@@ -71,8 +72,11 @@ class CompanyController < ApplicationController
   def load_company_data
     @unit_types = @company.unit_types.includes(:rate_plans).order(:name)
     @unit_counts_by_type = @company.units.group(:unit_type_id).count
-    service_rows = @company.rate_plans.service_only.order(:service_schedule).map { |plan| [ nil, plan ] }
-    @rate_plan_rows = @unit_types.flat_map { |ut| ut.rate_plans.map { |plan| [ ut, plan ] } } + service_rows
+    service_rate_plans = @company.rate_plans.service_only.order(:service_schedule)
+    @rate_plan_rows = Companies::RatePlanRowsPresenter.new(
+      unit_types: @unit_types,
+      service_rate_plans: service_rate_plans
+    ).rows
     @trucks = @company.trucks.where.not(id: nil).order(:name).to_a
     @trailers = @company.trailers.where.not(id: nil).order(:name).to_a
     @dump_sites = @company.dump_sites.includes(:location).where.not(id: nil).order(:name).to_a
@@ -193,116 +197,4 @@ class CompanyController < ApplicationController
     @expense ||= @company.expenses.new
     @company.build_home_base unless @company.home_base
   end
-
-  def update_company_details!
-    attrs = company_params
-    return if attrs.blank?
-
-    @company.update!(attrs)
-  end
-
-  def create_truck!
-    attrs = truck_params
-    return if attrs.values.all?(&:blank?)
-
-    @company.trucks.create!(attrs)
-  end
-
-  def create_trailer!
-    attrs = trailer_params
-    return if attrs.values.all?(&:blank?)
-
-    @company.trailers.create!(attrs)
-  end
-
-  def create_customer!
-    attrs = customer_params
-    return if attrs.values.all?(&:blank?)
-
-    @company.customers.create!(attrs)
-  end
-
-  def create_unit_type!
-    attrs = unit_type_params
-    return if attrs.values.all?(&:blank?)
-
-    attrs[:slug] = attrs[:name].to_s.parameterize.presence || attrs[:slug]
-    attrs[:prefix] = attrs[:prefix].to_s.upcase if attrs[:prefix].present?
-    attrs[:next_serial] = 1
-
-    @unit_type = @company.unit_types.new(attrs.compact)
-    @unit_type.save!
-  end
-
-  def create_rate_plan!
-    attrs = rate_plan_params
-    return if attrs.values.all?(&:blank?)
-
-    unit_type_id = attrs.delete(:unit_type_id).presence
-    attrs[:price_cents] = normalize_price(attrs[:price_cents])
-    attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
-
-    if unit_type_id.present?
-      unit_type = @company.unit_types.find(unit_type_id)
-      @rate_plan = unit_type.rate_plans.new(attrs.compact)
-    else
-      @rate_plan = @company.rate_plans.new(attrs.compact)
-    end
-
-    @rate_plan.company = @company
-    @rate_plan.save!
-  end
-
-  def create_dump_site!
-    attrs = dump_site_params
-    return if attrs.blank?
-
-    location_attrs = attrs.delete(:location_attributes) || {}
-    location = Location.new(location_attrs)
-    location.dump_site = true
-    location.save!
-
-    @dump_site = @company.dump_sites.new(attrs.merge(location: location))
-    @dump_site.save!
-  end
-
-  def create_expense!
-    attrs = expense_params
-    return if attrs.blank? || attrs[:name].blank?
-
-    attrs[:base_amount] = normalize_decimal(attrs[:base_amount])
-    attrs[:package_size] = normalize_decimal(attrs[:package_size])
-    attrs[:active] = attrs.key?(:active) ? ActiveModel::Type::Boolean.new.cast(attrs[:active]) : true
-    attrs[:applies_to] = Array(attrs[:applies_to]).reject(&:blank?)
-
-    @expense = @company.expenses.new(attrs.compact)
-    @expense.save!
-  end
-
-  def update_unit_inventory!
-    attrs = unit_inventory_params
-    return if attrs.blank? || attrs[:unit_type_id].blank? || attrs[:quantity].blank?
-
-    unit_type = @company.unit_types.find(attrs[:unit_type_id])
-    target = attrs[:quantity].to_i
-    raise ActiveRecord::RecordInvalid.new(unit_type), 'Quantity must be zero or greater.' if target.negative?
-
-    current = unit_type.units.count
-    difference = target - current
-    return if difference.zero?
-
-    if difference.positive?
-      difference.times { @company.units.create!(unit_type: unit_type, status: 'available') }
-    else
-      removable = unit_type.units.where(status: 'available').order(created_at: :desc)
-      needed = difference.abs
-      if removable.count < needed
-        unit_type.errors.add(:base, "Only #{removable.count} available units can be removed right now.")
-        raise ActiveRecord::RecordInvalid.new(unit_type)
-      end
-      removable.limit(needed).each(&:destroy!)
-    end
-  end
-
-  # normalize helpers now provided by FormNormalizers concern
 end
