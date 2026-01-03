@@ -19,7 +19,7 @@ RSpec.describe "Order service events management", type: :request do
   end
 
   it "handles missing events gracefully" do
-    delete order_service_event_path(order, SecureRandom.uuid)
+    delete order_service_event_path(order, 'bad id')
 
     expect(response).to redirect_to(order_path(order))
     follow_redirect!

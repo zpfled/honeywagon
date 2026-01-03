@@ -77,7 +77,7 @@ module Routes
     end
 
     def drive_label
-      [drive_time, drive_distance].compact.join(' • ').presence
+      [ drive_time, drive_distance ].compact.join(' • ').presence
     end
 
     private

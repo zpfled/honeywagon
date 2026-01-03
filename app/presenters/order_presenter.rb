@@ -21,7 +21,7 @@ class OrderPresenter
   def initialize(order, view_context:, units_count: nil)
     @order = order
     @view = view_context
-    @units_count = units_count
+    @units_count = units_count unless units_count.nil?
   end
 
   #
@@ -217,9 +217,15 @@ class OrderPresenter
   end
 
   def service_events
-    @service_events ||= order.service_events
-                              .includes(:route)
-                              .order(:scheduled_on, :event_type)
+    @service_events ||= begin
+      association = order.respond_to?(:association) ? order.association(:service_events) : nil
+
+      if association&.loaded?
+        order.service_events.sort_by { |event| [ event.scheduled_on, event.event_type.to_s ] }
+      else
+        order.service_events.includes(:route).order(:scheduled_on, :event_type)
+      end
+    end
   end
 
   def service_events_count
@@ -312,7 +318,19 @@ class OrderPresenter
   # Returns how many units are assigned to the order.
   def units_count
     return @units_count if defined?(@units_count)
-    @units_count = order.respond_to?(:units) ? order.units.size : 0
+    return (@units_count = 0) unless order.respond_to?(:units)
+
+    order_units_association = order.respond_to?(:association) ? order.association(:order_units) : nil
+
+    if order_units_association&.loaded?
+      @units_count = order_units_association.target.size
+    else
+      @units_count = order.units.size
+    end
+  end
+
+  def units
+    order.units
   end
 
   private

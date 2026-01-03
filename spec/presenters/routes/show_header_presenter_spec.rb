@@ -33,7 +33,7 @@ RSpec.describe Routes::ShowHeaderPresenter do
 
     expect(presenter.route_date_label).to eq(view_context.l(route_date, format: '%A, %B %-d'))
     expect(presenter.deliveries_label).to eq('0 deliveries')
-    expect(presenter.services_label).to eq('1 service (0 units)')
+    expect(presenter.services_label).to eq('1 service (2 units)')
     expect(presenter.pickups_label).to eq('0 pickups')
     expect(presenter.gallons_label).to eq("#{view_context.number_to_human(20, units: { unit: 'gal' }, format: '%n %u')} pumped")
     expect(presenter.previous_route_label).to eq(view_context.l(previous_route.route_date, format: '%A, %B %-d'))

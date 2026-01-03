@@ -1,5 +1,6 @@
 class OrdersController < ApplicationController
-  before_action :set_order, only: %i[show edit update destroy schedule]
+  before_action :set_order, only: %i[edit update destroy schedule]
+  before_action :set_order_with_presenter_preloads, only: %i[show]
   before_action :load_form_options, only: %i[new create edit update]
 
   def index
@@ -25,10 +26,6 @@ class OrdersController < ApplicationController
   end
 
   def show
-    # TODO: Changes needed:
-    # - Preload order associations used by OrderPresenter (customer, location, units->unit_type,
-    #   rental_line_items->unit_type, service_line_items, service_events->route).
-    # - Keep service event type list in a presenter/helper if it grows.
     @order_presenter = OrderPresenter.new(@order, view_context: view_context)
     @service_event_types = ServiceEvent.event_types.keys
   end
@@ -127,6 +124,18 @@ class OrdersController < ApplicationController
 
   def set_order
     @order = current_user.company.orders.find(params[:id])
+  end
+
+  def set_order_with_presenter_preloads
+    @order = current_user.company.orders
+                       .includes(
+                         :customer,
+                         :location,
+                         { rental_line_items: :unit_type },
+                         { service_line_items: :rate_plan },
+                         { service_events: :route }
+                       )
+                       .find(params[:id])
   end
 
   def load_form_options
