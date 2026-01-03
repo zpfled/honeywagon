@@ -3,8 +3,6 @@ class Routes::OptimizationsController < ApplicationController
   before_action :set_route
 
   def create
-    # TODO: Changes needed:
-    # - Move optimization apply logic into a service (already TODO in controller).
     result = Routes::Optimization::Run.call(@route)
 
     if result.success?
@@ -20,7 +18,6 @@ class Routes::OptimizationsController < ApplicationController
       flash[:alert] = result.errors.join(' ').html_safe
     end
 
-    # TODO: delegate sequencing/metrics persistence to a service (ApplyResult) to keep controller skinny
     redirect_to route_path(@route)
   end
 

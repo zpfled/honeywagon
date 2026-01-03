@@ -19,13 +19,6 @@ This document outlines an incremental, low-risk path to align the codebase with 
 
 2) **Controllers Slim-Down**
 - Ensure controller actions preload what views need; push aggregation logic into presenters/services.
-  - Map each controller action to its view(s) and list what the view reads (models, associations, computed values).
-    - Here’s the refactor list based on the view audit and controller notes:
-      Checklist to satisfy remaining controller TODOs:
-      - orderings_controller.rb
-        - Move sequencing/metrics application into a dedicated service (ApplyResult).
-      - optimizations_controller.rb
-        - Move sequencing/metrics persistence into a dedicated service (ApplyResult).
   - Identify view-side queries/aggregation and decide the right home (presenter/service), plus any missing includes/preloads.
   - Draft a refactor checklist per controller (action → preload changes → logic to move).
   - Implement preloads and move aggregation/formatting to presenters/services; slim controllers accordingly.
