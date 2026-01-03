@@ -22,8 +22,6 @@ This document outlines an incremental, low-risk path to align the codebase with 
   - Map each controller action to its view(s) and list what the view reads (models, associations, computed values).
     - Here’s the refactor list based on the view audit and controller notes:
       Checklist to satisfy remaining controller TODOs:
-      - service_event_reports_controller.rb
-        - If prefill/fields logic grows, move into a presenter/service (new/edit actions).
       - orderings_controller.rb
         - Move sequencing/metrics application into a dedicated service (ApplyResult).
       - optimizations_controller.rb
