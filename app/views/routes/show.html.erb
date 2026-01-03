@@ -1,12 +1,12 @@
 <%= page_shell do %>
   <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-semibold text-gray-900">Route for <%= l(@route.route_date, format: "%A, %B %-d") %></h1>
+      <h1 class="text-2xl font-semibold text-gray-900">Route for <%= @route_header.route_date_label %></h1>
       <ul class="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
-        <li><%= pluralize(@route.deliveries_count, 'delivery') %></li>
-        <li><%= pluralize(@route.services_count, 'service') %> (<%= pluralize(@route.serviced_units_count, 'unit') %>)</li>
-        <li><%= pluralize(@route.pickups_count, 'pickup') %></li>
-        <li><%= number_to_human(@route.estimated_gallons, units: { unit: 'gal' }, format: '%n %u') %> pumped</li>
+        <li><%= @route_header.deliveries_label %></li>
+        <li><%= @route_header.services_label %></li>
+        <li><%= @route_header.pickups_label %></li>
+        <li><%= @route_header.gallons_label %></li>
       </ul>
     </div>
     <div>
@@ -46,95 +46,77 @@
     </div>
   </div>
 
-  <%# TODO: extract header/forecast into a partial backed by RoutePresenter %>
-  <% if @previous_route || @next_route || @weather_forecast %>
+  <% if @route_header.navigation_present? %>
     <div class="mt-4 flex flex-col gap-3 text-xs text-gray-600 sm:flex-row sm:items-center sm:justify-between">
       <div class="sm:w-1/3">
-        <% if @previous_route %>
-          <%= link_to route_path(@previous_route),
+        <% if @route_header.previous_route %>
+          <%= link_to route_path(@route_header.previous_route),
               class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
-            ← <%= l(@previous_route.route_date, format: "%A, %B %-d") %>
+            ← <%= @route_header.previous_route_label %>
           <% end %>
         <% end %>
       </div>
       <div class="text-center sm:w-1/3">
-        <% if @weather_forecast %>
+        <% if @route_header.weather_forecast_present? %>
           <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Forecast</p>
           <div class="mt-1 flex flex-wrap items-center justify-center gap-3 text-sm">
-            <% if @weather_forecast.high_temp.present? %>
-              <span class="<%= freeze_risk_class(@weather_forecast.high_temp) %>">High <%= @weather_forecast.high_temp %>°F</span>
+            <% if @route_header.forecast_high %>
+              <span class="<%= @route_header.forecast_high[:css_class] %>"><%= @route_header.forecast_high[:text] %></span>
             <% end %>
-            <% if @weather_forecast.low_temp.present? %>
-              <span class="<%= freeze_risk_class(@weather_forecast.low_temp) %>">Low <%= @weather_forecast.low_temp %>°F</span>
+            <% if @route_header.forecast_low %>
+              <span class="<%= @route_header.forecast_low[:css_class] %>"><%= @route_header.forecast_low[:text] %></span>
             <% end %>
-            <% if @weather_forecast.precip_percent.present? %>
-              <span><%= @weather_forecast.precip_percent %>% precip</span>
+            <% if @route_header.forecast_precip %>
+              <span><%= @route_header.forecast_precip %></span>
             <% end %>
           </div>
-          <% if @weather_forecast.summary.present? %>
-            <p class="mt-1 text-xs text-gray-600"><%= @weather_forecast.summary %></p>
+          <% if @route_header.forecast_summary.present? %>
+            <p class="mt-1 text-xs text-gray-600"><%= @route_header.forecast_summary %></p>
           <% end %>
         <% end %>
       </div>
       <div class="sm:w-1/3 sm:text-right">
-        <% if @next_route %>
-          <%= link_to route_path(@next_route),
+        <% if @route_header.next_route %>
+          <%= link_to route_path(@route_header.next_route),
               class: "inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1.5 font-semibold text-gray-700 shadow-sm hover:bg-gray-50" do %>
-            <%= l(@next_route.route_date, format: "%A, %B %-d") %> →
+            <%= @route_header.next_route_label %> →
           <% end %>
         <% end %>
       </div>
     </div>
   <% end %>
 
-  <%# TODO: move capacity/waste/drive summary into RoutePresenter/RouteSummaryPresenter %>
-  <% capacity = @route.capacity_summary %>
-  <% trailer_usage = capacity.trailer_usage %>
-  <% clean_usage = capacity.clean_water_usage %>
-  <% waste_usage = capacity.waste_usage %>
-  <% default_summary = {
-       cumulative_used: waste_usage[:used],
-       capacity: waste_usage[:capacity],
-       remaining: waste_usage[:capacity] ? waste_usage[:capacity] - waste_usage[:used] : nil,
-       over_capacity: waste_usage[:capacity] && waste_usage[:used] > waste_usage[:capacity]
-     } %>
-  <% waste_summary = @waste_load || default_summary %>
-  <% waste_used = waste_summary[:cumulative_used] || waste_usage[:used] %>
-  <% waste_capacity = waste_summary[:capacity] %>
-  <% drive_time = @route_presenter.humanized_drive_time %>
-  <% drive_distance = @route_presenter.humanized_drive_distance %>
-
   <%= card classes: "mt-4" do %>
     <div class="flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
-      <span><span class="font-semibold text-gray-900">Truck:</span> <%= @route.truck&.label || "Unassigned" %></span>
-      <span><span class="font-semibold text-gray-900">Trailer:</span> <%= @route.trailer&.label || "None" %></span>
+      <span><span class="font-semibold text-gray-900">Truck:</span> <%= @route_summary.truck_label %></span>
+      <span><span class="font-semibold text-gray-900">Trailer:</span> <%= @route_summary.trailer_label %></span>
       <span>
         <span class="font-semibold text-gray-900">Trailer spots:</span>
-        <span class="<%= trailer_usage[:capacity] && trailer_usage[:used] > trailer_usage[:capacity] ? 'text-rose-700' : '' %>">
-          <%= trailer_usage[:used] %> / <%= trailer_usage[:capacity] || '—' %>
+        <span class="<%= @route_summary.trailer_usage_class %>">
+          <%= @route_summary.trailer_usage_label %>
         </span>
       </span>
       <span>
         <span class="font-semibold text-gray-900">Clean water:</span>
-        <span class="<%= clean_usage[:capacity] && clean_usage[:used] > clean_usage[:capacity] ? 'text-rose-700' : '' %>">
-          <%= clean_usage[:used] %> / <%= clean_usage[:capacity] || '—' %> gal
+        <span class="<%= @route_summary.clean_usage_class %>">
+          <%= @route_summary.clean_usage_label %>
         </span>
       </span>
       <span>
         <span class="font-semibold text-gray-900">Waste:</span>
-        <span class="<%= waste_summary[:over_capacity] ? 'text-rose-700' : '' %>">
-          <%= waste_used %> / <%= waste_capacity || '—' %> gal
+        <span class="<%= @route_summary.waste_usage_class %>">
+          <%= @route_summary.waste_usage_label %>
         </span>
       </span>
       <span>
         <span class="font-semibold text-gray-900">Est. drive:</span>
-        <% if drive_time.present? || drive_distance.present? %>
-          <span><%= [ drive_time, drive_distance ].compact.join(' • ') %></span>
+        <% if @route_summary.drive_label.present? %>
+          <span><%= @route_summary.drive_label %></span>
         <% else %>
           <span class="text-gray-500">Run optimizer</span>
         <% end %>
       </span>
-      <% if @route.optimization_stale? && (drive_time.present? || drive_distance.present?) %>
+      <% if @route_summary.optimization_stale? %>
         <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
           Needs re-optimization
         </span>
@@ -181,8 +163,8 @@
         </div>
       </div>
       <div class="hidden" data-route-ordering-target="inputContainer">
-        <% @service_events.each do |event| %>
-          <%= hidden_field_tag "event_ids[]", event.id %>
+        <% @stop_presenters.each do |stop| %>
+          <%= hidden_field_tag "event_ids[]", stop.id %>
         <% end %>
       </div>
       <table class="min-w-full divide-y divide-gray-200">
@@ -197,175 +179,9 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 bg-white">
-          <% if @service_events.any? %>
-            <% @service_events.each do |event| %>
-              <% order = event.order %>
-              <% step = (@capacity_steps || {})[event.id] %>
-              <% dump_site = event.dump_site if event.event_type_dump? %>
-              <% completed = event.status_completed? %>
-              <% disable_later = completed || event.prevent_move_later? %>
-              <% disable_earlier = completed || event.prevent_move_earlier? %>
-              <% later_hint = if event.prevent_move_later?
-                                'Deliveries must stay on or before their scheduled date.'
-                              end %>
-              <% earlier_hint = if event.prevent_move_earlier?
-                                  'Pickups must stay on their scheduled date.'
-                                end %>
-              <tr class="hover:bg-gray-50 <%= completed ? 'opacity-60 bg-emerald-50' : '' %>"
-                  data-route-ordering-target="row"
-                  data-event-id="<%= event.id %>">
-                <td class="<%= table_cell_class %>">
-                  <% leg_distance = event.humanized_leg_drive_distance %>
-                  <% fuel_cost_cents = event.estimated_fuel_cost_cents %>
-                  <div class="flex items-start gap-2">
-                    <div class="flex flex-col leading-tight">
-                      <span class="text-xs font-semibold text-gray-500" data-route-ordering-target="number">
-                        <%= event.route_sequence.present? ? event.route_sequence + 1 : '—' %>
-                      </span>
-                      <span class="text-[11px] text-gray-400">
-                        <%= leg_distance || '—' %>
-                        <% if fuel_cost_cents %>
-                          • <%= number_to_currency(fuel_cost_cents / 100.0) %>
-                        <% end %>
-                      </span>
-                    </div>
-                    <div class="flex flex-col">
-                      <button type="button"
-                              class="inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                              title="Move up"
-                              data-action="route-ordering#moveUp">
-                        ↑
-                      </button>
-                      <button type="button"
-                              class="mt-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100"
-                              title="Move down"
-                              data-action="route-ordering#moveDown">
-                        ↓
-                      </button>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <div class="text-sm font-semibold <%= event.overdue? ? 'text-rose-600' : 'text-gray-900' %>">
-                    <%= l(event.scheduled_on, format: :long) %>
-                  </div>
-                  <div class="mt-1">
-                    <%= badge(event.event_type.humanize, tone: :info) %>
-                  </div>
-                  <% if event.overdue? %>
-                    <div class="mt-1 inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
-                      Overdue • <%= pluralize(event.days_overdue, 'day') %>
-                    </div>
-                  <% end %>
-                </td>
-                <td class="<%= table_cell_class %>">
-                  <%= event.event_type_dump? ? '—' : event.units_impacted_count %>
-                </td>
-                <td class="<%= table_cell_class %>">
-                  <% if step %>
-                    <div class="flex flex-col gap-0.5 text-[11px] leading-tight">
-                      <% if step.waste_capacity %>
-                        <% waste_ratio = step.waste_capacity.zero? ? 0 : (step.waste_used.to_f / step.waste_capacity) %>
-                        <% waste_class = waste_ratio >= 1 ? 'text-rose-700 font-semibold' : waste_ratio >= 0.8 ? 'text-amber-600 font-semibold' : 'text-gray-600' %>
-                        <span class="<%= waste_class %>">Waste <%= step.waste_used %>/<%= step.waste_capacity %></span>
-                      <% end %>
-                      <% if step.clean_capacity %>
-                        <% clean_ratio = step.clean_capacity.zero? ? 0 : (step.clean_used.to_f / step.clean_capacity) %>
-                        <% clean_class = clean_ratio >= 1 ? 'text-rose-700 font-semibold' : clean_ratio >= 0.8 ? 'text-amber-600 font-semibold' : 'text-gray-600' %>
-                        <span class="<%= clean_class %>">Clean <%= step.clean_used %>/<%= step.clean_capacity %></span>
-                      <% end %>
-                      <% if step.trailer_capacity %>
-                        <% trailer_ratio = step.trailer_capacity.zero? ? 0 : (step.trailer_used.to_f / step.trailer_capacity) %>
-                        <% trailer_class = trailer_ratio >= 1 ? 'text-rose-700 font-semibold' : trailer_ratio >= 0.8 ? 'text-amber-600 font-semibold' : 'text-gray-600' %>
-                        <span class="<%= trailer_class %>">Trailer <%= step.trailer_used %>/<%= step.trailer_capacity %></span>
-                      <% end %>
-                      <% Array(step.violations).each do |violation| %>
-                        <span class="text-rose-700 font-semibold"><%= violation[:message] %></span>
-                      <% end %>
-                    </div>
-                  <% else %>
-                    <span class="text-xs text-gray-400">—</span>
-                  <% end %>
-                </td>
-                <td class="px-4 py-3">
-                  <% if event.event_type_dump? %>
-                    <div class="text-sm font-semibold text-gray-900">
-                      <%= dump_site&.name || 'Dump stop' %>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-600">
-                      <%= dump_site&.location&.display_label || 'Location pending' %>
-                    </div>
-                    <% if dump_site&.location %>
-                      <div class="mt-1 text-xs text-gray-600">
-                        <%= dump_site.location.full_address %>
-                      </div>
-                    <% end %>
-                  <% elsif order.present? %>
-                    <div class="text-sm font-semibold text-gray-900">
-                      <%= link_to(order.customer.display_name, order_path(order), class: "hover:underline") %>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-600">
-                      <%= order.customer.billing_email %>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-600">
-                      <%= order.location.label %> — <%= [ order.location.city, order.location.state ].compact.join(', ') %>
-                    </div>
-                    <div class="mt-1 text-xs text-gray-600">
-                      <%= l(order.start_date) %> <span class="text-gray-400">→</span> <%= l(order.end_date) %>
-                    </div>
-                  <% else %>
-                    <div class="text-sm font-semibold text-gray-900">Unassigned</div>
-                  <% end %>
-                </td>
-                <td class="px-4 py-3">
-                  <div class="inline-flex items-center gap-3">
-                    <div class="inline-flex overflow-hidden rounded-full border border-gray-300 shadow-sm divide-x divide-gray-300 bg-white">
-                      <%= button_to "← Earlier",
-                                    advance_route_service_event_path(@route, event),
-                                    method: :post,
-                                    data: { turbo_confirm: "Move this service event to the previous eligible route?" },
-                                    class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 focus:z-10 #{'opacity-50 cursor-not-allowed' if disable_earlier}",
-                                    disabled: disable_earlier,
-                                    title: earlier_hint %>
-                      <%= button_to "Later →",
-                                    postpone_route_service_event_path(@route, event),
-                                    method: :post,
-                                    data: { turbo_confirm: "Move this service event to the next route?" },
-                                    class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 focus:z-10 #{'opacity-50 cursor-not-allowed' if disable_later}",
-                                    disabled: disable_later,
-                                    title: later_hint %>
-                      <% if event.event_type_delivery? %>
-                        <%= button_to "Complete ✓",
-                                      complete_route_service_event_path(@route, event),
-                                      method: :post,
-                                      data: { turbo_confirm: "Mark this service event complete?" },
-                                      class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 focus:z-10 #{'opacity-50 cursor-not-allowed' if completed}",
-                                      disabled: completed %>
-                      <% else %>
-                        <% if completed %>
-                          <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 opacity-50">Completed</span>
-                        <% else %>
-                        <%= link_to "Complete ✓",
-                                    new_service_event_report_path(service_event_id: event.id, redirect_path: route_path(@route)),
-                                    class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 hover:bg-emerald-50 focus:z-10",
-                                    data: { turbo_frame: "service_event_modal" } %>
-                        <% end %>
-                      <% end %>
-                    </div>
-                    <span class="h-4 w-px bg-gray-200" aria-hidden="true"></span>
-                    <%= button_to route_service_event_path(@route, event),
-                                  method: :delete,
-                                  data: { turbo_confirm: "Delete this service event? This cannot be undone." },
-                                  class: "inline-flex items-center rounded-full bg-transparent px-2 py-1 text-gray-400 hover:text-rose-600 #{'opacity-50 cursor-not-allowed' if completed}",
-                                  disabled: completed do %>
-                      <span class="sr-only">Delete</span>
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M9 3h6a1 1 0 0 1 1 1v1h4a1 1 0 1 1 0 2h-1.1l-1.1 13.1a2 2 0 0 1-2 1.9H7.2a2 2 0 0 1-2-1.9L4.1 7H3a1 1 0 1 1 0-2h4V4a1 1 0 0 1 1-1Zm1 2v1h4V5Zm-2.9 2 1 12h8l1-12Z"/>
-                      </svg>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
+          <% if @stop_presenters.any? %>
+            <% @stop_presenters.each do |stop| %>
+              <%= render partial: "routes/stop", locals: { stop: stop } %>
             <% end %>
           <% else %>
             <tr>

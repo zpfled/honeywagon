@@ -66,6 +66,7 @@ group :development do
 end
 
 group :test do
+  gem 'rails-controller-testing'
   gem 'rspec-rails'
   gem 'capybara'
   gem 'selenium-webdriver'

@@ -5,9 +5,7 @@ module Routes
     def initialize(route, company:)
       @route = route
       @company = company
-      @service_events = route.service_events
-                               .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
-                               .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+      @service_events = service_events_for_display
       # TODO: Build stop presenters here to keep view markup-only.
       build_capacity_data
     end
@@ -57,9 +55,11 @@ module Routes
     end
 
     def build_capacity_data
+      events_for_capacity = route.service_events.includes(order: { rental_line_items: :unit_type })
+                                      .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       result = Routes::Optimization::CapacitySimulator.call(
         route: route,
-        ordered_event_ids: service_events.pluck(:id)
+        ordered_event_ids: events_for_capacity.pluck(:id)
       )
       @capacity_result = result
       @capacity_steps = result.steps.index_by(&:event_id)
@@ -73,6 +73,25 @@ module Routes
       )
       # TODO: expose warning via presenter so the view can surface the failure state.
       @capacity_steps = {}
+    end
+
+    public
+
+    def stop_presenters
+      @stop_presenters ||= service_events.map do |event|
+        StopPresenter.new(event, capacity_step: capacity_steps[event.id])
+      end
+    end
+
+    def service_events_for_display
+      events = route.service_events
+                    .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
+                    .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+      dump_events = events.select(&:event_type_dump?)
+      if dump_events.any?
+        ActiveRecord::Associations::Preloader.new.preload(dump_events, dump_site: :location)
+      end
+      events
     end
   end
 end

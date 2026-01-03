@@ -47,9 +47,9 @@
       </thead>
 
       <tbody class="divide-y divide-gray-100 bg-white">
-        <% if @orders.any? %>
-          <% @orders.each_with_index do |order, index| %>
-            <% p = OrderPresenter.new(order, view_context: self) %>
+        <% if @order_presenters&.any? %>
+          <% @order_presenters.each_with_index do |p, index| %>
+            <% order = p.order %>
 
             <tr class="<%= index.even? ? 'bg-white' : 'bg-gray-50' %> hover:bg-gray-100">
               <td class="px-4 py-3">

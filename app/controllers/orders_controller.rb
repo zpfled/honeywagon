@@ -1,5 +1,6 @@
 class OrdersController < ApplicationController
-  before_action :set_order, only: %i[show edit update destroy schedule]
+  before_action :set_order, only: %i[edit update destroy schedule]
+  before_action :set_order_with_presenter_preloads, only: %i[show]
   before_action :load_form_options, only: %i[new create edit update]
 
   def index
@@ -15,8 +16,13 @@ class OrdersController < ApplicationController
 
     @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
 
-    @orders = monthly_scope.includes(:customer, :location)
+    @orders = monthly_scope.includes(:customer, :location, rental_line_items: :unit_type, service_line_items: :rate_plan)
                            .order(:start_date)
+    order_ids = @orders.map(&:id)
+    units_by_order_id = OrderUnit.where(order_id: order_ids).group(:order_id).count
+    @order_presenters = @orders.map do |order|
+      OrderPresenter.new(order, view_context: view_context, units_count: units_by_order_id[order.id].to_i)
+    end
   end
 
   def show
@@ -33,6 +39,7 @@ class OrdersController < ApplicationController
       location_id: params[:location_id],
       created_by: current_user
     )
+    build_order_form_payload
   end
 
   def create
@@ -46,11 +53,13 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order created.'
     else
+      build_order_form_payload
       render :new, status: :unprocessable_content
     end
   end
 
-  def edit; end
+  def edit
+  end
 
   def update
     builder = Orders::Builder.new(@order)
@@ -63,6 +72,7 @@ class OrdersController < ApplicationController
     if @order.errors.empty? && @order.save
       redirect_to @order, notice: 'Order updated.'
     else
+      build_order_form_payload
       render :edit, status: :unprocessable_content
     end
   end
@@ -87,6 +97,8 @@ class OrdersController < ApplicationController
   end
 
   def availability
+    # TODO: Changes needed:
+    # - Consider a serializer/presenter if this response grows.
     summary = Units::AvailabilitySummary.new(
       company: current_user.company,
       start_date: params[:start_date],
@@ -112,6 +124,18 @@ class OrdersController < ApplicationController
 
   def set_order
     @order = current_user.company.orders.find(params[:id])
+  end
+
+  def set_order_with_presenter_preloads
+    @order = current_user.company.orders
+                       .includes(
+                         :customer,
+                         :location,
+                         { rental_line_items: :unit_type },
+                         { service_line_items: :rate_plan },
+                         { service_events: :route }
+                       )
+                       .find(params[:id])
   end
 
   def load_form_options
@@ -149,6 +173,15 @@ class OrdersController < ApplicationController
       :tax_cents,
       :total_cents
     )
+  end
+
+  def build_order_form_payload
+    @order_form_payload = Orders::FormPayloadBuilder.new(
+      order: @order,
+      unit_types: @unit_types,
+      service_rate_plans: @service_rate_plans,
+      company_id: current_user.company_id
+    ).call
   end
 
   def unit_type_requests_params

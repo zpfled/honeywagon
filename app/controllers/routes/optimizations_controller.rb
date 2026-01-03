@@ -18,7 +18,6 @@ class Routes::OptimizationsController < ApplicationController
       flash[:alert] = result.errors.join(' ').html_safe
     end
 
-    # TODO: delegate sequencing/metrics persistence to a service (ApplyResult) to keep controller skinny
     redirect_to route_path(@route)
   end
 

@@ -10,6 +10,11 @@ The product is unapologetically opinionated toward how portable toilet operators
 
 - See [`CODE_HARDENING_PLAN.md`](CODE_HARDENING_PLAN.md) for the step-by-step refactor roadmap.
 
+## Project Guides
+
+- [`CODEX.md`](CODEX.md) – user profile, communication rules, decision boundaries, and project goals.
+- [`TECHNICAL.md`](TECHNICAL.md) – technical stack, architecture, and development standards.
+
 ## Highlights
 
 - ✅ **Inventory truth** — every order reserves physical units; availability checks prevent double booking.  

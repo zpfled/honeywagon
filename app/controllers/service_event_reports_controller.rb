@@ -3,13 +3,22 @@ class ServiceEventReportsController < ApplicationController
   before_action :set_report, only: [ :edit, :update ]
 
   def index
-    @reports = current_user.service_event_reports
-                           .includes(service_event: [ { order: %i[customer location] } ])
+    base_scope = current_user.service_event_reports
+                              .includes(service_event: { order: %i[customer location] })
+    if ServiceEvent.where(id: base_scope.select(:service_event_id), event_type: ServiceEvent.event_types[:dump]).exists?
+      base_scope = base_scope.includes(service_event: { dump_site: :location })
+    end
+    @reports = base_scope
                            .joins(:service_event)
                            .order(Arel.sql('service_events.completed_on DESC NULLS LAST, service_event_reports.created_at DESC'))
+    @report_presenters = @reports.map do |report|
+      ServiceEventReportPresenter.new(report, view_context: view_context)
+    end
   end
 
   def new
+    # TODO: Changes needed:
+    # - Keep prefill/fields building in presenter/service if it grows.
     unless @service_event.report_required?
       redirect_to authenticated_root_path, alert: 'This service event does not require a report.'
       return
@@ -52,6 +61,8 @@ class ServiceEventReportsController < ApplicationController
   end
 
   def edit
+    # TODO: Changes needed:
+    # - Keep prefill/fields building in presenter/service if it grows.
     @service_event = @report.service_event
     @report_fields = Array(@service_event.service_event_type&.report_fields)
     @prefill = default_prefill_data

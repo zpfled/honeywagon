@@ -81,52 +81,13 @@
         </div>
       </div>
 
-      <% unit_types = @unit_types || (order.company ? order.company.unit_types.order(:name) : UnitType.none) %>
-      <% unit_type_payload = unit_types.map { |ut| { id: ut.id, name: ut.name } } %>
-      <% unit_type_payload << { id: 'service-only', name: 'Service-only (customer-owned units)' } %>
-      <% unit_type_payload_json = json_escape(unit_type_payload.to_json) %>
-      <% existing_line_items_payload = order.rental_line_items.map do |li|
-       {
-         unit_type_id: li.unit_type_id,
-         rate_plan_id: li.rate_plan_id,
-         quantity: li.quantity
-       }
-     end %>
-  <% required_rate_plan_ids = existing_line_items_payload.map { |li| li[:rate_plan_id] }.compact %>
-  <% active_rate_plans = RatePlan.active.rental.where(company_id: current_user.company_id).to_a %>
-  <% missing_rate_plans = if required_rate_plan_ids.any?
-       missing = required_rate_plan_ids - active_rate_plans.map(&:id)
-       missing.any? ? RatePlan.where(id: missing).to_a : []
-     else
-       []
-     end %>
-  <% rate_plans_for_view = (active_rate_plans + missing_rate_plans).uniq { |rp| rp.id } %>
-  <% rate_plan_payload = rate_plans_for_view.group_by(&:unit_type_id).transform_values do |plans|
-       plans.sort_by { |plan| [ plan.billing_period.to_s, plan.service_schedule.to_s ] }.map do |plan|
-         { id: plan.id, label: plan.display_label }
-       end
-     end %>
-  <% rate_plan_payload_json = json_escape(rate_plan_payload.to_json) %>
-  <% existing_line_items_payload_json = json_escape(existing_line_items_payload.to_json) %>
-  <% service_items_payload = order.service_line_items.map do |item|
-       plan_label = item.rate_plan&.display_label || "Service plan"
-       {
-         description: item.description,
-         service_schedule: item.service_schedule,
-         units_serviced: item.units_serviced,
-         rate_plan_id: item.rate_plan_id,
-         rate_plan_label: plan_label
-       }
-     end %>
-  <% service_items_payload_json = json_escape(service_items_payload.to_json) %>
-  <% service_rate_plans_payload = @service_rate_plans.map do |plan|
-       {
-         id: plan.id,
-         label: plan.display_label,
-         schedule: plan.service_schedule
-       }
-     end %>
-      <% service_rate_plans_payload_json = json_escape(service_rate_plans_payload.to_json) %>
+      <% payload = @order_form_payload || {} %>
+      <% unit_types = payload[:unit_types] || [] %>
+      <% unit_type_payload_json = payload[:unit_type_payload_json] || '[]' %>
+      <% existing_line_items_payload_json = payload[:existing_line_items_payload_json] || '[]' %>
+      <% rate_plan_payload_json = payload[:rate_plan_payload_json] || '{}' %>
+      <% service_items_payload_json = payload[:service_items_payload_json] || '[]' %>
+      <% service_rate_plans_payload_json = payload[:service_rate_plans_payload_json] || '[]' %>
 
       <div class="space-y-4">
         <div>

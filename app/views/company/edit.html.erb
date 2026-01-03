@@ -134,14 +134,14 @@
                       <td class="<%= table_cell_class %>"><%= unit_type.prefix %></td>
                       <td class="<%= table_cell_class('', align: :right) %>">
                         <div class="flex flex-col items-end gap-1">
-                          <span class="text-base font-semibold text-gray-900"><%= unit_type.units.count %></span>
+                          <span class="text-base font-semibold text-gray-900"><%= @unit_counts_by_type[unit_type.id].to_i %></span>
                           <%= form_with url: company_path, method: :put, scope: :unit_inventory, local: true,
                                         class: "flex items-center gap-2 text-xs text-gray-700" do |form| %>
                             <%= form.hidden_field :unit_type_id, value: unit_type.id %>
                             <div>
                               <%= form.label :quantity, "Units for #{unit_type.name}", class: "sr-only" %>
                               <%= form.number_field :quantity,
-                                                    value: unit_type.units.count,
+                                                    value: @unit_counts_by_type[unit_type.id].to_i,
                                                     min: 0,
                                                     class: "w-20 rounded-lg border border-gray-300 px-2 py-1 text-sm text-gray-900" %>
                             </div>
