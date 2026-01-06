@@ -2,6 +2,7 @@ class OrdersController < ApplicationController
   before_action :set_order, only: %i[edit update destroy schedule]
   before_action :set_order_with_presenter_preloads, only: %i[show]
   before_action :load_form_options, only: %i[new create edit update]
+  before_action :build_order_form_payload, only: %i[new edit]
 
   def index
     @month = selected_month
@@ -16,7 +17,13 @@ class OrdersController < ApplicationController
 
     @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
 
-    @orders = monthly_scope.includes(:customer, :location, rental_line_items: :unit_type, service_line_items: :rate_plan)
+    @orders = monthly_scope.includes(
+      :customer,
+      :location,
+      { service_events: :route },
+      { rental_line_items: [ :unit_type, :rate_plan ] },
+      { service_line_items: :rate_plan }
+    )
                            .order(:start_date)
     order_ids = @orders.map(&:id)
     units_by_order_id = OrderUnit.where(order_id: order_ids).group(:order_id).count

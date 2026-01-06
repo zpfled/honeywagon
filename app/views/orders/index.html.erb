@@ -86,6 +86,16 @@
                     <%= p.date_range_humanized %>
                   </div>
                 <% end %>
+                <% if order.status == "active" && p.service_status_badge.present? %>
+                  <div class="mt-2">
+                    <%= p.service_status_badge %>
+                  </div>
+                <% end %>
+                <% if order.status == "active" && p.next_service_badge.present? %>
+                  <div class="mt-2">
+                    <%= p.next_service_badge %>
+                  </div>
+                <% end %>
               </td>
 
               <td class="px-4 py-3 text-right">
