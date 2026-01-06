@@ -84,7 +84,8 @@ These rules must always hold.
 If a proposed change violates any of these, stop and ask for approval.
 
 ### Inventory & Availability
-- Inventory is tracked **by unit type and count**, not individual physical units (v1).
+- Inventory is tracked **by individual units** (with unit types), with availability summarized by type/count as needed.
+- Availability is still calculated at the unit-type level using date overlap, regardless of unit assignment.
 - Availability is determined **only by date overlap**, not booking order.
 - A unit type is unavailable from delivery date through pickup date (inclusive).
 - Availability blockers include:
@@ -224,8 +225,6 @@ Electronic records are allowed and must be retained for **5 years**.
 ---
 
 ## 12. Explicit Non-Goals (Before April 2026)
-
-- No individual physical unit tracking
 - No automated pricing engine
 - No customer self-service scheduling
 - No hard enforcement that blocks daily operations
