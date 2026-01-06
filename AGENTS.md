@@ -149,6 +149,8 @@ This app is the source of truth for:
 
 - Write clean, maintainable, boring code.
 - Favor clarity over cleverness.
+- When adding features, look for small, safe tech-debt paydowns (or at minimum avoid adding new debt).
+- When writing logic-heavy methods or classes, add short comments that explain the flow and intent.
 - Controllers:
   - load resources
   - call services

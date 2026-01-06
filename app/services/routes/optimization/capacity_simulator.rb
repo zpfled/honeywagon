@@ -37,13 +37,16 @@ module Routes
         violations = []
 
         ordered_events.each do |event|
+          # Clean water resets at the start of a new route day (not per-event date).
           reset_clean_for_new_day!(event)
           usage = ServiceEvents::ResourceCalculator.new(event).usage
 
+          # Apply usage, then reset after dump/refill stops to mirror real-world operations.
           apply_usage(usage, event)
           reset_for_dump! if event.event_type_dump?
           reset_for_refill! if event.event_type_refill?
 
+          # Capture per-stop usage and any over-capacity violations.
           step_violations = violations_for(event)
 
           steps << Step.new(
@@ -101,6 +104,7 @@ module Routes
         clean_delta = usage[:clean_water_gallons].to_i
         trailer_delta = usage[:trailer_spots].to_i
 
+        # Waste fills cumulatively until a dump; clean water depletes cumulatively.
         @waste_used = if event.event_type_dump?
                         waste_delta
         else
@@ -125,6 +129,7 @@ module Routes
         return if route_date.blank?
         return if @current_date == route_date
 
+        # Start of a route day resets clean water usage.
         @current_date = route_date
         @clean_water_used = 0
       end
