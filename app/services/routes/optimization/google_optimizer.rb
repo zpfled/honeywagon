@@ -17,11 +17,11 @@ module Routes
         keyword_init: true
       )
 
-    def initialize(route)
-      @route = route
-    end
+      def initialize(route)
+        @route = route
+      end
 
-    def self.call(route)
+      def self.call(route)
         new(route).call
       end
 
@@ -35,20 +35,40 @@ module Routes
           errors << 'Company location is missing latitude/longitude.'
         end
 
-        errors.concat(missing_coordinate_events.map do |event|
-          "#{event_label(event)} is missing latitude/longitude"
-        end)
-
         return failure_result(errors) if errors.any?
 
-        optimization_result = routes_client.optimize(stop_payloads)
-        return failure_result(optimization_result.errors) unless optimization_result.success?
+        ordered_ids = route.service_events.order(:route_date, :event_type, :created_at).pluck(:id)
+        planner_warnings = []
+        optimization_result = nil
+        simulation = nil
 
-        event_ids = optimization_result.event_ids_in_order.compact
-        simulation = Routes::Optimization::CapacitySimulator.call(route: route, ordered_event_ids: event_ids)
+        2.times do
+          planner_result = Routes::Optimization::CapacityPlanner.call(route: route, ordered_event_ids: ordered_ids)
+          planner_warnings.concat(Array(planner_result.warnings))
+          @ordered_events = nil
 
+          errors = missing_coordinate_events.map do |event|
+            "#{event_label(event)} is missing latitude/longitude"
+          end
+          return failure_result(errors) if errors.any?
+
+          optimization_result = routes_client.optimize(stop_payloads)
+          return failure_result(optimization_result.errors) unless optimization_result.success?
+
+          ordered_ids = optimization_result.event_ids_in_order.compact
+          simulation = Routes::Optimization::CapacitySimulator.call(
+            route: route,
+            ordered_event_ids: ordered_ids,
+            starting_waste_gallons: projected_starting_waste_gallons
+          )
+
+          break if simulation.violations.empty?
+        end
+
+        event_ids = Array(optimization_result&.event_ids_in_order).compact
         warnings = Array(optimization_result.warnings)
         warnings.concat(distance_warning(optimization_result))
+        warnings.concat(planner_warnings)
         warnings.concat(base_warnings(simulation))
 
         Result.new(
@@ -87,6 +107,15 @@ module Routes
         }
       end
 
+      def projected_starting_waste_gallons
+        return 0 unless route.truck_id
+
+        routes = route.company.routes
+                      .where(truck_id: route.truck_id)
+                      .where('route_date <= ?', route.route_date)
+        Routes::WasteTracker.new(routes).starting_loads_by_route_id[route.id].to_i
+      end
+
       def missing_coordinate_events
         ordered_events.reject { |event| stop_coordinate_present?(event) }
       end
@@ -100,6 +129,8 @@ module Routes
       def coordinates_for(event)
         if event.event_type_dump?
           location = event.dump_site&.location
+        elsif event.event_type_refill?
+          location = route.company&.home_base
         else
           location = event.order&.location
         end
@@ -131,6 +162,8 @@ module Routes
       def event_label(event)
         if event.event_type_dump?
           "Dump event #{event.id}"
+        elsif event.event_type_refill?
+          'Home refill stop'
         else
           customer_name = event.order&.customer&.display_name || 'Unknown customer'
           "#{event.event_type.titleize} for #{customer_name}"

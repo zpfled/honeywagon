@@ -28,11 +28,11 @@ module ServiceEvents
     def clean_water_usage
       case event.event_type.to_sym
       when :delivery
-        (total_toilets * 5) + (handwash_count * 20)
+        sum_by_unit_type(:delivery_clean_gallons)
       when :service
-        total_toilets * 7
+        sum_by_unit_type(:service_clean_gallons)
       when :pickup
-        total_toilets * 1
+        sum_by_unit_type(:pickup_clean_gallons)
       else
         0
       end
@@ -42,30 +42,42 @@ module ServiceEvents
       event.estimated_gallons_pumped
     end
 
+    def sum_by_unit_type(field)
+      units_by_type.sum do |unit_type, quantity|
+        per_unit = unit_type.public_send(field).to_i
+        per_unit * quantity
+      end
+    end
+
     def total_toilets
       standard_count + ada_count
     end
 
     def standard_count
-      unit_counts['standard'] || 0
+      count_by_slug('standard')
     end
 
     def ada_count
-      unit_counts['ada'] || 0
+      count_by_slug('ada')
     end
 
     def handwash_count
-      unit_counts['handwash'] || 0
+      count_by_slug('handwash')
     end
 
-    def unit_counts
-      @unit_counts ||= begin
+    def count_by_slug(slug)
+      units_by_type.sum do |unit_type, quantity|
+        unit_type.slug == slug ? quantity : 0
+      end
+    end
+
+    def units_by_type
+      @units_by_type ||= begin
         return {} unless event.order
-        order_items = event.order.rental_line_items
-        order_items.each_with_object(Hash.new(0)) do |item, memo|
-          slug = item.unit_type&.slug
-          next unless slug
-          memo[slug] += item.quantity.to_i
+        event.order.rental_line_items.each_with_object(Hash.new(0)) do |item, memo|
+          unit_type = item.unit_type
+          next unless unit_type
+          memo[unit_type] += item.quantity.to_i
         end
       end
     end

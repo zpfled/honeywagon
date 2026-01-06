@@ -28,6 +28,23 @@ module Routes
       end
     end
 
+    def starting_loads_by_route_id
+      @starting_loads_by_route_id ||= begin
+        result = {}
+        routes_grouped_by_truck.each do |truck, truck_routes|
+          truck = truck&.reload
+          cumulative = truck&.waste_load_gal.to_i
+
+          truck_routes.sort_by(&:route_date).each do |route|
+            result[route.id] = cumulative
+            usage = route.capacity_summary.waste_usage[:used]
+            cumulative += usage
+          end
+        end
+        result
+      end
+    end
+
     private
 
     attr_reader :routes

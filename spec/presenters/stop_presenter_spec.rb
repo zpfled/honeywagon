@@ -41,6 +41,14 @@ RSpec.describe StopPresenter do
     expect(dump_presenter.dump_site_location_label).to eq(dump_site.location.display_label)
   end
 
+  it 'handles refill events' do
+    company = create(:company, :with_home_base)
+    route = create(:route, company: company)
+    refill_event = create(:service_event, :refill, route: route, scheduled_on: route.route_date)
+    refill_presenter = described_class.new(refill_event)
+    expect(refill_presenter.refill_location_label).to eq(company.home_base.display_label)
+  end
+
   it 'builds capacity usage rows and violations' do
     rows = presenter.capacity_usage_rows
     expect(rows.map { |r| r[:label] }).to include('Waste 10/20', 'Clean 5/10', 'Trailer 1/2')

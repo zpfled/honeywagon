@@ -45,4 +45,38 @@ RSpec.describe Routes::Optimization::CapacitySimulator do
 
     expect(result.steps.last.waste_used).to eq(0)
   end
+
+  it 'resets clean water usage when encountering a refill event' do
+    order = create_order_with_units(quantity: 1)
+    service_event = create(:service_event, :service, order: order, route: route)
+    refill_event = create(:service_event, :refill, route: route)
+
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(service_event).and_return(
+      double(usage: { waste_gallons: 0, clean_water_gallons: 15, trailer_spots: 0 })
+    )
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(refill_event).and_return(
+      double(usage: { waste_gallons: 0, clean_water_gallons: 0, trailer_spots: 0 })
+    )
+
+    result = described_class.call(route: route, ordered_event_ids: [ service_event.id, refill_event.id ])
+
+    expect(result.steps.last.clean_used).to eq(0)
+  end
+
+  it 'does not reset clean water usage based on per-event route_date' do
+    order = create_order_with_units(quantity: 1)
+    first_event = create(:service_event, :service, order: order, route: route, route_date: Date.current)
+    second_event = create(:service_event, :service, order: order, route: route, route_date: Date.current + 1.day)
+
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(first_event).and_return(
+      double(usage: { waste_gallons: 0, clean_water_gallons: 15, trailer_spots: 0 })
+    )
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(second_event).and_return(
+      double(usage: { waste_gallons: 0, clean_water_gallons: 10, trailer_spots: 0 })
+    )
+
+    result = described_class.call(route: route, ordered_event_ids: [ first_event.id, second_event.id ])
+
+    expect(result.steps.last.clean_used).to eq(25)
+  end
 end

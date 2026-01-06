@@ -121,7 +121,16 @@ class CompanyController < ApplicationController
   end
 
   def unit_type_params
-    params.fetch(:unit_type, {}).permit(:name, :slug, :prefix)
+    params.fetch(:unit_type, {}).permit(
+      :name,
+      :slug,
+      :prefix,
+      :delivery_clean_gallons,
+      :service_clean_gallons,
+      :service_waste_gallons,
+      :pickup_clean_gallons,
+      :pickup_waste_gallons
+    )
   end
 
   def unit_inventory_params

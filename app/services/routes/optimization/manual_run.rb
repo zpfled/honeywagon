@@ -81,6 +81,8 @@ module Routes
       def coordinates_for(event)
         location = if event.event_type_dump?
                      event.dump_site&.location
+        elsif event.event_type_refill?
+                     route.company&.home_base
         else
                      event.order&.location
         end
@@ -106,6 +108,8 @@ module Routes
       def event_label(event)
         if event.event_type_dump?
           "Dump event #{event.id}"
+        elsif event.event_type_refill?
+          'Home refill stop'
         else
           customer_name = event.order&.customer&.display_name || 'Unknown customer'
           "#{event.event_type.titleize} for #{customer_name}"

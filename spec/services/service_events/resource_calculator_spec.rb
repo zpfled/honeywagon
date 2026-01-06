@@ -31,8 +31,8 @@ RSpec.describe ServiceEvents::ResourceCalculator do
       usage = described_class.new(event).usage
 
       expect(usage[:trailer_spots]).to eq(0)
-      expect(usage[:clean_water_gallons]).to eq(21) # 3 toilets * 7
-      expect(usage[:waste_gallons]).to eq(30)     # 3 toilets * 10
+      expect(usage[:clean_water_gallons]).to eq(56) # 8 units * 7
+      expect(usage[:waste_gallons]).to eq(80)     # 8 units * 10
     end
 
     it 'includes service line item units for service events' do
@@ -40,8 +40,8 @@ RSpec.describe ServiceEvents::ResourceCalculator do
       event = create(:service_event, :service, order: order)
 
       usage = described_class.new(event).usage
-      # rental 3 + service-only 2 = 5 units -> 50 gallons
-      expect(usage[:waste_gallons]).to eq(50)
+      # rental 8 units * 10 + service-only 2 * 10 = 100 gallons
+      expect(usage[:waste_gallons]).to eq(100)
     end
 
     it 'honors estimated gallons overrides for waste usage' do
@@ -56,8 +56,8 @@ RSpec.describe ServiceEvents::ResourceCalculator do
       usage = described_class.new(event).usage
 
       expect(usage[:trailer_spots]).to eq(6)
-      expect(usage[:clean_water_gallons]).to eq(3)  # 3 toilets * 1
-      expect(usage[:waste_gallons]).to eq(30)
+      expect(usage[:clean_water_gallons]).to eq(16) # 8 units * 2
+      expect(usage[:waste_gallons]).to eq(80)
     end
   end
 end

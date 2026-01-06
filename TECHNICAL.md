@@ -11,6 +11,12 @@
 - RSpec for tests; Capybara/system specs for UI flows; RuboCop/Standard for linting if already present.
 - Background jobs via Sidekiq/ActiveJob for route generation and heavy calculations.
 - Map/routing: start with deterministic heuristics and a commodity routing API only if needed; abstract routing behind a service to swap providers later.
+- Controllers: load resources, call services, render views; no business logic.
+- Views: markup only; no AR queries or conditionals that belong in presenters/services; prefer partials/components.
+- Presenters: domain-specific, tested formatting/aggregation; accept preloaded data.
+- Helpers: cross-domain formatting (money, dates/times) only; reusable and tested.
+- Models: validations, associations, limited domain methods (no display/formatting).
+- Services: business rules and workflows; keep them idempotent and testable.
 
 ## Architecture and Domain
 - Inventory: model units, models/types, availability windows, assignments to orders, and blackout periods for maintenance. Prevent overbooking via database constraints and service-level checks on assignment creation.
@@ -50,3 +56,4 @@
 ## Decisions
 - Company profile updates are orchestrated via `Companies::ProfileUpdater` with dedicated form objects for each workflow branch to keep controllers thin and logic testable.
 - Rate plan row aggregation lives in `Companies::RatePlanRowsPresenter` to keep view formatting out of controllers.
+- Route optimization inserts auto-generated dump/refill stops via `Routes::Optimization::CapacityPlanner`, using per-unit-type capacity usage fields on `UnitType`.

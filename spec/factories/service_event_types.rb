@@ -75,5 +75,20 @@ FactoryBot.define do
         end
       end
     end
+
+    factory :service_event_type_refill do
+      key { "refill" }
+      name { "Refill" }
+      requires_report { false }
+      report_fields { [] }
+
+      initialize_with do
+        ServiceEventType.find_or_create_by!(key: key) do |type|
+          type.name = name
+          type.requires_report = requires_report
+          type.report_fields = report_fields
+        end
+      end
+    end
   end
 end

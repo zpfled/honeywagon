@@ -34,6 +34,12 @@ FactoryBot.define do
       order { nil }
     end
 
+    trait :refill do
+      event_type { :refill }
+      association :service_event_type, factory: :service_event_type_refill
+      order { nil }
+    end
+
     trait :completed do
       status { :completed }
     end

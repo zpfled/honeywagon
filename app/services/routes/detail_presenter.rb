@@ -43,6 +43,12 @@ module Routes
       end
     end
 
+    def stop_presenters
+      @stop_presenters ||= service_events.map do |event|
+        StopPresenter.new(event, capacity_step: capacity_steps[event.id])
+      end
+    end
+
     private
 
     attr_reader :company
@@ -59,7 +65,8 @@ module Routes
                                       .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       result = Routes::Optimization::CapacitySimulator.call(
         route: route,
-        ordered_event_ids: events_for_capacity.pluck(:id)
+        ordered_event_ids: events_for_capacity.pluck(:id),
+        starting_waste_gallons: projected_starting_waste_gallons
       )
       @capacity_result = result
       @capacity_steps = result.steps.index_by(&:event_id)
@@ -75,23 +82,28 @@ module Routes
       @capacity_steps = {}
     end
 
-    public
-
-    def stop_presenters
-      @stop_presenters ||= service_events.map do |event|
-        StopPresenter.new(event, capacity_step: capacity_steps[event.id])
-      end
-    end
-
     def service_events_for_display
       events = route.service_events
                     .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
                     .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       dump_events = events.select(&:event_type_dump?)
       if dump_events.any?
-        ActiveRecord::Associations::Preloader.new.preload(dump_events, dump_site: :location)
+        ActiveRecord::Associations::Preloader.new(
+          records: dump_events,
+          associations: { dump_site: :location }
+        ).call
       end
       events
     end
+
+    def projected_starting_waste_gallons
+      return 0 unless route.truck_id
+
+      routes = company.routes
+                      .where(truck_id: route.truck_id)
+                      .where('route_date <= ?', route.route_date)
+      Routes::WasteTracker.new(routes).starting_loads_by_route_id[route.id].to_i
+    end
+    private :projected_starting_waste_gallons
   end
 end

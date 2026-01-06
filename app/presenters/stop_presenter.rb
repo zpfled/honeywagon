@@ -49,7 +49,11 @@ class StopPresenter
   end
 
   def units_impacted
-    service_event.event_type_dump? ? '—' : service_event.units_impacted_count
+    service_event.event_type_dump? || service_event.event_type_refill? ? '—' : service_event.units_impacted_count
+  end
+
+  def refill?
+    service_event.event_type_refill?
   end
 
   def order
@@ -94,6 +98,18 @@ class StopPresenter
 
   def dump_site_address
     dump_site&.location&.full_address
+  end
+
+  def refill_location
+    service_event.route&.company&.home_base
+  end
+
+  def refill_location_label
+    refill_location&.display_label || 'Home base'
+  end
+
+  def refill_address
+    refill_location&.full_address
   end
 
   def capacity_step
