@@ -22,13 +22,14 @@ module Routes
       end
       Result = Struct.new(:steps, :violations, keyword_init: true)
 
-      def initialize(route:, ordered_event_ids:)
+      def initialize(route:, ordered_event_ids:, starting_waste_gallons: nil)
         @route = route
         @ordered_events = load_events_in_order(ordered_event_ids)
+        @starting_waste_gallons = starting_waste_gallons
       end
 
-      def self.call(route:, ordered_event_ids:)
-        new(route: route, ordered_event_ids: ordered_event_ids).call
+      def self.call(route:, ordered_event_ids:, starting_waste_gallons: nil)
+        new(route: route, ordered_event_ids: ordered_event_ids, starting_waste_gallons: starting_waste_gallons).call
       end
 
       def call
@@ -36,10 +37,12 @@ module Routes
         violations = []
 
         ordered_events.each do |event|
+          reset_clean_for_new_day!(event)
           usage = ServiceEvents::ResourceCalculator.new(event).usage
 
           apply_usage(usage, event)
           reset_for_dump! if event.event_type_dump?
+          reset_for_refill! if event.event_type_refill?
 
           step_violations = violations_for(event)
 
@@ -70,7 +73,7 @@ module Routes
       end
 
       def waste_used
-        @waste_used ||= 0
+        @waste_used ||= starting_waste
       end
 
       def clean_water_used
@@ -111,6 +114,19 @@ module Routes
 
       def reset_for_dump!
         @waste_used = 0
+      end
+
+      def reset_for_refill!
+        @clean_water_used = 0
+      end
+
+      def reset_clean_for_new_day!(_event)
+        route_date = route.route_date
+        return if route_date.blank?
+        return if @current_date == route_date
+
+        @current_date = route_date
+        @clean_water_used = 0
       end
 
       def violations_for(event)
@@ -155,9 +171,15 @@ module Routes
       def event_label(event)
         if event.event_type_dump?
           event.dump_site&.name || 'dump event'
+        elsif event.event_type_refill?
+          'home refill'
         else
           event.order&.customer&.display_name || 'service event'
         end
+      end
+
+      def starting_waste
+        @starting_waste_gallons || route.truck&.waste_load_gal.to_i
       end
     end
   end

@@ -146,7 +146,7 @@
             <div>
               <%= f.label :event_type, "Event type", class: "text-xs font-medium text-gray-700" %>
               <%= f.select :event_type,
-                           options_for_select((@service_event_types || ServiceEvent.event_types.keys).map { |type| [type.humanize, type] }),
+                           options_for_select((@service_event_types || ServiceEvent.event_types.except('dump', 'refill').keys).map { |type| [type.humanize, type] }),
                            {},
                            class: "mt-1 block rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
             </div>

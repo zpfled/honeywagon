@@ -11,7 +11,7 @@ class ServiceEvent < ApplicationRecord
   has_one :service_event_report, dependent: :destroy
   belongs_to :dump_site, optional: true
 
-  enum :event_type, { delivery: 0, service: 1, pickup: 2, dump: 3 }, prefix: true
+  enum :event_type, { delivery: 0, service: 1, pickup: 2, dump: 3, refill: 4 }, prefix: true
   enum :status, { scheduled: 0, completed: 1 }, prefix: true
 
   validates :scheduled_on, presence: true
@@ -72,6 +72,8 @@ class ServiceEvent < ApplicationRecord
     when :delivery, :pickup
       rental_units
     when :dump
+      0
+    when :refill
       0
     else
       service_units = order&.service_line_items&.sum(:units_serviced) || 0

@@ -31,4 +31,17 @@ RSpec.describe Routes::WasteTracker do
     expect(loads[route2.id][:cumulative_used]).to eq(60) # 30 + 30
     expect(loads[route3.id][:cumulative_used]).to eq(45) # 5 + 40
   end
+
+  it 'tracks starting waste per route before scheduled usage' do
+    truck.update!(waste_load_gal: 12)
+
+    route1 = create_route_with_usage(truck: truck, route_date: Date.current, gallons: 20)
+    route2 = create_route_with_usage(truck: truck, route_date: Date.current + 1, gallons: 30)
+
+    tracker = described_class.new([ route1, route2 ])
+    starting = tracker.starting_loads_by_route_id
+
+    expect(starting[route1.id]).to eq(12)
+    expect(starting[route2.id]).to eq(32) # 12 + 20
+  end
 end

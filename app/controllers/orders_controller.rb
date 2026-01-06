@@ -27,7 +27,7 @@ class OrdersController < ApplicationController
 
   def show
     @order_presenter = OrderPresenter.new(@order, view_context: view_context)
-    @service_event_types = ServiceEvent.event_types.keys
+    @service_event_types = ServiceEvent.event_types.except('dump', 'refill').keys
   end
 
   def new
