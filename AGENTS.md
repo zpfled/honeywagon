@@ -1,54 +1,231 @@
-# http://CODEX.md
+# AGENTS.md
 
-## Section 1: User Profile
-- You are a former software engineer who now teaches middle school and runs Sit & Git, a portable toilet rental company. You are comfortable with technology (including Rails) but out of practice.
-- Goal: streamline operations by tracking rentals and inventory to prevent overbooking, plan efficient service routes, track orders, and keep service logs for annual state reporting. Future: smart pricing, driver-facing app, and a customer-facing site for quotes and requests.
-- Communication: prefer quick screenshots and short written summaries. A bit of detail is fine.
-- Constraints: must-have inventory accuracy and route optimization from day one; expenses per service event are nice-to-have. Beta as soon as possible; fully ready by April 2026 (busy season starts each April).
+This document defines how AI agents and developers should reason about, design, and extend the Sit & Git operations application.
 
-## Section 2: Communication Rules
-- When asking technical questions, provide a succinct critique of possible options and keep things high-level.
-- Use technical terms & or code references when necessary.
-- Explain things the way you would to a Rails Engineer who has not worked in tech for a couple of years.
+This app is an **operational system of record** for a real-world logistics business.  
+Correctness, auditability, and operational trust matter more than cleverness.
 
-## Section 3: Decision-Making Authority
-- You may make recommendations for all technical decisions: languages, frameworks, architecture, libraries, hosting, and file structure, and should rigorously defend your recommendations. However, you must get approval for technical decisions.
-- Before making changes, present a plan to the user and ask for approval.
-- Choose boring, reliable, well-supported technologies and optimize for maintainability and simplicity.
-- Document technical decisions separately in http://TECHNICAL.md for developers.
+---
 
-## Section 4: When to Involve the User
-- For each option, explain the tradeoff in plain language, how it affects speed, appearance, or ease of use, and provide a clear recommendation the user can accept quickly.
-- Examples to ask about: choosing between instant but simpler screens vs richer views that load slightly slower; adding mobile-friendly views that add a day of work.
+## 1. User Profile
 
-## Section 5: Engineering Standards
-- Write clean, organized, maintainable code with clear structure.
-- Include comprehensive automated tests and self-checks.
-- Handle errors gracefully with friendly, non-technical messages.
-- Validate inputs and follow security best practices.
-- Keep version control history clear with meaningful commit messages.
-- Separate development and production environments as needed.
-- Controllers: load resources, call services, render views; no business logic.
-- Views: markup only; no AR queries or conditionals that belong in presenters/services; prefer partials/components.
-- Presenters: domain-specific, tested formatting/aggregation; accept preloaded data.
-- Helpers: cross-domain formatting (money, dates/times) only; reusable and tested.
-- Models: validations, associations, limited domain methods (no display/formatting).
-- Services: business rules and workflows; keep them idempotent and testable.
+- You are a former software engineer who now teaches middle school and runs **Sit & Git**, a portable toilet rental company.
+- You are comfortable with technology (including Rails), but are out of practice and time-constrained.
+- You prefer:
+  - concrete examples
+  - screenshots or working demos
+  - short, outcome-focused explanations
+- You will be using this app daily during peak season under stress.
 
-## Section 6: Quality Assurance
-- Test everything before showing it to the user; never present broken features. When you can not test it, prompt the user to run rspec
-- Explain technical problems before fixing issues.
-- Automate checks that run before changes go live.
+### Primary Goals
+- Prevent overbooking through accurate inventory availability.
+- Plan and execute efficient daily routes.
+- Maintain **legally compliant service logs** suitable for Wisconsin DNR reporting (NR 113).
+- Maintain a reliable operational record of orders, services, and disposals.
 
-## Section 7: Showing Progress
-- Favor working demos the user can try; use screenshots or short recordings when demos are not practical.
-- Describe progress in terms of user experience (“You can now schedule service runs without overbooking”) rather than technical changes.
-- Celebrate milestones in plain, outcome-focused language.
+### Secondary / Future Goals
+- Smart pricing
+- Driver-facing mobile experience
+- Customer-facing quote and request flow
 
-## Section 8: Project-Specific Details
-- Audience: initial back-office use by the owner; later phases for drivers on the road and customers requesting rentals or quotes.
-- Experience: back-office views can be rich and detailed; driver views must be fast and minimal for on-the-road use.
-- Core must-haves (day one): perfect inventory tracking to prevent overbooking in 2026; route planning and optimization to minimize drive time and fuel costs.
-- Nice-to-haves: per-service expense insight to inform pricing; smart pricing based on costs, job location, and other factors; automated quotes and rental requests on the customer site.
-- Compliance: maintain a service log suitable for annual state reporting.
-- Timeline: beta immediately; fully ready for the April 2026 busy season.
+### Constraints
+- **Inventory accuracy and routing correctness are mandatory from day one.**
+- Beta as soon as possible.
+- Fully production-ready by **April 2026** (start of busy season).
+
+---
+
+## 2. Communication Rules
+
+- Prefer **plain language** and real-world framing.
+- Use technical terms only when they add clarity.
+- Assume the reader is a Rails engineer who has been out of practice for a couple of years.
+- When presenting options:
+  - explain tradeoffs
+  - give a clear recommendation
+  - avoid unnecessary depth unless requested
+
+---
+
+## 3. Decision-Making Authority
+
+- Agents may recommend any technical approach (languages, frameworks, libraries, architecture).
+- All non-trivial technical decisions **must be presented as a plan and approved** before implementation.
+- Choose boring, reliable, well-supported technologies.
+- Optimize for:
+  - maintainability
+  - clarity
+  - operational correctness
+- Document **technical** decisions in `TECHNICAL.md`.
+
+Operational rules and invariants belong in this file.
+
+---
+
+## 4. When to Involve the User
+
+Always involve the user when decisions affect:
+- operational correctness
+- compliance behavior
+- workflow friction
+- peak-season reliability
+
+Examples:
+- enforcing vs warning on invalid states
+- adding automation that writes to external systems
+- changing routing or inventory semantics
+- introducing blocking behavior
+
+---
+
+## 5. Operational Invariants (NON-NEGOTIABLE)
+
+These rules must always hold.  
+If a proposed change violates any of these, stop and ask for approval.
+
+### Inventory & Availability
+- Inventory is tracked **by individual units** (with unit types), with availability summarized by type/count as needed.
+- Availability is still calculated at the unit-type level using date overlap, regardless of unit assignment.
+- Availability is determined **only by date overlap**, not booking order.
+- A unit type is unavailable from delivery date through pickup date (inclusive).
+- Availability blockers include:
+  - active rentals (date ranges)
+  - out-of-service windows (date ranges)
+- A configurable **safety buffer** per unit type reduces availability before overbooking warnings appear.
+- Overbooking is allowed **with warnings**, never silently.
+
+### Routing
+- Routing is a **single mixed-task system**:
+  - deliveries
+  - services
+  - pickups
+- Deliveries have:
+  - a hard “not later than” constraint
+  - flexible ordering (can be moved earlier, never later)
+- When routes fail mid-day, **deliveries take priority** over services and pickups.
+
+### Compliance (Wisconsin NR 113)
+- Service completion and disposal logging are **decoupled in time**.
+- Compliance is achieved through **eventual completeness**, not atomic actions.
+- Disposal events may cover multiple service events.
+- Historical data must never be silently modified or auto-corrected.
+- Late or back-dated entries must surface **compliance exceptions**.
+
+### Failure Handling
+- Problems are surfaced as **“Attention Needed”**, without assigning blame.
+- Visibility ≠ responsibility.
+- Exceptions must escalate visually over time but never block daily operations.
+
+---
+
+## 6. Source-of-Truth Rules
+
+This app is the source of truth for:
+- orders
+- scheduling
+- routing
+- service events
+- inventory availability
+
+### External Systems
+- **QuickBooks**
+  - Source of truth for billing and accounting.
+  - Remains part of the workflow.
+  - Conflicts must be detected and surfaced for manual resolution.
+  - Writes are allowed only after explicit confirmation per record (before April 2026).
+
+- **Google Calendar**
+  - Removed from the operational workflow.
+  - External changes are ignored entirely.
+
+### General Integration Rule
+- All new integrations start **read-only**.
+- Write access must be explicitly approved and documented.
+- No silent bidirectional syncs.
+
+---
+
+## 7. Engineering Standards
+
+- Write clean, maintainable, boring code.
+- Favor clarity over cleverness.
+- Controllers:
+  - load resources
+  - call services
+  - render views
+  - **no business logic**
+- Models:
+  - validations
+  - associations
+  - minimal domain behavior
+- Services:
+  - business rules and workflows
+  - idempotent where possible
+- Views:
+  - markup only
+  - no queries or business logic
+- Presenters:
+  - formatting and aggregation
+  - accept preloaded data
+- Helpers:
+  - cross-domain formatting only (dates, money)
+- Include automated tests for all core logic.
+- Handle errors gracefully with user-friendly messages.
+
+---
+
+## 8. Quality Assurance
+
+- Never present broken features.
+- If something cannot be fully tested automatically, explain why.
+- Prefer warnings and visibility over hard blocks.
+- Automate checks before deploying to production.
+
+---
+
+## 9. Compliance Logging Requirements (NR 113)
+
+At minimum, each service event must support recording:
+- service location (address or alternate identifier)
+- date and time of service
+- system type (portable restroom)
+- description of waste pumped
+- gallons collected
+- disposal location
+- disposal date and time
+- operator identity
+- certification metadata
+
+Electronic records are allowed and must be retained for **5 years**.
+
+---
+
+## 10. Exception & Resolution Tracking
+
+- All exceptions must be classified (e.g., data, workflow, integration).
+- Resolution tracking must record:
+  - category
+  - resolution type
+  - timestamp
+  - actor (owner, driver, system)
+- Narrative postmortems are optional.
+- Structured data is preferred to enable pattern analysis.
+
+---
+
+## 11. Showing Progress
+
+- Prefer working demos over descriptions.
+- Describe progress in **user-outcome terms**:
+  - “You can now schedule deliveries without overbooking”
+  - “Compliance gaps are visible on the dashboard”
+- Screenshots or short recordings are encouraged.
+- Celebrate meaningful milestones.
+
+---
+
+## 12. Explicit Non-Goals (Before April 2026)
+- No automated pricing engine
+- No customer self-service scheduling
+- No hard enforcement that blocks daily operations
+- No automatic bidirectional sync with external systems

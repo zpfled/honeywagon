@@ -35,11 +35,11 @@ RSpec.describe Orders::ServiceEventRescheduler do
         allow(Orders::ServiceScheduleResolver).to receive(:interval_days).with(order).and_return(7)
       end
 
-      it 'shifts all future events preserving cadence and clears routes' do
+      it 'shifts all future events preserving cadence and backfills routes' do
         described_class.new(order).shift_from(completion_date: Date.current)
 
         expect(event1.reload.scheduled_on).to eq(Date.current + 7)
-        expect(event1.route).to be_nil
+        expect(event1.route).to_not be_nil
         expect(event1.route_date).to eq(Date.current + 7)
 
         expect(event2.reload.scheduled_on).to eq(Date.current + 14)
