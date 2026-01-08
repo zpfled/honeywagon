@@ -25,6 +25,7 @@ class ServiceEvent < ApplicationRecord
   before_validation :reset_route_sequence_for_new_route, if: -> { will_save_change_to_route_id? && route_id.present? }
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
+  after_update_commit :complete_order_after_pickup, if: -> { saved_change_to_status? && status_completed? && event_type_pickup? }
   before_destroy :remember_route_for_cleanup
   after_commit :auto_assign_route, on: :create
   after_commit :refresh_truck_waste_load, if: :affects_truck_waste_load?
@@ -176,6 +177,12 @@ class ServiceEvent < ApplicationRecord
 
   def stamp_completed_on
     update_column(:completed_on, Date.current)
+  end
+
+  def complete_order_after_pickup
+    return unless order.present?
+
+    order.update!(status: 'completed', end_date: Date.current)
   end
 
   def default_route_date

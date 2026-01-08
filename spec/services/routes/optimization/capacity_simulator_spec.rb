@@ -79,4 +79,21 @@ RSpec.describe Routes::Optimization::CapacitySimulator do
 
     expect(result.steps.last.clean_used).to eq(25)
   end
+
+  it 'releases trailer spots on deliveries and consumes them on pickups' do
+    delivery = create(:service_event, :delivery, order: create_order_with_units(quantity: 1), route: route)
+    pickup = create(:service_event, :pickup, order: create_order_with_units(quantity: 2), route: route)
+
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(delivery).and_return(
+      double(usage: { waste_gallons: 0, clean_water_gallons: 0, trailer_spots: 1 })
+    )
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(pickup).and_return(
+      double(usage: { waste_gallons: 0, clean_water_gallons: 0, trailer_spots: 2 })
+    )
+
+    result = described_class.call(route: route, ordered_event_ids: [ delivery.id, pickup.id ])
+
+    expect(result.steps.first.trailer_used).to eq(1)
+    expect(result.steps.last.trailer_used).to eq(2)
+  end
 end

@@ -26,7 +26,7 @@ module Routes
                          .where(truck_id: route.truck_id)
                          .where('route_date <= ?', route.route_date)
                          .includes(service_events: { order: { rental_line_items: :unit_type } })
-        Routes::WasteTracker.new(routes).loads_by_route_id[route.id]
+        Routes::WasteTracker.new(routes).ending_loads_by_route_id[route.id]
       end
     end
 
@@ -97,11 +97,14 @@ module Routes
     end
 
     def projected_starting_waste_gallons
+      # Waste carries over across routes for the same truck until a dump occurs.
+      # We compute the starting load by replaying prior routes up to this route date.
       return 0 unless route.truck_id
 
       routes = company.routes
                       .where(truck_id: route.truck_id)
                       .where('route_date <= ?', route.route_date)
+      # WasteTracker returns the waste load at the start of each route in the list.
       Routes::WasteTracker.new(routes).starting_loads_by_route_id[route.id].to_i
     end
     private :projected_starting_waste_gallons

@@ -7,7 +7,7 @@ class DashboardController < ApplicationController
     end
     @routes = base_scope
     tracker = Routes::WasteTracker.new(@routes)
-    @waste_loads = tracker.loads_by_route_id
+    @waste_loads = tracker.ending_loads_by_route_id
     @dashboard_rows = @routes.map do |route|
       Routes::DashboardRowPresenter.new(route, waste_load: @waste_loads[route.id])
     end

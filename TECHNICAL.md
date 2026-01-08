@@ -57,3 +57,4 @@
 - Company profile updates are orchestrated via `Companies::ProfileUpdater` with dedicated form objects for each workflow branch to keep controllers thin and logic testable.
 - Rate plan row aggregation lives in `Companies::RatePlanRowsPresenter` to keep view formatting out of controllers.
 - Route optimization inserts auto-generated dump/refill stops via `Routes::Optimization::CapacityPlanner`, using per-unit-type capacity usage fields on `UnitType`.
+- Locations can be created with manual latitude/longitude when a street address is unavailable; address fields are optional in that case.

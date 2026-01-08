@@ -1,6 +1,8 @@
 require "rails_helper"
 
 RSpec.describe "/orders", type: :request do
+  include ActiveSupport::Testing::TimeHelpers
+
   let(:user) { create(:user) }
 
   describe "authentication" do
@@ -63,6 +65,56 @@ RSpec.describe "/orders", type: :request do
 
       expect(response.body).to include(own_location.display_label)
       expect(response.body).not_to include(other_location.display_label)
+    end
+  end
+
+  describe "status filters" do
+    before { sign_in user }
+
+    around do |example|
+      travel_to(Date.new(2026, 1, 15)) { example.run }
+    end
+
+    let!(:active_order) do
+      customer = create(:customer, company: user.company, business_name: "Active Customer")
+      location = create(:location, customer: customer, label: "Active Site")
+      create(:order, :active, company: user.company, created_by: user, customer: customer, location: location)
+    end
+
+    let!(:completed_order) do
+      customer = create(:customer, company: user.company, business_name: "Completed Customer")
+      location = create(:location, customer: customer, label: "Completed Site")
+      create(:order, :completed, company: user.company, created_by: user, customer: customer, location: location)
+    end
+
+    let!(:scheduled_order) do
+      customer = create(:customer, company: user.company, business_name: "Scheduled Customer")
+      location = create(:location, customer: customer, label: "Scheduled Site")
+      create(:order, :scheduled, company: user.company, created_by: user, customer: customer, location: location)
+    end
+
+    it "defaults to active when no status filters are provided" do
+      get orders_path(month: "2026-01")
+
+      expect(response.body).to include(active_order.customer.display_name)
+      expect(response.body).not_to include(completed_order.customer.display_name)
+      expect(response.body).not_to include(scheduled_order.customer.display_name)
+    end
+
+    it "supports combined status filters" do
+      get orders_path(month: "2026-01", status: %w[active completed])
+
+      expect(response.body).to include(active_order.customer.display_name)
+      expect(response.body).to include(completed_order.customer.display_name)
+      expect(response.body).not_to include(scheduled_order.customer.display_name)
+    end
+
+    it "shows all orders when no filters are selected" do
+      get orders_path(month: "2026-01", status: [ "" ])
+
+      expect(response.body).to include(active_order.customer.display_name)
+      expect(response.body).to include(completed_order.customer.display_name)
+      expect(response.body).to include(scheduled_order.customer.display_name)
     end
   end
 end
