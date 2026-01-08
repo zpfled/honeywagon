@@ -22,14 +22,20 @@ module Routes
       end
       Result = Struct.new(:steps, :violations, keyword_init: true)
 
-      def initialize(route:, ordered_event_ids:, starting_waste_gallons: nil)
+      def initialize(route:, ordered_event_ids:, starting_waste_gallons: nil, starting_trailer_spots: nil)
         @route = route
         @ordered_events = load_events_in_order(ordered_event_ids)
         @starting_waste_gallons = starting_waste_gallons
+        @starting_trailer_spots = starting_trailer_spots
       end
 
-      def self.call(route:, ordered_event_ids:, starting_waste_gallons: nil)
-        new(route: route, ordered_event_ids: ordered_event_ids, starting_waste_gallons: starting_waste_gallons).call
+      def self.call(route:, ordered_event_ids:, starting_waste_gallons: nil, starting_trailer_spots: nil)
+        new(
+          route: route,
+          ordered_event_ids: ordered_event_ids,
+          starting_waste_gallons: starting_waste_gallons,
+          starting_trailer_spots: starting_trailer_spots
+        ).call
       end
 
       def call
@@ -40,6 +46,8 @@ module Routes
           # Clean water resets at the start of a new route day (not per-event date).
           reset_clean_for_new_day!(event)
           usage = ServiceEvents::ResourceCalculator.new(event).usage
+          trailer_delta = usage[:trailer_spots].to_i
+          trailer_before = trailer_used
 
           # Apply usage, then reset after dump/refill stops to mirror real-world operations.
           apply_usage(usage, event)
@@ -48,12 +56,13 @@ module Routes
 
           # Capture per-stop usage and any over-capacity violations.
           step_violations = violations_for(event)
+          trailer_display = event.event_type_delivery? ? trailer_before + trailer_delta : trailer_used
 
           steps << Step.new(
             event_id: event.id,
             waste_used: waste_used,
             clean_used: clean_water_used,
-            trailer_used: trailer_used,
+            trailer_used: trailer_display,
             waste_capacity: waste_capacity,
             clean_capacity: clean_capacity,
             trailer_capacity: trailer_capacity,
@@ -84,7 +93,7 @@ module Routes
       end
 
       def trailer_used
-        @trailer_used ||= 0
+        @trailer_used ||= @starting_trailer_spots.to_i
       end
 
       def waste_capacity
@@ -111,7 +120,15 @@ module Routes
                         waste_used + waste_delta
         end
         @clean_water_used = clean_water_used + clean_delta
-        @trailer_used = trailer_used + trailer_delta
+        # Deliveries free trailer spots; pickups consume them. Services do not change trailer load.
+        trailer_change = if event.event_type_delivery?
+                           -trailer_delta
+        elsif event.event_type_pickup?
+                           trailer_delta
+        else
+                           0
+        end
+        @trailer_used = [ trailer_used + trailer_change, 0 ].max
 
         track_last_safe_stop(event)
       end

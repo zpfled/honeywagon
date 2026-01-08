@@ -20,6 +20,7 @@ module ServiceEvents
     def trailer_spots_usage
       return 0 unless event.event_type_delivery? || event.event_type_pickup?
 
+      # TODO: Make this magic number 2 a meaningful constant
       base = standard_count + (ada_count * 2)
       leftover_handwash = [ handwash_count - total_toilets, 0 ].max
       base + leftover_handwash

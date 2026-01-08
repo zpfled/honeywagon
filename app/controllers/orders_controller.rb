@@ -11,12 +11,20 @@ class OrdersController < ApplicationController
     month_start = @month.beginning_of_month
     month_end = @month.end_of_month
 
+    @selected_statuses = selected_statuses
     monthly_scope = current_user.company.orders
                                 .where('start_date <= ? AND end_date >= ?', month_end, month_start)
+    monthly_scope = monthly_scope.where(status: @selected_statuses) if @selected_statuses.any?
 
     @monthly_revenue_cents = monthly_scope.sum(:rental_subtotal_cents)
 
-    @orders = monthly_scope.includes(:customer, :location, rental_line_items: :unit_type, service_line_items: :rate_plan)
+    @orders = monthly_scope.includes(
+      :customer,
+      :location,
+      { service_events: :route },
+      { rental_line_items: [ :unit_type, :rate_plan ] },
+      { service_line_items: :rate_plan }
+    )
                            .order(:start_date)
     order_ids = @orders.map(&:id)
     units_by_order_id = OrderUnit.where(order_id: order_ids).group(:order_id).count
@@ -59,6 +67,7 @@ class OrdersController < ApplicationController
   end
 
   def edit
+    build_order_form_payload
   end
 
   def update
@@ -97,8 +106,6 @@ class OrdersController < ApplicationController
   end
 
   def availability
-    # TODO: Changes needed:
-    # - Consider a serializer/presenter if this response grows.
     summary = Units::AvailabilitySummary.new(
       company: current_user.company,
       start_date: params[:start_date],
@@ -109,15 +116,7 @@ class OrdersController < ApplicationController
       return render json: { error: 'Enter a valid start and end date.' }, status: :unprocessable_content
     end
 
-    render json: {
-      availability: summary.summary.map do |entry|
-        {
-          unit_type_id: entry[:unit_type].id,
-          name: entry[:unit_type].name,
-          available: entry[:available]
-        }
-      end
-    }
+    render json: Orders::AvailabilityPresenter.new(summary).to_h
   end
 
   private
@@ -247,3 +246,12 @@ class OrdersController < ApplicationController
     end
   end
 end
+  def selected_statuses
+    raw = params[:status]
+    values = Array(raw).map(&:to_s).reject(&:blank?)
+    return [] if params.key?(:status) && values.blank?
+    values = [ 'active' ] if values.blank?
+
+    allowed = Order::STATUSES
+    values.select { |status| allowed.include?(status) }
+  end

@@ -85,7 +85,7 @@ module Routes
     attr_reader :route, :waste_load
 
     def capacity_summary
-      @capacity_summary ||= route.capacity_summary
+      @capacity_summary ||= Routes::CapacitySummary.new(route: route)
     end
 
     def route_presenter

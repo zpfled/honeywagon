@@ -239,6 +239,66 @@ class OrderPresenter
     )
     0
   end
+
+  def last_serviced_on
+    @last_serviced_on ||= begin
+      events = service_events.select { |event| event.event_type_service? && event.status_completed? }
+      events.map { |event| event.completed_on || event.scheduled_on }.compact.max
+    end
+  end
+
+  def next_service_due_on
+    return nil if last_serviced_on.blank?
+
+    interval = Orders::ServiceScheduleResolver.interval_days(order)
+    return nil if interval.blank?
+
+    last_serviced_on + interval.days
+  end
+
+  def next_scheduled_service_on
+    next_scheduled_service_event&.route&.route_date || next_scheduled_service_event&.scheduled_on
+  end
+
+  def next_scheduled_service_event
+    @next_scheduled_service_event ||= begin
+      upcoming = service_events.select do |event|
+        event.status_scheduled? && (event.event_type_service? || event.event_type_pickup?)
+      end
+      upcoming.min_by { |event| event.route&.route_date || event.scheduled_on || Date.current }
+    end
+  end
+
+  def service_status_badge
+    label = service_badge_label
+    return nil if label.nil?
+
+    view.content_tag(
+      :span,
+      label,
+      class: "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset #{service_badge_classes}",
+      title: service_badge_title
+    )
+  end
+
+  def next_service_badge
+    next_date = next_scheduled_service_on
+    if next_date.present?
+      event = next_scheduled_service_event
+      prefix = event&.event_type_pickup? ? 'Pickup scheduled' : 'Service scheduled'
+      label = "#{prefix} #{format_service_date(next_date)}"
+      classes = 'bg-blue-100 text-blue-700 ring-blue-200'
+    else
+      label = 'Not scheduled'
+      classes = 'bg-rose-100 text-rose-700 ring-rose-200'
+    end
+
+    view.content_tag(
+      :span,
+      label,
+      class: "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset #{classes}"
+    )
+  end
   #
   # ---- Status badge ----
   #
@@ -385,5 +445,45 @@ class OrderPresenter
 
   def service_line_item?(line_item)
     line_item.is_a?(ServiceLineItem)
+  end
+
+  def service_badge_label
+    return 'Not serviced yet' if last_serviced_on.blank?
+
+    "Last serviced #{format_service_date(last_serviced_on)}"
+  rescue I18n::ArgumentError
+    "Last serviced #{last_serviced_on}"
+  end
+
+  def service_badge_title
+    due_on = next_service_due_on
+    return 'No service schedule' if due_on.blank?
+
+    if due_on < Date.current
+      "Overdue since #{format_service_date(due_on)}"
+    else
+      "Next due #{format_service_date(due_on)}"
+    end
+  rescue I18n::ArgumentError
+    due_on ? "Next due #{due_on}" : 'No service schedule'
+  end
+
+  def service_badge_classes
+    due_on = next_service_due_on
+    return 'bg-gray-100 text-gray-700 ring-gray-300' if due_on.blank?
+
+    if due_on < Date.current
+      'bg-rose-100 text-rose-700 ring-rose-200'
+    elsif due_on <= Date.current + 3.days
+      'bg-amber-100 text-amber-700 ring-amber-200'
+    else
+      'bg-emerald-100 text-emerald-700 ring-emerald-200'
+    end
+  end
+
+  def format_service_date(date)
+    view.l(date, format: '%b %-d, %Y')
+  rescue I18n::ArgumentError
+    date.to_s
   end
 end

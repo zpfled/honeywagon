@@ -108,5 +108,26 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         expect(delivery_order.reload.status).to eq('active')
       end
     end
+
+    context 'when completing a pickup event' do
+      let(:pickup_order) { create(:order, company: company, created_by: user, start_date: Date.current - 30, end_date: Date.current + 10, status: 'active') }
+      let(:pickup_event) do
+        create(:service_event, :pickup,
+               order: pickup_order,
+               route: route,
+               route_date: route.route_date,
+               scheduled_on: route.route_date)
+      end
+
+      it 'completes the order and updates the end date' do
+        travel_to Date.new(2024, 1, 5) do
+          post complete_route_service_event_path(route, pickup_event)
+        end
+
+        pickup_order.reload
+        expect(pickup_order.status).to eq('completed')
+        expect(pickup_order.end_date).to eq(Date.new(2024, 1, 5))
+      end
+    end
   end
 end

@@ -7,6 +7,7 @@ RSpec.describe OrderPresenter do
       include ActionView::Helpers::TextHelper
       include ActionView::Helpers::NumberHelper
       include ActionView::Helpers::TranslationHelper
+      include ActionView::Helpers::TagHelper
     end.new
   end
 
@@ -102,6 +103,41 @@ RSpec.describe OrderPresenter do
       expect(presenter.service_events.first).to eq(earlier)
       expect(presenter.service_events).to include(later)
       expect(presenter.service_events_count).to eq(2)
+    end
+
+    it "builds a warning badge when the next service is due soon" do
+      rate_plan.update!(service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly])
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 1)
+
+      completed = create(:service_event, :service, order: order, status: :completed)
+      completed.update_column(:completed_on, Date.current - 4.days)
+
+      badge = presenter.service_status_badge
+      expect(badge).to include('Last serviced')
+      expect(badge).to include('bg-amber-100')
+    end
+
+    it "builds an overdue badge when service is late" do
+      rate_plan.update!(service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly])
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, quantity: 1)
+
+      completed = create(:service_event, :service, order: order, status: :completed)
+      completed.update_column(:completed_on, Date.current - 10.days)
+
+      badge = presenter.service_status_badge
+      expect(badge).to include('bg-rose-100')
+    end
+
+    it "builds a not scheduled badge when no upcoming service exists" do
+      badge = presenter.next_service_badge
+      expect(badge).to include('Not scheduled')
+      expect(badge).to include('bg-rose-100')
+    end
+
+    it "uses pickup events for next scheduled" do
+      pickup = create(:service_event, :pickup, order: order, status: :scheduled, scheduled_on: Date.current + 2.days)
+      badge = presenter.next_service_badge
+      expect(badge).to include("Pickup scheduled #{pickup.scheduled_on.strftime('%b %-d, %Y')}")
     end
   end
 
