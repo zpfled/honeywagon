@@ -68,12 +68,27 @@ module Routes
       company.routes
              .where('route_date < ?', route.route_date)
              .order(route_date: :desc)
-             .first
+             .first ||
+        create_previous_route
     end
 
     # TODO: migrate to per-company time zones; Central Time is a temporary assumption.
     def central_today
       Time.use_zone('Central Time (US & Canada)') { Time.zone.today }
+    end
+
+    def create_previous_route
+      company.routes.create(
+        route_date: route.route_date - 1.day,
+        truck: route.truck,
+        trailer: route.trailer
+      ).tap do |new_route|
+        unless new_route.persisted?
+          Rails.logger.warn(
+            "[ServiceEventMover] failed to create previous route for event=#{service_event.id}: #{new_route.errors.full_messages.to_sentence}"
+          )
+        end
+      end
     end
   end
 end

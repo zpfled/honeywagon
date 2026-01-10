@@ -130,9 +130,16 @@
 
       <!-- Service events -->
       <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-        <div class="flex items-center justify-between">
-          <h2 class="text-base font-semibold text-gray-900">Service events</h2>
-          <span class="text-sm text-gray-500"><%= @order_presenter.service_events_count %> scheduled</span>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold text-gray-900">Service events</h2>
+            <span class="text-sm text-gray-500"><%= @order_presenter.service_events_count %> scheduled</span>
+          </div>
+          <%= button_to "Reschedule service events",
+                reschedule_service_events_order_path(@order_presenter.order),
+                method: :post,
+                data: { turbo_confirm: "Reschedule all scheduled service events for this order?" },
+                class: "inline-flex items-center rounded-lg bg-white px-3 py-2 text-xs font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" %>
         </div>
 
         <div class="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
@@ -169,7 +176,7 @@
               <div class="flex flex-col gap-2 py-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p class="text-sm font-semibold text-gray-900">
-                    <%= l(event.scheduled_on) %>
+                    Scheduled <%= l(event.scheduled_on) %>
                   </p>
                   <p class="text-xs text-gray-600">
                     <%= event.event_type.to_s.humanize %>
@@ -178,8 +185,41 @@
                     <% end %>
                     <% if event.route.present? %>
                       • <%= link_to "Route #{event.route.route_date}", route_path(event.route), class: "text-emerald-600 hover:text-emerald-500" %>
+                      • Route date <%= l(event.route.route_date) %>
+                    <% else %>
+                      • Not on a route
                     <% end %>
                   </p>
+                  <% unless event.route.present? %>
+                    <% routes_for_event = (@assignable_routes || []).select do |route| %>
+                      <% event.scheduled_on.present? && route.route_date.between?(event.scheduled_on - 14.days, event.scheduled_on + 14.days) %>
+                    <% end %>
+                    <% if routes_for_event.any? %>
+                      <%= form_with url: assign_route_order_service_event_path(@order_presenter.order, event),
+                                    method: :patch,
+                                    local: true,
+                                    class: "mt-2 flex flex-col gap-2 sm:flex-row sm:items-center" do |f| %>
+                        <div class="w-full sm:w-80">
+                          <%= f.label :route_id, "Assign to route", class: "text-xs font-medium text-gray-700" %>
+                          <%= f.select :route_id,
+                                       options_for_select(routes_for_event.map do |route|
+                                         label_parts = [ l(route.route_date) ]
+                                         label_parts << route.truck&.label if route.truck
+                                         label_parts << "Trailer #{route.trailer&.label}" if route.trailer&.respond_to?(:label)
+                                         [ label_parts.compact.join(' — '), route.id ]
+                                       end),
+                                       { include_blank: "Select a route" },
+                                       class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+                        </div>
+                        <div>
+                          <%= f.submit "Assign",
+                                       class: "inline-flex items-center rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+                        </div>
+                      <% end %>
+                    <% else %>
+                      <p class="mt-2 text-xs text-gray-600">No routes within 2 weeks of the service date.</p>
+                    <% end %>
+                  <% end %>
                 </div>
 
                 <div class="flex items-center gap-3">

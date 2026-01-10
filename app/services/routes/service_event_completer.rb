@@ -19,7 +19,8 @@ module Routes
     attr_reader :service_event
 
     def reschedule_future_events
-      Orders::ServiceEventRescheduler.new(service_event.order).shift_from(completion_date: Date.current)
+      completion_date = service_event.completed_on || Date.current
+      Orders::ServiceEventRescheduler.new(service_event.order).shift_from(completion_date: completion_date)
     end
 
     def transition_order_after_delivery

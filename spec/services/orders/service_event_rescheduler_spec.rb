@@ -54,6 +54,14 @@ RSpec.describe Orders::ServiceEventRescheduler do
 
         expect { near_end.reload }.to raise_error(ActiveRecord::RecordNotFound)
       end
+
+      it 'uses the completion date as the reschedule anchor' do
+        interim_event = create(:service_event, order: order, event_type: :service, scheduled_on: Date.current - 1)
+
+        described_class.new(order).shift_from(completion_date: Date.current - 3)
+
+        expect(interim_event.reload.scheduled_on).to eq(Date.current + 4)
+      end
     end
   end
 end

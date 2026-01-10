@@ -5,9 +5,12 @@ Rails.application.routes.draw do
     end
     member do
       post :schedule
+      post :reschedule_service_events
     end
 
-    resources :service_events, only: %i[create destroy], module: :orders
+    resources :service_events, only: %i[create destroy], module: :orders do
+      patch :assign_route, on: :member
+    end
   end
   resources :service_events, only: :update
   resources :routes, only: [ :index, :show, :create, :update ] do

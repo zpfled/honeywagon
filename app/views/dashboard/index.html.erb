@@ -94,6 +94,7 @@
             <tr class="<%= class_names(base_background, 'hover:bg-gray-50 transition') %>">
               <td class="<%= table_cell_class('font-semibold') %>">
                 <div><%= l(route.route_date, format: :long) %></div>
+                <div class="text-xs text-gray-500"><%= l(route.route_date, format: '%A') %></div>
                 <% if row.trend_badge %>
                   <div class="mt-1 text-xs text-gray-600">
                     <%= badge(row.trend_badge[:text], tone: row.trend_badge[:tone]) %>

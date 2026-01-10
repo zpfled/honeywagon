@@ -26,6 +26,37 @@ RSpec.describe "Order service events management", type: :request do
     expect(response.body).to include('could not be found')
   end
 
+  describe "assigning service events to routes" do
+    let(:scheduled_on) { Date.current }
+    let!(:service_event) { create(:service_event, order: order, user: user, route: nil, scheduled_on: scheduled_on) }
+    let!(:route_in_window) do
+      create(:route, company: user.company, route_date: scheduled_on + 3.days, truck: create(:truck, company: user.company))
+    end
+    let!(:route_outside_window) do
+      create(:route, company: user.company, route_date: scheduled_on + 20.days, truck: create(:truck, company: user.company))
+    end
+
+    it "assigns to a route within 2 weeks and aligns dates to the route" do
+      patch assign_route_order_service_event_path(order, service_event), params: { route_id: route_in_window.id }
+
+      expect(response).to redirect_to(order_path(order))
+      service_event.reload
+      expect(service_event.route).to eq(route_in_window)
+      expect(service_event.route_date).to eq(route_in_window.route_date)
+      expect(service_event.scheduled_on).to eq(route_in_window.route_date)
+    end
+
+    it "rejects routes outside the 2-week window" do
+      patch assign_route_order_service_event_path(order, service_event), params: { route_id: route_outside_window.id }
+
+      expect(response).to redirect_to(order_path(order))
+      follow_redirect!
+      expect(response.body).to include('within 2 weeks')
+      service_event.reload
+      expect(service_event.route).to be_nil
+    end
+  end
+
   describe "creating service events" do
     it "creates a manual service event even in the past" do
       expect do

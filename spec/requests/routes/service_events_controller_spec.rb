@@ -59,11 +59,19 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
     end
 
     context 'when no earlier eligible route exists' do
-      it 'shows an alert' do
+      it 'creates a previous-day route and assigns the service event' do
         post advance_route_service_event_path(route, service_event)
 
-        expect(response).to redirect_to(route_path(route))
-        expect(flash[:alert]).to be_present
+        new_route = company.routes.order(:route_date).first
+        expect(new_route.route_date).to eq(route.route_date - 1.day)
+        expect(new_route.truck).to eq(route.truck)
+        expect(new_route.trailer).to eq(route.trailer)
+        expect(response).to redirect_to(route_path(new_route))
+
+        service_event.reload
+        expect(service_event.route).to eq(new_route)
+        expect(service_event.route_date).to eq(new_route.route_date)
+        expect(flash[:notice]).to eq('Service event moved to the previous route.')
       end
     end
   end

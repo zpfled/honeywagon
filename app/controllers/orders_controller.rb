@@ -1,5 +1,5 @@
 class OrdersController < ApplicationController
-  before_action :set_order, only: %i[edit update destroy schedule]
+  before_action :set_order, only: %i[edit update destroy schedule reschedule_service_events]
   before_action :set_order_with_presenter_preloads, only: %i[show]
   before_action :load_form_options, only: %i[new create edit update]
 
@@ -36,6 +36,7 @@ class OrdersController < ApplicationController
   def show
     @order_presenter = OrderPresenter.new(@order, view_context: view_context)
     @service_event_types = ServiceEvent.event_types.except('dump', 'refill').keys
+    @assignable_routes = available_routes_for_service_events(@order.service_events)
   end
 
   def new
@@ -103,6 +104,23 @@ class OrdersController < ApplicationController
       error_message: e.message
     )
     redirect_to @order, alert: "Unable to schedule order: #{e.message}"
+  end
+
+  def reschedule_service_events
+    completed_on = @order.service_events
+                         .where(event_type: ServiceEvent.event_types[:service], status: :completed)
+                         .where.not(completed_on: nil)
+                         .order(completed_on: :desc)
+                         .limit(1)
+                         .pluck(:completed_on)
+                         .first
+
+    unless completed_on
+      return redirect_to(@order, alert: 'No completed service events found to anchor rescheduling.')
+    end
+
+    Orders::ServiceEventRescheduler.new(@order).shift_from(completion_date: completed_on)
+    redirect_to @order, notice: 'Scheduled service events rescheduled.'
   end
 
   def availability
@@ -181,6 +199,21 @@ class OrdersController < ApplicationController
       service_rate_plans: @service_rate_plans,
       company_id: current_user.company_id
     ).call
+  end
+
+  def available_routes_for_service_events(service_events)
+    return [] if service_events.blank?
+
+    dates = service_events.map(&:scheduled_on).compact
+    return [] if dates.blank?
+
+    start_date = dates.min - 14.days
+    end_date = dates.max + 14.days
+
+    current_user.company.routes
+                .where(route_date: start_date..end_date)
+                .includes(:truck, :trailer)
+                .order(:route_date)
   end
 
   def unit_type_requests_params

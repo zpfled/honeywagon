@@ -117,4 +117,28 @@ RSpec.describe "/orders", type: :request do
       expect(response.body).to include(scheduled_order.customer.display_name)
     end
   end
+
+  describe "rescheduling service events" do
+    before { sign_in user }
+
+    it "reschedules scheduled service events using the last completed service event" do
+      order = create(:order, :active,
+                     company: user.company,
+                     created_by: user,
+                     start_date: Date.new(2023, 12, 1),
+                     end_date: Date.new(2024, 2, 1))
+      completed_event = create(:service_event, :service, order: order, status: :completed)
+      completed_event.update_column(:completed_on, Date.new(2024, 1, 1))
+      future_service = create(:service_event, :service, order: order, scheduled_on: Date.new(2024, 1, 10))
+      pickup_event = create(:service_event, :pickup, order: order, scheduled_on: Date.new(2024, 1, 12))
+
+      allow(Orders::ServiceScheduleResolver).to receive(:interval_days).with(order).and_return(14)
+
+      post reschedule_service_events_order_path(order)
+
+      expect(response).to redirect_to(order_path(order))
+      expect(future_service.reload.scheduled_on).to eq(Date.new(2024, 1, 15))
+      expect(pickup_event.reload.scheduled_on).to eq(Date.new(2024, 1, 12))
+    end
+  end
 end

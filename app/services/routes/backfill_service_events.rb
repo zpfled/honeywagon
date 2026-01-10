@@ -11,6 +11,8 @@ module Routes
       @company = company
     end
     def call
+      return [ 0, 0 ] unless company.trucks.exists?
+
       assigned = 0
       created_routes = 0
 

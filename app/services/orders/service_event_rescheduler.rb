@@ -9,10 +9,10 @@ module Orders
       interval = Orders::ServiceScheduleResolver.interval_days(order)
       return unless interval
 
-      # Only adjust upcoming service events; completed or past ones stay as-is.
+      # Only adjust upcoming service events after the completion date; completed or past ones stay as-is.
       future_events = order.service_events
                             .where(event_type: ServiceEvent.event_types[:service])
-                            .where(ServiceEvent.arel_table[:scheduled_on].gt(Date.current))
+                            .where(ServiceEvent.arel_table[:scheduled_on].gt(completion_date))
                             .order(:scheduled_on)
       return if future_events.blank?
 
