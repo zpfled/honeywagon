@@ -8,6 +8,10 @@ gem 'propshaft'
 gem 'pg'
 # Use devise for authentication
 gem 'devise'
+# OAuth for Google Calendar
+gem 'omniauth'
+gem 'omniauth-google-oauth2'
+gem 'google-apis-calendar_v3'
 # Use pundit for authorization
 gem 'pundit'
 # Use Sidekiq for background jobs

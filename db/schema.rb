@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_05_205109) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_07_123000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -203,6 +203,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_205109) do
     t.integer "estimated_cost_cents", default: 0, null: false
     t.integer "estimated_gallons_override"
     t.integer "event_type"
+    t.string "google_calendar_event_id"
     t.text "notes"
     t.uuid "order_id"
     t.date "route_date"
@@ -298,6 +299,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_05_205109) do
     t.datetime "created_at", null: false
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
+    t.string "google_calendar_access_token"
+    t.datetime "google_calendar_expires_at"
+    t.string "google_calendar_refresh_token"
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"

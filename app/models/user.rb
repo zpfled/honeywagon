@@ -4,9 +4,10 @@ class User < ApplicationRecord
 
   belongs_to :company
   # Include default devise modules. Others available are:
-  # :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
+  # :confirmable, :lockable, :timeoutable, :trackable
   devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable
+         :recoverable, :rememberable, :validatable,
+         :omniauthable, omniauth_providers: %i[google_oauth2]
 
   has_many :created_orders, class_name: 'Order', foreign_key: :created_by_id, dependent: :nullify
   has_many :service_events, dependent: :destroy
@@ -26,5 +27,24 @@ class User < ApplicationRecord
   # Allow Devise test helpers (e.g., sign_in user) to infer the proper scope.
   def devise_scope
     :user
+  end
+
+  def google_calendar_connected?
+    google_calendar_access_token.present? || google_calendar_refresh_token.present?
+  end
+
+  def google_calendar_token_expired?
+    google_calendar_expires_at.present? && google_calendar_expires_at <= Time.current
+  end
+
+  def update_google_calendar_tokens(auth)
+    credentials = auth.credentials
+    expires_at = credentials.expires_at ? Time.at(credentials.expires_at) : nil
+
+    update!(
+      google_calendar_access_token: credentials.token,
+      google_calendar_refresh_token: credentials.refresh_token.presence || google_calendar_refresh_token,
+      google_calendar_expires_at: expires_at
+    )
   end
 end

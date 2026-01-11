@@ -82,4 +82,19 @@ RSpec.describe "RoutesController", type: :request do
       expect(response.body).to include('Route for')
     end
   end
+
+  describe "POST /routes/:id/push_to_calendar" do
+    it "redirects with a notice on success" do
+      route = create(:route, company: user.company, truck: truck, trailer: trailer)
+      result = Routes::GoogleCalendarPusher::Result.new(success?: true, errors: [], warnings: [])
+
+      allow(Routes::GoogleCalendarPusher).to receive(:new).with(route: route, user: user).and_return(double(call: result))
+
+      post push_to_calendar_route_path(route)
+
+      expect(response).to redirect_to(route_path(route))
+      follow_redirect!
+      expect(response.body).to include('Route pushed to Google Calendar.')
+    end
+  end
 end

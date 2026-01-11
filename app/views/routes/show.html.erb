@@ -143,10 +143,24 @@
         </div>
       <% end %>
 
-      <%= button_to "Optimize route",
-                    route_optimization_path(@route),
-                    method: :post,
-                    class: button_classes(variant: :secondary) %>
+      <div class="flex flex-wrap items-center gap-2">
+        <% if current_user.google_calendar_connected? %>
+          <%= button_to "Push to Google Calendar",
+                        push_to_calendar_route_path(@route),
+                        method: :post,
+                        class: button_classes(variant: :secondary) %>
+        <% else %>
+          <%= link_to "Connect Google Calendar",
+                google_calendar_connect_path(return_to: request.fullpath),
+                class: button_classes(variant: :secondary),
+                data: { turbo: false } %>
+        <% end %>
+
+        <%= button_to "Optimize route",
+                      route_optimization_path(@route),
+                      method: :post,
+                      class: button_classes(variant: :secondary) %>
+      </div>
     </div>
   <% end %>
 

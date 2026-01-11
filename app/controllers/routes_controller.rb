@@ -1,5 +1,5 @@
 class RoutesController < ApplicationController
-  before_action :set_route, only: %i[update]
+  before_action :set_route, only: %i[update push_to_calendar]
   before_action :set_route_with_service_events, only: %i[show ]
   before_action :load_fleet_assets, only: %i[index create show update]
 
@@ -45,6 +45,16 @@ class RoutesController < ApplicationController
     else
       load_route_details
       render :show, status: :unprocessable_content
+    end
+  end
+
+  def push_to_calendar
+    result = Routes::GoogleCalendarPusher.new(route: @route, user: current_user).call
+
+    if result.success?
+      redirect_to @route, notice: 'Route pushed to Google Calendar.'
+    else
+      redirect_to @route, alert: result.errors.to_sentence
     end
   end
 

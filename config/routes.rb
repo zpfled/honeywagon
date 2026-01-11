@@ -14,6 +14,7 @@ Rails.application.routes.draw do
   end
   resources :service_events, only: :update
   resources :routes, only: [ :index, :show, :create, :update ] do
+    post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
       post :postpone, on: :member
       post :advance, on: :member
@@ -48,7 +49,11 @@ Rails.application.routes.draw do
   resources :trucks, only: %i[edit update]
   resources :rate_plans, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
-  devise_for :users, controllers: { registrations: 'users/registrations' }
+  get 'google_calendar/connect', to: 'google_calendars#connect', as: :google_calendar_connect
+  devise_for :users, controllers: {
+    registrations: 'users/registrations',
+    omniauth_callbacks: 'users/omniauth_callbacks'
+  }
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
