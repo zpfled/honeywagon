@@ -21,9 +21,7 @@ module ServiceEvents
       return 0 unless event.event_type_delivery? || event.event_type_pickup?
 
       # TODO: Make this magic number 2 a meaningful constant
-      base = standard_count + (ada_count * 2)
-      leftover_handwash = [ handwash_count - total_toilets, 0 ].max
-      base + leftover_handwash
+      self.class.trailer_spots_for(units_by_type)
     end
 
     def clean_water_usage
@@ -55,31 +53,36 @@ module ServiceEvents
     end
 
     def standard_count
-      count_by_slug('standard')
+      self.class.count_by_slug(units_by_type, 'standard')
     end
 
     def ada_count
-      count_by_slug('ada')
+      self.class.count_by_slug(units_by_type, 'ada')
     end
 
     def handwash_count
-      count_by_slug('handwash')
-    end
-
-    def count_by_slug(slug)
-      units_by_type.sum do |unit_type, quantity|
-        unit_type.slug == slug ? quantity : 0
-      end
+      self.class.count_by_slug(units_by_type, 'handwash')
     end
 
     def units_by_type
-      @units_by_type ||= begin
-        return {} unless event.order
-        event.order.rental_line_items.each_with_object(Hash.new(0)) do |item, memo|
-          unit_type = item.unit_type
-          next unless unit_type
-          memo[unit_type] += item.quantity.to_i
+      @units_by_type ||= event.units_by_type
+    end
+
+    class << self
+      def trailer_spots_for(units_by_type)
+        base = count_by_slug(units_by_type, 'standard') + (count_by_slug(units_by_type, 'ada') * 2)
+        leftover_handwash = [ count_by_slug(units_by_type, 'handwash') - total_toilets(units_by_type), 0 ].max
+        base + leftover_handwash
+      end
+
+      def count_by_slug(units_by_type, slug)
+        units_by_type.sum do |unit_type, quantity|
+          unit_type.slug == slug ? quantity.to_i : 0
         end
+      end
+
+      def total_toilets(units_by_type)
+        count_by_slug(units_by_type, 'standard') + count_by_slug(units_by_type, 'ada')
       end
     end
   end

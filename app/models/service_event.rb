@@ -10,6 +10,7 @@ class ServiceEvent < ApplicationRecord
   belongs_to :deleted_by, class_name: 'User', optional: true
   has_one :service_event_report, dependent: :destroy
   belongs_to :dump_site, optional: true
+  has_many :service_event_units, dependent: :destroy
 
   enum :event_type, { delivery: 0, service: 1, pickup: 2, dump: 3, refill: 4 }, prefix: true
   enum :status, { scheduled: 0, completed: 1 }, prefix: true
@@ -67,7 +68,7 @@ class ServiceEvent < ApplicationRecord
   end
 
   def units_impacted_count
-    rental_units = order&.rental_line_items&.sum(:quantity) || 0
+    rental_units = units_by_type.values.sum
 
     case event_type.to_sym
     when :delivery, :pickup
@@ -80,6 +81,41 @@ class ServiceEvent < ApplicationRecord
       service_units = order&.service_line_items&.sum(:units_serviced) || 0
       rental_units + service_units
     end
+  end
+
+  def units_by_type
+    return {} unless order
+
+    if service_event_units.loaded? ? service_event_units.any? : service_event_units.exists?
+      service_event_units.includes(:unit_type).each_with_object(Hash.new(0)) do |item, memo|
+        unit_type = item.unit_type
+        next unless unit_type
+        memo[unit_type] += item.quantity.to_i
+      end
+    else
+      line_items =
+        if order.association(:rental_line_items).loaded?
+          if order.rental_line_items.empty?
+            order.rental_line_items.includes(:unit_type).load
+          else
+            order.rental_line_items
+          end
+        else
+          order.rental_line_items.includes(:unit_type)
+        end
+      line_items.each_with_object(Hash.new(0)) do |item, memo|
+        unit_type = item.unit_type
+        next unless unit_type
+        memo[unit_type] += item.quantity.to_i
+      end
+    end
+  end
+
+  def delivery_batch_label
+    return nil unless event_type_delivery?
+    return nil unless delivery_batch_total.to_i > 1
+
+    "Delivery (#{delivery_batch_sequence}/#{delivery_batch_total})"
   end
 
   def overdue?

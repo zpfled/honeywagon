@@ -146,32 +146,31 @@ class Route < ApplicationRecord
   end
 
   def unit_breakdown_for(events_scope)
-    counts = events_scope
-             .joins(order: :rental_line_items)
-             .group('rental_line_items.unit_type_id')
-             .sum('rental_line_items.quantity')
+    events = events_scope.includes(service_event_units: :unit_type)
+    preload_rental_line_items_for(events)
+    counts = Hash.new(0)
 
-    unit_types = UnitType.where(id: counts.keys).index_by(&:id)
+    events.each do |event|
+      event.units_by_type.each do |unit_type, quantity|
+        counts[unit_type] += quantity.to_i
+      end
+    end
 
-    counts.each_with_object([]) do |(unit_type_id, quantity), memo|
-      unit_type = unit_types[unit_type_id]
-      next unless unit_type
-
-      label = "#{quantity} #{unit_type.name.downcase.pluralize(quantity)}"
-      memo << label
+    counts.map do |unit_type, quantity|
+      "#{quantity} #{unit_type.name.downcase.pluralize(quantity)}"
     end
   end
 
   def units_impacted_for(events_scope)
-    events_scope
-      .joins(order: :rental_line_items)
-      .sum('rental_line_items.quantity')
+    events = events_scope.includes(service_event_units: :unit_type)
+    preload_rental_line_items_for(events)
+    events.sum { |event| event.units_by_type.values.sum }
   end
 
   def unit_total_for(events_scope)
-    events_scope
-      .joins(order: :rental_line_items)
-      .sum('rental_line_items.quantity')
+    events = events_scope.includes(service_event_units: :unit_type)
+    preload_rental_line_items_for(events)
+    events.sum { |event| event.units_by_type.values.sum }
   end
 
   def nullify_deleted_service_events
@@ -179,4 +178,18 @@ class Route < ApplicationRecord
   end
 
   # TODO: Evaluate indexes to support presenter aggregations (service_events counts/sums).
+
+  def preload_rental_line_items_for(events)
+    needs_units = events.any? do |event|
+      event.order.present? && !event.event_type_dump? && !event.event_type_refill?
+    end
+    return unless needs_units
+    return if events.any? { |event| event.service_event_units.loaded? && event.service_event_units.any? }
+
+    orders = events.filter_map { |event| event.order if event.order.present? }.uniq
+    return if orders.empty?
+    return unless orders.any? { |order| order.association(:rental_line_items).loaded? ? order.rental_line_items.any? : order.rental_line_items.exists? }
+
+    ActiveRecord::Associations::Preloader.new(records: orders, associations: { rental_line_items: :unit_type }).call
+  end
 end

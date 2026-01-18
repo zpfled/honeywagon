@@ -25,7 +25,6 @@ module Routes
         routes = company.routes
                          .where(truck_id: route.truck_id)
                          .where('route_date <= ?', route.route_date)
-                         .includes(service_events: { order: { rental_line_items: :unit_type } })
         Routes::WasteTracker.new(routes).ending_loads_by_route_id[route.id]
       end
     end
@@ -61,7 +60,8 @@ module Routes
     end
 
     def build_capacity_data
-      events_for_capacity = route.service_events.includes(order: { rental_line_items: :unit_type })
+      events_for_capacity = route.service_events.includes(service_event_units: :unit_type)
+      preload_rental_line_items_for(events_for_capacity)
                                       .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       result = Routes::Optimization::CapacitySimulator.call(
         route: route,
@@ -84,8 +84,9 @@ module Routes
 
     def service_events_for_display
       events = route.service_events
-                    .includes(order: [ :customer, :location, { rental_line_items: :unit_type } ])
+                    .includes(order: [ :customer, :location ], service_event_units: :unit_type)
                     .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+      preload_rental_line_items_for(events)
       dump_events = events.select(&:event_type_dump?)
       if dump_events.any?
         ActiveRecord::Associations::Preloader.new(
@@ -108,5 +109,19 @@ module Routes
       Routes::WasteTracker.new(routes).starting_loads_by_route_id[route.id].to_i
     end
     private :projected_starting_waste_gallons
+
+    def preload_rental_line_items_for(events)
+      needs_units = events.any? do |event|
+        event.order.present? && !event.event_type_dump? && !event.event_type_refill?
+      end
+      return unless needs_units
+      return if events.any? { |event| event.service_event_units.loaded? && event.service_event_units.any? }
+
+      orders = events.filter_map { |event| event.order if event.order.present? }.uniq
+      return if orders.empty?
+      return unless orders.any? { |order| order.association(:rental_line_items).loaded? ? order.rental_line_items.any? : order.rental_line_items.exists? }
+
+      ActiveRecord::Associations::Preloader.new(records: orders, associations: { rental_line_items: :unit_type }).call
+    end
   end
 end

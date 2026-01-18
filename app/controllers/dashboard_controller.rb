@@ -1,7 +1,7 @@
 class DashboardController < ApplicationController
   def index
     base_scope = current_user.company.routes.upcoming
-                                   .includes(:truck, :trailer, service_events: { order: %i[customer location] })
+                                   .includes(:truck, :trailer, service_events: [ { service_event_units: :unit_type }, { order: %i[customer location] } ])
     if ServiceEvent.where(route_id: base_scope.select(:id), event_type: ServiceEvent.event_types[:dump]).exists?
       base_scope = base_scope.includes(service_events: { dump_site: :location })
     end

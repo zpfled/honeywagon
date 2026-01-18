@@ -7,8 +7,7 @@ class RoutesController < ApplicationController
     # TODO: Changes needed:
     # - Ensure preloads cover row presenter usage (service_events -> order -> rental_line_items -> unit_type, plus truck/trailer).
     # - Move per-row label formatting (over-capacity dimension text) into presenter.
-    @routes = current_user.company.routes.includes(:truck, :trailer,
-                                                   service_events: { order: [ { rental_line_items: :unit_type } ] })
+    @routes = current_user.company.routes.includes(:truck, :trailer)
                           .order(route_date: :desc)
     @route_rows = Routes::IndexPresenter.new(@routes).rows
     @route = current_user.company.routes.new(
@@ -30,8 +29,7 @@ class RoutesController < ApplicationController
     if @route.save
       redirect_to @route, notice: 'Route created.'
     else
-      @routes = current_user.company.routes.includes(:truck, :trailer,
-                                                     service_events: { order: [ { rental_line_items: :unit_type } ] })
+      @routes = current_user.company.routes.includes(:truck, :trailer)
                             .order(route_date: :desc)
       @route_rows = Routes::IndexPresenter.new(@routes).rows
       render :index, status: :unprocessable_entity

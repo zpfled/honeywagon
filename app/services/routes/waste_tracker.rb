@@ -4,6 +4,7 @@ module Routes
     def initialize(routes)
       # Expect a list of routes across one or more trucks; nils are ignored.
       @routes = Array(routes).compact
+      preload_units_for(@routes)
     end
 
     def ending_loads_by_route_id
@@ -58,6 +59,19 @@ module Routes
     def routes_grouped_by_truck
       # Capacity is tracked per truck; group the input routes accordingly.
       routes.group_by(&:truck)
+    end
+
+    def preload_units_for(routes)
+      return if routes.blank?
+
+      events = routes.flat_map(&:service_events).uniq
+      return if events.empty?
+      return if events.any? { |event| event.service_event_units.loaded? && event.service_event_units.any? }
+
+      ActiveRecord::Associations::Preloader.new(
+        records: events,
+        associations: { service_event_units: :unit_type }
+      ).call
     end
 
     def simulate_route_waste(route, starting_waste:)

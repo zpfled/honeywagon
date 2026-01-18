@@ -14,6 +14,7 @@ module Routes
                     .order(:route_sequence, :created_at)
                     .includes(
         order: [ :customer, :location, { rental_line_items: :unit_type }, { service_line_items: :rate_plan } ],
+        service_event_units: :unit_type,
         dump_site: :location
       )
       sync_hash = route.google_calendar_hash
@@ -81,12 +82,9 @@ module Routes
     end
 
     def units_for(event)
-      return [] unless event.order
-
-      event.order.rental_line_items.map do |item|
-        unit_type = item.unit_type
-        next unless unit_type
-        "#{item.quantity}x #{unit_type.name}"
+      event.units_by_type.map do |unit_type, quantity|
+        next if unit_type.blank?
+        "#{quantity}x #{unit_type.name}"
       end.compact
     end
 

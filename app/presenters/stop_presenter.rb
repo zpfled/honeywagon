@@ -37,7 +37,7 @@ class StopPresenter
   end
 
   def event_type_label
-    service_event.event_type.to_s.humanize
+    service_event.delivery_batch_label || service_event.event_type.to_s.humanize
   end
 
   def overdue?

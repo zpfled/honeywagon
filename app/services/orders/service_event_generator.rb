@@ -23,10 +23,11 @@ module Orders
         build_events.each do |attrs|
           next if from_date && attrs[:scheduled_on] < from_date
 
+          unit_counts = attrs.delete(:units_by_type)
           type = find_or_create_event_type(attrs[:event_type])
           assigned_user = order.created_by || order.company&.users&.first
           raise "Order #{order.id} is missing a user to own generated events" unless assigned_user
-          order.service_events.create!(
+          event = order.service_events.create!(
             attrs.merge(
               status: :scheduled,
               auto_generated: true,
@@ -34,6 +35,12 @@ module Orders
               user: assigned_user
             )
           )
+          if unit_counts.present?
+            unit_counts.each do |unit_type, quantity|
+              next if quantity.to_i <= 0
+              event.service_event_units.create!(unit_type: unit_type, quantity: quantity)
+            end
+          end
         end
       end
     end
@@ -49,10 +56,7 @@ module Orders
 
     # Delivery/pickup events are always present, regardless of schedule.
     def mandatory_events
-      [
-        { event_type: :delivery, scheduled_on: order.start_date },
-        { event_type: :pickup, scheduled_on: order.end_date }
-      ]
+      delivery_events + [ { event_type: :pickup, scheduled_on: order.end_date } ]
     end
 
     # Returns recurring service events based on the order's effective schedule.
@@ -73,6 +77,88 @@ module Orders
       end
 
       events
+    end
+
+    def delivery_events
+      batches = delivery_batches
+      total = batches.size
+      batches.each_with_index.map do |batch, index|
+        {
+          event_type: :delivery,
+          scheduled_on: order.start_date,
+          delivery_batch_sequence: index + 1,
+          delivery_batch_total: total,
+          units_by_type: batch
+        }
+      end
+    end
+
+    def delivery_batches
+      units_by_type = order_units_by_type
+      return [ units_by_type ] if units_by_type.blank?
+
+      capacity = preferred_trailer_capacity
+      return [ units_by_type ] if capacity.to_i <= 0
+
+      total_spots = ServiceEvents::ResourceCalculator.trailer_spots_for(units_by_type)
+      return [ units_by_type ] if total_spots <= capacity
+
+      batches = [ Hash.new(0) ]
+      sorted_units = units_by_type.sort_by { |unit_type, _| -unit_spot_weight(unit_type) }
+
+      sorted_units.each do |unit_type, quantity|
+        quantity.to_i.times do
+          placed = false
+
+          batches.each do |batch|
+            candidate = batch.merge(unit_type => batch[unit_type].to_i + 1)
+            if ServiceEvents::ResourceCalculator.trailer_spots_for(candidate) <= capacity
+              batch[unit_type] = candidate[unit_type]
+              placed = true
+              break
+            end
+          end
+
+          unless placed
+            batches << Hash.new(0)
+            batches.last[unit_type] = 1
+          end
+        end
+      end
+
+      batches
+    end
+
+    def order_units_by_type
+      order.rental_line_items.includes(:unit_type).each_with_object(Hash.new(0)) do |item, memo|
+        unit_type = item.unit_type
+        next unless unit_type
+        memo[unit_type] += item.quantity.to_i
+      end
+    end
+
+    def preferred_trailer_capacity
+      trailers = order.company&.trailers
+      return nil if trailers.blank?
+
+      required_spots = ServiceEvents::ResourceCalculator.trailer_spots_for(order_units_by_type)
+
+      preferred = trailers
+                  .where('capacity_spots >= ?', required_spots)
+                  .order(Arel.sql('preference_rank IS NULL'), :preference_rank, :capacity_spots)
+                  .first
+
+      fallback = trailers.order(capacity_spots: :desc).first
+
+      (preferred || fallback)&.capacity_spots.to_i
+    end
+
+    def unit_spot_weight(unit_type)
+      case unit_type.slug
+      when 'ada' then 2
+      else
+        1
+      end
     end
 
     # Maps the effective schedule string to a recurrence interval in days.

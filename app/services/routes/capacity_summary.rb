@@ -45,7 +45,8 @@ module Routes
 
     def aggregate_usage
       events = route.service_events.scheduled
-      events = events.includes(order: { rental_line_items: :unit_type }) unless events.loaded?
+      events = events.includes(service_event_units: :unit_type).to_a unless events.loaded?
+      preload_rental_line_items_for(events)
 
       events.each_with_object({ trailer_spots: 0, clean_water_gallons: 0, waste_gallons: 0 }) do |event, memo|
         usage = ServiceEvents::ResourceCalculator.new(event).usage
@@ -60,6 +61,19 @@ module Routes
       return false if capacity.nil?
 
       record[:used] > capacity
+    end
+
+    def preload_rental_line_items_for(events)
+      return if events.respond_to?(:loaded?) && !events.loaded?
+
+      orders = events.filter_map do |event|
+        next unless event.order.present?
+        next unless event.service_event_units.loaded? && event.service_event_units.empty?
+        event.order
+      end.uniq
+      return if orders.empty?
+
+      ActiveRecord::Associations::Preloader.new(records: orders, associations: { rental_line_items: :unit_type }).call
     end
   end
 end

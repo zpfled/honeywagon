@@ -141,6 +141,33 @@ RSpec.describe Orders::ServiceEventGenerator do
       expect(remaining_ids).to match_array(past_event_ids)
     end
   end
+
+  describe "delivery splitting" do
+    let(:start_date) { Date.new(2024, 8, 1) }
+    let(:end_date) { Date.new(2024, 8, 10) }
+    let(:order) { create(:order, start_date: start_date, end_date: end_date) }
+    let!(:unit_type) { create(:unit_type, :standard, company: order.company) }
+    let!(:rate_plan) { create(:rate_plan, service_schedule: none_schedule, unit_type: unit_type, company: order.company) }
+
+    before do
+      create(:trailer, company: order.company, capacity_spots: 2, preference_rank: 1)
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, service_schedule: none_schedule, quantity: 5)
+    end
+
+    it "splits delivery events based on trailer capacity" do
+      generate
+
+      deliveries = order.service_events.auto_generated.where(event_type: :delivery).order(:delivery_batch_sequence)
+      expect(deliveries.count).to eq(3)
+      expect(deliveries.pluck(:delivery_batch_total).uniq).to eq([ 3 ])
+      expect(deliveries.pluck(:delivery_batch_sequence)).to eq([ 1, 2, 3 ])
+
+      quantities = deliveries.map do |event|
+        event.service_event_units.sum(:quantity)
+      end
+      expect(quantities).to eq([ 2, 2, 1 ])
+    end
+  end
   describe "service-only orders" do
     let(:order) { create(:order, start_date: Date.new(2024, 6, 1), end_date: Date.new(2024, 7, 1)) }
 

@@ -179,7 +179,7 @@
                     Scheduled <%= l(event.scheduled_on) %>
                   </p>
                   <p class="text-xs text-gray-600">
-                    <%= event.event_type.to_s.humanize %>
+                    <%= event.delivery_batch_label || event.event_type.to_s.humanize %>
                     <% if event.auto_generated? %>
                       • Auto-generated
                     <% end %>

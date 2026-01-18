@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_12_190200) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -206,12 +206,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_190200) do
     t.index ["key"], name: "index_service_event_types_on_key", unique: true
   end
 
+  create_table "service_event_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "quantity", null: false
+    t.uuid "service_event_id", null: false
+    t.uuid "unit_type_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["service_event_id", "unit_type_id"], name: "index_service_event_units_on_service_event_id_and_unit_type_id", unique: true
+    t.index ["service_event_id"], name: "index_service_event_units_on_service_event_id"
+    t.index ["unit_type_id"], name: "index_service_event_units_on_unit_type_id"
+  end
+
   create_table "service_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.boolean "auto_generated", default: false, null: false
     t.date "completed_on"
     t.datetime "created_at", null: false
     t.datetime "deleted_at"
     t.uuid "deleted_by_id"
+    t.integer "delivery_batch_sequence"
+    t.integer "delivery_batch_total"
     t.integer "drive_distance_meters", default: 0, null: false
     t.integer "drive_duration_seconds", default: 0, null: false
     t.uuid "dump_site_id"
@@ -370,6 +383,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_190200) do
   add_foreign_key "routes", "trucks"
   add_foreign_key "service_event_reports", "service_events"
   add_foreign_key "service_event_reports", "users"
+  add_foreign_key "service_event_units", "service_events", on_delete: :cascade
+  add_foreign_key "service_event_units", "unit_types"
   add_foreign_key "service_events", "dump_sites"
   add_foreign_key "service_events", "orders"
   add_foreign_key "service_events", "routes"
