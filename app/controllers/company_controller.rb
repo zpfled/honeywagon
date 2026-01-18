@@ -104,16 +104,18 @@ class CompanyController < ApplicationController
     params.fetch(:company, {}).permit(
       :name,
       :fuel_price_per_gallon,
+      :routing_horizon_days,
+      :dump_threshold_percent,
       home_base_attributes: %i[id label street city state zip lat lng]
     )
   end
 
   def truck_params
-    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :fuel_price_per_gallon, :miles_per_gallon)
+    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :fuel_price_per_gallon, :miles_per_gallon, :preference_rank)
   end
 
   def trailer_params
-    params.fetch(:trailer, {}).permit(:name, :identifier, :capacity_spots)
+    params.fetch(:trailer, {}).permit(:name, :identifier, :capacity_spots, :preference_rank)
   end
 
   def customer_params

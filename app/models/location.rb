@@ -3,6 +3,7 @@ class Location < ApplicationRecord
   belongs_to :customer, optional: true
 
   before_validation :geocode_coordinates, if: :should_geocode?
+  after_commit :enqueue_distance_refresh, if: :coordinates_changed?
 
   # Scope returning sites flagged as dump facilities.
   scope :dump_sites, -> { where(dump_site: true) }
@@ -37,5 +38,15 @@ class Location < ApplicationRecord
 
     self.lat ||= result[:lat]
     self.lng ||= result[:lng]
+  end
+
+  def coordinates_changed?
+    (saved_change_to_lat? || saved_change_to_lng?) && lat.present? && lng.present?
+  end
+
+  def enqueue_distance_refresh
+    return if Rails.env.test?
+
+    Locations::DistanceRefreshJob.perform_later(id)
   end
 end

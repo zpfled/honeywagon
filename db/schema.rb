@@ -10,15 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_11_012000) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_12_190200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "dump_threshold_percent", default: 90, null: false
     t.integer "fuel_price_per_gal_cents", default: 0, null: false
     t.uuid "home_base_id"
     t.string "name", null: false
+    t.integer "routing_horizon_days", default: 3, null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
     t.index ["home_base_id"], name: "index_companies_on_home_base_id"
@@ -68,6 +70,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_11_012000) do
     t.index ["applies_to"], name: "index_expenses_on_applies_to", using: :gin
     t.index ["company_id", "category"], name: "index_expenses_on_company_id_and_category"
     t.index ["company_id"], name: "index_expenses_on_company_id"
+  end
+
+  create_table "location_distances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "computed_at", null: false
+    t.datetime "created_at", null: false
+    t.decimal "distance_km", precision: 10, scale: 3, null: false
+    t.uuid "from_location_id", null: false
+    t.uuid "to_location_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["from_location_id", "to_location_id"], name: "idx_on_from_location_id_to_location_id_9247171e05", unique: true
+    t.index ["from_location_id"], name: "index_location_distances_on_from_location_id"
+    t.index ["to_location_id"], name: "index_location_distances_on_to_location_id"
   end
 
   create_table "locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -246,6 +260,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_11_012000) do
     t.datetime "created_at", null: false
     t.string "identifier", null: false
     t.string "name", null: false
+    t.integer "preference_rank"
     t.datetime "updated_at", null: false
     t.index ["company_id", "identifier"], name: "index_trailers_on_company_id_and_identifier", unique: true
     t.index ["company_id"], name: "index_trailers_on_company_id"
@@ -258,6 +273,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_11_012000) do
     t.decimal "miles_per_gallon", precision: 6, scale: 2
     t.string "name", null: false
     t.string "number", null: false
+    t.integer "preference_rank"
     t.datetime "updated_at", null: false
     t.integer "waste_capacity_gal", default: 0, null: false
     t.integer "waste_load_gal", default: 0, null: false
@@ -335,6 +351,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_11_012000) do
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"
   add_foreign_key "expenses", "companies"
+  add_foreign_key "location_distances", "locations", column: "from_location_id", on_delete: :cascade
+  add_foreign_key "location_distances", "locations", column: "to_location_id", on_delete: :cascade
   add_foreign_key "locations", "customers"
   add_foreign_key "order_units", "orders"
   add_foreign_key "order_units", "units"

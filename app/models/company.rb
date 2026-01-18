@@ -17,6 +17,8 @@ class Company < ApplicationRecord
   belongs_to :home_base, class_name: 'Location', optional: true
 
   validates :name, presence: true
+  validates :routing_horizon_days, numericality: { greater_than: 0 }, allow_nil: true
+  validates :dump_threshold_percent, numericality: { greater_than: 0, less_than_or_equal_to: 100 }, allow_nil: true
   accepts_nested_attributes_for :home_base
 
   def inventory

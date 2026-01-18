@@ -47,6 +47,7 @@ Rails.application.routes.draw do
   end
   resources :locations, only: [ :new, :create ]
   resources :trucks, only: %i[edit update]
+  resources :trailers, only: %i[edit update]
   resources :rate_plans, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
   get 'google_calendar/connect', to: 'google_calendars#connect', as: :google_calendar_connect

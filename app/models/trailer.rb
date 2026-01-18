@@ -5,6 +5,7 @@ class Trailer < ApplicationRecord
 
   validates :name, :identifier, presence: true
   validates :capacity_spots, numericality: { greater_than_or_equal_to: 0 }
+  validates :preference_rank, numericality: { greater_than_or_equal_to: 1 }, allow_nil: true
 
   def label
     [ name, identifier ].compact.join(' • ')

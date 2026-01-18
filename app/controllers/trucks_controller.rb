@@ -21,6 +21,6 @@ class TrucksController < ApplicationController
   end
 
   def truck_params
-    params.require(:truck).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :miles_per_gallon)
+    params.require(:truck).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :miles_per_gallon, :preference_rank)
   end
 end
