@@ -4,13 +4,13 @@ class Routes::OrderingsController < ApplicationController
 
   def update
     ordered_ids = Array(params[:event_ids]).map(&:presence).compact
-    result = Routes::Optimization::ManualRun.call(@route, ordered_ids)
+    manual_result = Routes::Optimization::ManualRun.call(@route, ordered_ids)
+    @route.resequence_service_events!(ordered_ids)
 
-    if result.success?
-      @route.resequence_service_events!(ordered_ids)
-      flash[:notice] = ([ 'Route updated:' ] + result.warnings).join(' ').html_safe
+    if manual_result.success?
+      flash[:notice] = ([ 'Route updated:' ] + manual_result.warnings).join(' ').html_safe
     else
-      flash[:alert] = result.errors.join(' ').html_safe
+      flash[:alert] = ([ 'Route order saved, but optimization skipped:' ] + manual_result.errors).join(' ').html_safe
     end
 
     redirect_to route_path(@route)

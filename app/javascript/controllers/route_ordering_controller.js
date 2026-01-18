@@ -3,30 +3,66 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
   static targets = [ "row", "number", "inputContainer" ]
 
-  moveUp(event) {
-    event.preventDefault()
+  connect() {
+    this.draggedRow = null
+  }
+
+  dragStart(event) {
     const row = event.target.closest("[data-route-ordering-target='row']")
     if (!row) return
 
-    const rows = this.rowTargets
-    const index = rows.indexOf(row)
-    if (index > 0) {
-      row.parentNode.insertBefore(row, rows[index - 1])
-      this.refreshNumbers()
+    this.draggedRow = row
+    row.classList.add("opacity-50")
+
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "move"
+      event.dataTransfer.setData("text/plain", row.dataset.eventId || "")
     }
   }
 
-  moveDown(event) {
+  dragOver(event) {
+    if (!this.draggedRow) return
+
+    const row = event.target.closest("[data-route-ordering-target='row']")
+    event.preventDefault()
+    if (!row || row === this.draggedRow) return
+
+    const rect = row.getBoundingClientRect()
+    const shouldInsertAfter = event.clientY > rect.top + rect.height / 2
+
+    if (shouldInsertAfter) {
+      row.parentNode.insertBefore(this.draggedRow, row.nextSibling)
+    } else {
+      row.parentNode.insertBefore(this.draggedRow, row)
+    }
+
+    this.refreshNumbers()
+  }
+
+  drop(event) {
+    if (!this.draggedRow) return
+
     event.preventDefault()
     const row = event.target.closest("[data-route-ordering-target='row']")
-    if (!row) return
+    if (row && row !== this.draggedRow) {
+      const rect = row.getBoundingClientRect()
+      const shouldInsertAfter = event.clientY > rect.top + rect.height / 2
 
-    const rows = this.rowTargets
-    const index = rows.indexOf(row)
-    if (index >= 0 && index < rows.length - 1) {
-      row.parentNode.insertBefore(rows[index + 1], row)
-      this.refreshNumbers()
+      if (shouldInsertAfter) {
+        row.parentNode.insertBefore(this.draggedRow, row.nextSibling)
+      } else {
+        row.parentNode.insertBefore(this.draggedRow, row)
+      }
     }
+
+    this.refreshNumbers()
+    this.buildInputs()
+    this.element.requestSubmit()
+    this.clearDragState()
+  }
+
+  dragEnd() {
+    this.clearDragState()
   }
 
   submit(event) {
@@ -58,5 +94,12 @@ export default class extends Controller {
       input.value = id
       container.appendChild(input)
     })
+  }
+
+  clearDragState() {
+    if (this.draggedRow) {
+      this.draggedRow.classList.remove("opacity-50")
+    }
+    this.draggedRow = null
   }
 }

@@ -2,7 +2,7 @@ module Routes
   module Optimization
     # Inserts dump/refill stops as needed so routes can respect truck capacities.
     class CapacityPlanner
-      Result = Struct.new(:warnings, :errors, :inserted_event_ids, keyword_init: true)
+      Result = Struct.new(:warnings, :errors, :inserted_event_ids, :ordered_event_ids, keyword_init: true)
 
       def initialize(route:, ordered_event_ids:)
         @route = route
@@ -18,6 +18,7 @@ module Routes
 
         warnings = []
         inserted_ids = []
+        ordered_ids = []
 
         waste_used = starting_waste
         clean_used = 0
@@ -36,6 +37,7 @@ module Routes
             refill_event = create_refill_event(event_date)
             if refill_event
               inserted_ids << refill_event.id
+              ordered_ids << refill_event.id
               clean_used = 0
             else
               warnings << 'Clean water capacity exceeded but no home base is configured.'
@@ -46,11 +48,14 @@ module Routes
             dump_event = create_dump_event(event_date)
             if dump_event
               inserted_ids << dump_event.id
+              ordered_ids << dump_event.id
               waste_used = 0
             else
               warnings << 'Waste capacity exceeded but no dump site is configured.'
             end
           end
+
+          ordered_ids << event.id
 
           clean_used += usage[:clean_water_gallons].to_i
           waste_used += usage[:waste_gallons].to_i
@@ -67,7 +72,12 @@ module Routes
           end
         end
 
-        Result.new(warnings: warnings.uniq, errors: [], inserted_event_ids: inserted_ids)
+        Result.new(
+          warnings: warnings.uniq,
+          errors: [],
+          inserted_event_ids: inserted_ids,
+          ordered_event_ids: ordered_ids
+        )
       end
 
       private
@@ -106,6 +116,7 @@ module Routes
       end
 
       def create_dump_event(event_date)
+        # TODO: Choose the closest dump site to the previous stop instead of name order.
         dump_site = route.company.dump_sites.order(:name).first
         return nil unless dump_site
 

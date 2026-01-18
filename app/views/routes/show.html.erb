@@ -175,9 +175,6 @@
                   data: { controller: "route-ordering", action: "submit->route-ordering#submit" } do %>
       <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
         <p class="text-sm font-semibold text-gray-900">Route stops</p>
-        <div class="flex items-center gap-2">
-          <button type="submit" class="<%= button_classes(variant: :outline, size: :sm) %>">Save order</button>
-        </div>
       </div>
       <div class="hidden" data-route-ordering-target="inputContainer">
         <% @stop_presenters.each do |stop| %>
@@ -195,7 +192,8 @@
             <th class="<%= table_header_class('text-right') %>">Actions</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-100 bg-white">
+        <tbody class="divide-y divide-gray-100 bg-white"
+               data-action="dragover->route-ordering#dragOver drop->route-ordering#drop">
           <% if @stop_presenters.any? %>
             <% @stop_presenters.each do |stop| %>
               <%= render partial: "routes/stop", locals: { stop: stop } %>
