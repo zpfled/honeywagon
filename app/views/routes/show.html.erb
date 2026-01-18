@@ -145,10 +145,13 @@
 
       <div class="flex flex-wrap items-center gap-2">
         <% if current_user.google_calendar_connected? %>
-          <%= button_to "Push to Google Calendar",
+          <% calendar_synced = @route.google_calendar_sync_hash.present? && @route.google_calendar_sync_hash == @route.google_calendar_hash %>
+          <% button_class = calendar_synced ? "#{button_classes(variant: :secondary)} opacity-60 cursor-not-allowed" : button_classes(variant: :secondary) %>
+          <%= button_to(calendar_synced ? "Pushed to Google Calendar" : "Push to Google Calendar",
                         push_to_calendar_route_path(@route),
                         method: :post,
-                        class: button_classes(variant: :secondary) %>
+                        disabled: calendar_synced,
+                        class: button_class) %>
         <% else %>
           <%= link_to "Connect Google Calendar",
                 google_calendar_connect_path(return_to: request.fullpath),

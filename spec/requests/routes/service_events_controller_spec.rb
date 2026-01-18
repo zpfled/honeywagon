@@ -92,7 +92,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         post complete_route_service_event_path(route, service_event)
       end
 
-      expect(response).to redirect_to(route_path(route))
+      expect(response).to redirect_to(route_path(route, report_service_event_id: service_event.id))
       expect(flash[:notice]).to eq('Service event marked completed.')
       expect(service_event.reload).to be_status_completed
       expect(future_event.reload.scheduled_on).to eq(Date.new(2024, 1, 8))
@@ -113,6 +113,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
       it 'activates the order' do
         post complete_route_service_event_path(route, delivery_event)
 
+        expect(response).to redirect_to(route_path(route))
         expect(delivery_order.reload.status).to eq('active')
       end
     end
@@ -132,6 +133,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
           post complete_route_service_event_path(route, pickup_event)
         end
 
+        expect(response).to redirect_to(route_path(route, report_service_event_id: pickup_event.id))
         pickup_order.reload
         expect(pickup_order.status).to eq('completed')
         expect(pickup_order.end_date).to eq(Date.new(2024, 1, 5))

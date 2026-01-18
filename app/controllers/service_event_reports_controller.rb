@@ -3,14 +3,32 @@ class ServiceEventReportsController < ApplicationController
   before_action :set_report, only: [ :edit, :update ]
 
   def index
-    base_scope = current_user.service_event_reports
-                              .includes(service_event: { order: %i[customer location] })
-    if ServiceEvent.where(id: base_scope.select(:service_event_id), event_type: ServiceEvent.event_types[:dump]).exists?
-      base_scope = base_scope.includes(service_event: { dump_site: :location })
-    end
+    @month = selected_month
+    @previous_month = (@month - 1.month).beginning_of_month
+    @next_month = (@month + 1.month).beginning_of_month
+    month_start = @month.beginning_of_month
+    month_end = @month.end_of_month
+    dump_type = ServiceEvent.event_types[:dump]
+
+    month_scope = current_user.service_event_reports
+                              .joins(:service_event)
+                              .where(service_events: { completed_on: month_start..month_end })
+    pumped_sql = "COALESCE((service_event_reports.data->>'estimated_gallons_pumped')::int, 0)"
+    dumped_sql = "COALESCE((service_event_reports.data->>'estimated_gallons_dumped')::int, 0)"
+
+    @monthly_pumped_gallons = month_scope.where.not(service_events: { event_type: dump_type }).sum(Arel.sql(pumped_sql)).to_i
+    @monthly_dumped_gallons = month_scope.where(service_events: { event_type: dump_type }).sum(Arel.sql(dumped_sql)).to_i
+
+    include_dump_site = month_scope.where(service_events: { event_type: dump_type }).exists?
+    event_includes = { order: %i[customer location] }
+    event_includes[:dump_site] = :location if include_dump_site
+
+    base_scope = month_scope
+                 .includes(service_event: event_includes)
+                 .where("service_events.event_type = :dump OR #{pumped_sql} > 0", dump: dump_type)
+
     @reports = base_scope
-                           .joins(:service_event)
-                           .order(Arel.sql('service_events.completed_on DESC NULLS LAST, service_event_reports.created_at DESC'))
+               .order(Arel.sql('service_events.completed_on DESC NULLS LAST, service_event_reports.created_at DESC'))
     @report_presenters = @reports.map do |report|
       ServiceEventReportPresenter.new(report, view_context: view_context)
     end
@@ -131,5 +149,14 @@ class ServiceEventReportsController < ApplicationController
     return if gallons.blank?
 
     @service_event.update_column(:estimated_gallons_override, gallons.to_i)
+  end
+
+  def selected_month
+    param = params[:month]
+    return Date.current.beginning_of_month if param.blank?
+
+    Date.strptime(param, '%Y-%m').beginning_of_month
+  rescue ArgumentError
+    Date.current.beginning_of_month
   end
 end

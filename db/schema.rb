@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_07_123000) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_11_012000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -161,6 +161,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_07_123000) do
     t.datetime "created_at", null: false
     t.integer "estimated_drive_meters"
     t.integer "estimated_drive_seconds"
+    t.string "google_calendar_sync_hash"
     t.boolean "optimization_stale", default: true, null: false
     t.date "route_date", null: false
     t.uuid "trailer_id"

@@ -12,7 +12,7 @@ RSpec.describe 'Routes::ServiceEventsController#complete', type: :request do
   it 'marks the service event as completed' do
     post complete_route_service_event_path(route, service_event)
 
-    expect(response).to redirect_to(route_path(route))
+    expect(response).to redirect_to(route_path(route, report_service_event_id: service_event.id))
     expect(flash[:notice]).to eq('Service event marked completed.')
     expect(service_event.reload).to be_status_completed
   end

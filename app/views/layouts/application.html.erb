@@ -117,7 +117,10 @@
     <%= turbo_frame_tag "customer_modal" %>
     <%= turbo_frame_tag "location_modal" %>
     <%= turbo_frame_tag "rate_plan_modal" %>
-    <%= turbo_frame_tag "service_event_modal" %>
+    <% report_service_event_id = params[:report_service_event_id].presence %>
+    <%= turbo_frame_tag "service_event_modal",
+                        src: (report_service_event_id ? new_service_event_report_path(service_event_id: report_service_event_id,
+                                                                                       redirect_path: request.path) : nil) %>
     <%= turbo_frame_tag "truck_modal" %>
     <%= turbo_frame_tag "unit_type_modal" %>
     <%= turbo_frame_tag "trailer_modal" %>

@@ -1,4 +1,5 @@
 class Route < ApplicationRecord
+  require 'digest'
   attr_accessor :skip_auto_assign
 
   belongs_to :company
@@ -111,6 +112,15 @@ class Route < ApplicationRecord
         sequence += 1
       end
     end
+  end
+
+  def google_calendar_hash
+    digest_input = service_events
+                   .order(:route_sequence, :created_at)
+                   .pluck(:id, :route_sequence, :scheduled_on)
+                   .map { |id, sequence, scheduled_on| "#{id}:#{sequence}:#{scheduled_on}" }
+                   .join('|')
+    Digest::SHA256.hexdigest([ route_date, digest_input ].join('::'))
   end
 
   private

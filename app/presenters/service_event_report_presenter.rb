@@ -44,6 +44,21 @@ class ServiceEventReportPresenter
     report.data[key].presence || '—'
   end
 
+  def event_type_label
+    dump_event? ? 'Dump' : event&.event_type&.titleize
+  end
+
+  def row_classes
+    base = 'hover:bg-gray-50'
+    return base unless dump_event?
+
+    "#{base} bg-amber-50/40"
+  end
+
+  def badge_classes
+    dump_event? ? 'bg-amber-100 text-amber-900' : 'bg-blue-100 text-blue-900'
+  end
+
   def report
     @report
   end

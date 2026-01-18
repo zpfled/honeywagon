@@ -19,7 +19,12 @@ module Routes
 
     def complete
       result = Routes::ServiceEventCompleter.new(@service_event).call
-      redirect_with_result(result)
+      if result.success? && @service_event.report_required?
+        redirect_to route_path(result.route || @route, report_service_event_id: @service_event.id),
+                    notice: result.message
+      else
+        redirect_with_result(result)
+      end
     end
 
     def destroy

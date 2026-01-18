@@ -31,8 +31,9 @@ module Orders
         return redirect_to(order_path(@order), alert: 'Service event is missing a scheduled date.')
       end
 
-      window = (@service_event.scheduled_on - 14.days)..(@service_event.scheduled_on + 14.days)
-      unless window.cover?(route.route_date)
+      event_date = @service_event.scheduled_on.to_date
+      route_date = route.route_date.to_date
+      if (route_date - event_date).abs > 14
         return redirect_to(order_path(@order), alert: 'Pick a route within 2 weeks of the service date.')
       end
 

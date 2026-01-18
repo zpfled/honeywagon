@@ -16,18 +16,20 @@ module Routes
         order: [ :customer, :location, { rental_line_items: :unit_type }, { service_line_items: :rate_plan } ],
         dump_site: :location
       )
+      sync_hash = route.google_calendar_hash
 
       calendar_client = Google::CalendarClient.new(user)
-      events.each do |event|
+      events.each_with_index do |event, index|
         calendar_client.upsert_event(
           event,
           route_date: route.route_date,
-          summary: summary_for(event),
+          summary: summary_for(event, index + 1),
           description: description_for(event),
           location: location_for(event)
         )
       end
 
+      route.update_column(:google_calendar_sync_hash, sync_hash)
       Result.new(success?: true, errors: [], warnings: [])
     rescue Google::Apis::AuthorizationError
       Result.new(success?: false, errors: [ 'Google authorization expired. Please reconnect your calendar.' ], warnings: [])
@@ -39,7 +41,7 @@ module Routes
 
     attr_reader :route, :user
 
-    def summary_for(event)
+    def summary_for(event, position)
       label = event.event_type.to_s.humanize
       name = if event.event_type_dump?
                event.dump_site&.name || 'Dump site'
@@ -48,7 +50,7 @@ module Routes
       else
                event.order&.customer&.display_name || 'Customer'
       end
-      "#{label} - #{name}"
+      "#{position} - #{label} - #{name}"
     end
 
     def description_for(event)
