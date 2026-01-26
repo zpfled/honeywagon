@@ -86,4 +86,4 @@ gem 'tailwindcss-rails', '~> 4.4'
 
 gem 'foreman', '~> 0.90.0'
 
-gem 'ruby-lsp', '~> 0.26.4'
+gem 'ruby-lsp', '~> 0.26.5'
