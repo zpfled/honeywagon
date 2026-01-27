@@ -73,6 +73,7 @@ class RoutesController < ApplicationController
     presenter = Routes::DetailPresenter.new(@route, company: current_user.company)
     @service_events = presenter.service_events
     @stop_presenters = presenter.stop_presenters
+    @map_stops = presenter.map_stops
     @previous_route = presenter.previous_route
     @next_route = presenter.next_route
     @waste_load = presenter.waste_load

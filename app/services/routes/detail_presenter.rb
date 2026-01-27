@@ -57,6 +57,25 @@ module Routes
       end
     end
 
+    def map_stops
+      @map_stops ||= service_events.each_with_index.filter_map do |event, index|
+        location = map_location_for(event)
+        lat = coerce_coordinate(location&.lat)
+        lng = coerce_coordinate(location&.lng)
+        next unless lat && lng
+
+        {
+          id: event.id,
+          number: index + 1,
+          label: map_label_for(event),
+          location_label: map_location_label_for(event),
+          lat: lat,
+          lng: lng,
+          kind: event.event_type
+        }
+      end
+    end
+
     private
 
     attr_reader :company
@@ -131,6 +150,38 @@ module Routes
       return unless orders.any? { |order| order.association(:rental_line_items).loaded? ? order.rental_line_items.any? : order.rental_line_items.exists? }
 
       ActiveRecord::Associations::Preloader.new(records: orders, associations: { rental_line_items: :unit_type }).call
+    end
+
+    def map_location_for(event)
+      if event.event_type_dump?
+        event.dump_site&.location
+      elsif event.event_type_refill?
+        company.home_base
+      else
+        event.order&.location
+      end
+    end
+
+    def map_label_for(event)
+      if event.event_type_dump?
+        event.dump_site&.name || 'Dump stop'
+      elsif event.event_type_refill?
+        'Home base'
+      else
+        event.order&.customer&.display_name || event.event_type.to_s.humanize
+      end
+    end
+
+    def map_location_label_for(event)
+      location = map_location_for(event)
+      location&.display_label || location&.full_address
+    end
+
+    def coerce_coordinate(value)
+      return nil if value.blank?
+      Float(value)
+    rescue ArgumentError, TypeError
+      nil
     end
   end
 end

@@ -19,7 +19,7 @@ module UiHelper
     content_tag(:div, capture(&block), class: PAGE_SHELL_CLASS)
   end
 
-  def card(variant: :default, classes: '', &block)
+  def card(variant: :default, classes: '', data: nil, &block)
     palette = {
       default: 'bg-white ring-gray-200',
       muted: 'bg-gray-50 ring-gray-200',
@@ -27,7 +27,7 @@ module UiHelper
       success: 'bg-emerald-50 ring-emerald-200'
     }
     css = [ CARD_BASE_CLASS, palette.fetch(variant, palette[:default]), classes ].compact.join(' ')
-    content_tag(:div, capture(&block), class: css)
+    content_tag(:div, capture(&block), class: css, data: data)
   end
 
   def button_classes(variant: :primary, size: :md)

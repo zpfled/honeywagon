@@ -167,44 +167,96 @@
     </div>
   <% end %>
 
-  <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
-  <%= card classes: "mt-6 overflow-hidden" do %>
-    <%= form_with url: route_ordering_path(@route),
-                  method: :patch,
-                  local: true,
-                  data: { controller: "route-ordering", action: "submit->route-ordering#submit" } do %>
-      <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-        <p class="text-sm font-semibold text-gray-900">Route stops</p>
+  <div class="mt-6" data-controller="route-view-toggle" data-route-view-toggle-default-value="map">
+    <div class="flex items-center justify-between">
+      <p class="text-sm font-semibold text-gray-900">Route view</p>
+      <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1 text-xs font-semibold text-gray-700">
+        <button type="button"
+                class="rounded-md px-3 py-1.5"
+                data-route-view-toggle-target="mapButton"
+                data-action="route-view-toggle#showMap">
+          Map
+        </button>
+        <button type="button"
+                class="rounded-md px-3 py-1.5"
+                data-route-view-toggle-target="listButton"
+                data-action="route-view-toggle#showList">
+          List
+        </button>
       </div>
-      <div class="hidden" data-route-ordering-target="inputContainer">
-        <% @stop_presenters.each do |stop| %>
-          <%= hidden_field_tag "event_ids[]", stop.id %>
+    </div>
+
+    <%= card classes: "mt-3 overflow-hidden", data: { route_view_toggle_target: "map" } do %>
+      <div class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Route map</div>
+      <div class="p-4">
+        <% if GoogleMaps.api_key.blank? %>
+          <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Google Maps API key is missing. Add it to enable the map view.
+          </div>
+        <% elsif @map_stops.empty? %>
+          <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+            No stops have coordinates yet.
+          </div>
+        <% else %>
+          <div data-controller="route-map"
+               data-route-map-api-key-value="<%= GoogleMaps.api_key %>"
+               data-route-map-stops-value="<%= json_escape(@map_stops.to_json) %>"
+               class="route-map h-[520px] w-full rounded-xl border border-gray-200"
+               data-action="route-view-toggle:map-shown->route-map#refresh">
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            Map key source:
+            <% if Rails.application.credentials.dig(:google_maps, :api_key).present? %>
+              credentials
+            <% elsif ENV['GOOGLE_MAPS_API_KEY'].present? %>
+              env var
+            <% else %>
+              config file
+            <% end %>
+          </div>
         <% end %>
       </div>
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="<%= table_header_class %>">Stop</th>
-            <th class="<%= table_header_class %>">Scheduled event</th>
-            <th class="<%= table_header_class %>">Units</th>
-            <th class="<%= table_header_class %>">Usage</th>
-            <th class="<%= table_header_class %>">Order</th>
-            <th class="<%= table_header_class('text-right') %>">Actions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100 bg-white"
-               data-action="dragover->route-ordering#dragOver drop->route-ordering#drop">
-          <% if @stop_presenters.any? %>
-            <% @stop_presenters.each do |stop| %>
-              <%= render partial: "routes/stop", locals: { stop: stop } %>
-            <% end %>
-          <% else %>
-            <tr>
-              <td colspan="5" class="<%= table_cell_class('text-center', tone: :muted) %>">No service events assigned to this route yet.</td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
     <% end %>
-  <% end %>
+
+    <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
+    <%= card classes: "mt-3 overflow-hidden hidden", data: { route_view_toggle_target: "list" } do %>
+      <%= form_with url: route_ordering_path(@route),
+                    method: :patch,
+                    local: true,
+                    data: { controller: "route-ordering", action: "submit->route-ordering#submit" } do %>
+        <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <p class="text-sm font-semibold text-gray-900">Route stops</p>
+        </div>
+        <div class="hidden" data-route-ordering-target="inputContainer">
+          <% @stop_presenters.each do |stop| %>
+            <%= hidden_field_tag "event_ids[]", stop.id %>
+          <% end %>
+        </div>
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="<%= table_header_class %>">Stop</th>
+              <th class="<%= table_header_class %>">Scheduled event</th>
+              <th class="<%= table_header_class %>">Units</th>
+              <th class="<%= table_header_class %>">Usage</th>
+              <th class="<%= table_header_class %>">Order</th>
+              <th class="<%= table_header_class('text-right') %>">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white"
+                 data-action="dragover->route-ordering#dragOver drop->route-ordering#drop">
+            <% if @stop_presenters.any? %>
+              <% @stop_presenters.each do |stop| %>
+                <%= render partial: "routes/stop", locals: { stop: stop } %>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="5" class="<%= table_cell_class('text-center', tone: :muted) %>">No service events assigned to this route yet.</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    <% end %>
+  </div>
 <% end %>
