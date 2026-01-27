@@ -1,10 +1,20 @@
 class RoutesController < ApplicationController
-  before_action :set_route, only: %i[update push_to_calendar]
+  before_action :set_route, only: %i[update push_to_calendar merge]
   before_action :set_route_with_service_events, only: %i[show]
   before_action :load_fleet_assets, only: %i[show update]
 
   def show
     load_route_details
+  end
+
+  def calendar
+    @calendar_start = calendar_start_date
+    @calendar_end = @calendar_start + 13.days
+    @routes = current_user.company.routes
+                         .includes(:truck, :trailer, :service_events)
+                         .where(route_date: @calendar_start..@calendar_end)
+                         .order(:route_date, :id)
+    @routes_by_date = @routes.group_by(&:route_date)
   end
 
   def create
@@ -35,6 +45,17 @@ class RoutesController < ApplicationController
       redirect_to @route, notice: 'Route pushed to Google Calendar.'
     else
       redirect_to @route, alert: result.errors.to_sentence
+    end
+  end
+
+  def merge
+    target = current_user.company.routes.find(params[:target_id])
+    result = Routes::MergeService.call(source: @route, target: target)
+
+    if result.success?
+      render json: { status: 'ok' }
+    else
+      render json: { status: 'error', errors: result.errors }, status: :unprocessable_content
     end
   end
 
@@ -76,5 +97,13 @@ class RoutesController < ApplicationController
 
   def route_params
     params.require(:route).permit(:route_date, :truck_id, :trailer_id)
+  end
+
+  def calendar_start_date
+    seed = params[:start].presence
+    date = seed ? Date.parse(seed) : Date.current
+    date.beginning_of_week(:sunday)
+  rescue ArgumentError
+    Date.current.beginning_of_week(:sunday)
   end
 end

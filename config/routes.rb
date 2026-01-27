@@ -14,6 +14,8 @@ Rails.application.routes.draw do
   end
   resources :service_events, only: :update
   resources :routes, only: [ :show, :create, :update ] do
+    get :calendar, on: :collection
+    post :merge, on: :member
     post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
       post :postpone, on: :member

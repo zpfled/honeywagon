@@ -1,0 +1,159 @@
+<% content_for :title, "Routes Calendar" %>
+
+<div data-controller="routes-calendar">
+  <div class="mx-auto max-w-6xl px-4 py-6">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Routes calendar</p>
+        <p class="text-lg font-semibold text-gray-900">
+          <%= l(@calendar_start, format: :long) %> – <%= l(@calendar_end, format: :long) %>
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <%= link_to "← Previous 2 weeks",
+                    calendar_routes_path(start: (@calendar_start - 14.days).to_s),
+                    class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "Next 2 weeks →",
+                    calendar_routes_path(start: (@calendar_start + 14.days).to_s),
+                    class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+      </div>
+    </div>
+
+    <div class="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <div class="grid grid-cols-7 border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        <% Date::DAYNAMES.each do |name| %>
+          <div class="px-3 py-2 text-center"><%= name %></div>
+        <% end %>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-7">
+        <% @calendar_start.upto(@calendar_end).with_index do |date, idx| %>
+          <% day_routes = @routes_by_date.fetch(date, []) %>
+          <% week_divider = idx >= 7 ? " sm:border-t" : "" %>
+          <div class="min-h-[160px] border-b border-gray-200 p-3 transition-colors hover:bg-amber-50 sm:border-b-0 sm:border-r sm:last:border-r-0<%= week_divider %>"
+               data-routes-calendar-target="day"
+               data-date="<%= date.to_s %>"
+               data-action="dragover->routes-calendar#dragOver drop->routes-calendar#drop dragleave->routes-calendar#dragLeave">
+            <div class="flex items-center justify-between text-sm font-semibold text-gray-900">
+              <span><%= l(date, format: :short) %></span>
+              <span class="text-xs font-medium text-gray-500" data-routes-calendar-target="count" data-date="<%= date.to_s %>">
+                <%= day_routes.size %> route<%= "s" if day_routes.size != 1 %>
+              </span>
+            </div>
+
+            <div class="mt-3 space-y-2" data-routes-calendar-target="list">
+              <% if day_routes.empty? %>
+                <div class="text-xs text-gray-400">No routes scheduled</div>
+              <% else %>
+                <% day_routes.each do |route| %>
+                <% over_capacity = route.over_capacity? %>
+                <% capacity_dims = route.over_capacity_dimensions.map { |dim| dim.to_s.humanize } %>
+                <%= link_to route_path(route),
+                            class: "block rounded-lg border px-3 py-2 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-100 #{over_capacity ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-gray-50'}",
+                            draggable: true,
+                            data: {
+                              action: "dragstart->routes-calendar#dragStart dragend->routes-calendar#dragEnd",
+                              route_id: route.id,
+                              route_date: route.route_date,
+                              route_label: route.truck&.name || "Route #{route.id}"
+                            } do %>
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="font-semibold text-gray-900"><%= route.truck&.name || "Truck TBD" %></div>
+                    <% if over_capacity %>
+                      <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800"
+                            title="Over capacity: <%= capacity_dims.join(', ') %>">
+                        Capacity warning
+                      </span>
+                    <% end %>
+                  </div>
+                    <div class="text-gray-600">
+                      <%= route.service_events.size %> stop<%= "s" if route.service_events.size != 1 %>
+                      <% if route.trailer %>
+                        • <%= route.trailer.name || "Trailer" %>
+                      <% end %>
+                    </div>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+<div class="fixed inset-0 z-50 hidden items-center justify-center bg-gray-900/60 px-4 py-6"
+     data-routes-calendar-target="modal"
+     data-action="keyup@window->routes-calendar#maybeCloseModal">
+  <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+    <div class="flex items-start justify-between gap-4">
+      <div>
+        <p class="text-sm font-semibold text-gray-700">Route move options</p>
+        <p class="text-lg font-semibold text-gray-900" data-routes-calendar-target="modalDateLabel"></p>
+      </div>
+      <button type="button"
+              class="rounded-full p-1 text-gray-500 hover:bg-gray-100"
+              data-action="routes-calendar#cancelModal">
+        ✕
+      </button>
+    </div>
+
+    <div class="mt-4 hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+         data-routes-calendar-target="modalWarning">
+      This route will be moved to a past date.
+    </div>
+
+    <div class="mt-5 space-y-3">
+      <label class="flex items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700">
+        <input type="radio" name="route_move_option" value="new" checked data-routes-calendar-target="optionNew">
+        <span>
+          <span class="font-semibold text-gray-900">Add as a new route on this day</span>
+          <span class="block text-xs text-gray-500">Keep it separate so you can optimize later.</span>
+        </span>
+      </label>
+
+      <label class="flex items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-sm text-gray-700"
+             data-routes-calendar-target="mergeOption">
+        <input type="radio" name="route_move_option" value="merge" data-routes-calendar-target="optionMerge">
+        <span class="w-full">
+          <span class="font-semibold text-gray-900">Merge into an existing route</span>
+          <span class="mt-2 block">
+            <select class="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+                    data-routes-calendar-target="mergeSelect">
+            </select>
+          </span>
+          <span class="mt-1 block text-xs text-gray-500">Events will be appended to the end of the target route.</span>
+        </span>
+      </label>
+    </div>
+
+    <div class="mt-6 flex items-center justify-end gap-2">
+      <button type="button"
+              class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+              data-action="routes-calendar#cancelModal"
+              data-routes-calendar-target="modalCancel">
+        Cancel
+      </button>
+      <button type="button"
+              class="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white hover:bg-brand-primary/90"
+              data-action="routes-calendar#confirmModal"
+              data-routes-calendar-target="modalContinue"
+              data-default-label="Continue">
+        Continue
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="fixed bottom-6 right-6 z-50 hidden max-w-sm rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-lg"
+     data-routes-calendar-target="toast">
+  <div class="flex items-center gap-3">
+    <span data-routes-calendar-target="toastMessage">Moved.</span>
+    <button type="button"
+            class="ml-auto text-sm font-semibold text-brand-primary hover:underline"
+            data-action="routes-calendar#undoMove"
+            data-routes-calendar-target="toastUndo">
+      Undo
+    </button>
+  </div>
+</div>
