@@ -9,12 +9,14 @@ class RoutesController < ApplicationController
 
   def calendar
     @calendar_start = calendar_start_date
-    @calendar_end = @calendar_start + 13.days
-    @routes = current_user.company.routes
+    @calendar_end = @calendar_start + 27.days
+    company = current_user.company
+    @routes = company.routes
                          .includes(:truck, :trailer, :service_events)
                          .where(route_date: @calendar_start..@calendar_end)
                          .order(:route_date, :id)
     @routes_by_date = @routes.group_by(&:route_date)
+    @forecast_by_date = calendar_forecasts(company)
   end
 
   def create
@@ -106,5 +108,22 @@ class RoutesController < ApplicationController
     date.beginning_of_week(:sunday)
   rescue ArgumentError
     Date.current.beginning_of_week(:sunday)
+  end
+
+  def calendar_forecasts(company)
+    location = company.home_base
+    return {} unless location&.lat.present? && location&.lng.present?
+
+    forecasts = {}
+    @calendar_start.upto(@calendar_end) do |date|
+      forecast = Weather::ForecastFetcher.call(
+        company: company,
+        date: date,
+        latitude: location.lat,
+        longitude: location.lng
+      )
+      forecasts[date] = forecast if forecast.present?
+    end
+    forecasts
   end
 end

@@ -1,5 +1,5 @@
-<%= page_shell do %>
-  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+<%= page_shell(full_width: true) do %>
+  <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between" id="overview">
     <div>
       <h1 class="text-2xl font-semibold text-gray-900">Route for <%= @route_header.route_date_label %></h1>
       <ul class="mt-1 flex flex-wrap gap-2 text-xs text-gray-600">
@@ -56,25 +56,7 @@
           <% end %>
         <% end %>
       </div>
-      <div class="text-center sm:w-1/3">
-        <% if @route_header.weather_forecast_present? %>
-          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Forecast</p>
-          <div class="mt-1 flex flex-wrap items-center justify-center gap-3 text-sm">
-            <% if @route_header.forecast_high %>
-              <span class="<%= @route_header.forecast_high[:css_class] %>"><%= @route_header.forecast_high[:text] %></span>
-            <% end %>
-            <% if @route_header.forecast_low %>
-              <span class="<%= @route_header.forecast_low[:css_class] %>"><%= @route_header.forecast_low[:text] %></span>
-            <% end %>
-            <% if @route_header.forecast_precip %>
-              <span><%= @route_header.forecast_precip %></span>
-            <% end %>
-          </div>
-          <% if @route_header.forecast_summary.present? %>
-            <p class="mt-1 text-xs text-gray-600"><%= @route_header.forecast_summary %></p>
-          <% end %>
-        <% end %>
-      </div>
+      <div class="text-center sm:w-1/3"></div>
       <div class="sm:w-1/3 sm:text-right">
         <% if @route_header.next_route %>
           <%= link_to route_path(@route_header.next_route),
@@ -86,177 +68,182 @@
     </div>
   <% end %>
 
-  <%= card classes: "mt-4" do %>
-    <div class="flex flex-col gap-3 text-sm text-gray-700 sm:flex-row sm:flex-wrap sm:items-center">
-      <span><span class="font-semibold text-gray-900">Truck:</span> <%= @route_summary.truck_label %></span>
-      <span><span class="font-semibold text-gray-900">Trailer:</span> <%= @route_summary.trailer_label %></span>
-      <span>
-        <span class="font-semibold text-gray-900">Trailer spots:</span>
-        <span class="<%= @route_summary.trailer_usage_class %>">
-          <%= @route_summary.trailer_usage_label %>
-        </span>
-      </span>
-      <span>
-        <span class="font-semibold text-gray-900">Clean water:</span>
-        <span class="<%= @route_summary.clean_usage_class %>">
-          <%= @route_summary.clean_usage_label %>
-        </span>
-      </span>
-      <span>
-        <span class="font-semibold text-gray-900">Waste After Route:</span>
-        <span class="<%= @route_summary.waste_usage_class %>">
-          <%= @route_summary.waste_usage_label %>
-        </span>
-      </span>
-      <span>
-        <span class="font-semibold text-gray-900">Est. drive:</span>
-        <% if @route_summary.drive_label.present? %>
-          <span><%= @route_summary.drive_label %></span>
-        <% else %>
-          <span class="text-gray-500">Run optimizer</span>
-        <% end %>
-      </span>
-      <% if @route_summary.optimization_stale? %>
-        <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
-          Needs re-optimization
-        </span>
-      <% end %>
-    </div>
-  <% end %>
-
-
-  <%= card classes: "mt-4" do %>
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <% if @dump_sites.any? %>
-        <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex flex-col gap-2 sm:flex-row sm:items-center" do |f| %>
-          <%= f.label :dump_site_id, "Dump site", class: "text-xs font-medium text-gray-700" %>
-          <%= f.select :dump_site_id,
-                       options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
-                       { include_blank: "Pick a site" },
-                       class: "rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-          <%= f.submit "Add dump event", class: button_classes %>
-        <% end %>
-      <% else %>
-        <div class="text-sm text-gray-600">
-          No dump sites yet.
-          <%= link_to "Add one in settings.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
+  <div class="mt-6 w-full lg:flex lg:items-start lg:gap-8" data-controller="route-view-toggle" data-route-view-toggle-default-value="map">
+    <aside class="hidden lg:block lg:w-64 lg:flex-none">
+      <div class="space-y-4 lg:sticky lg:top-6">
+        <div class="rounded-3xl border border-gray-200 bg-white p-3 text-xs font-semibold text-gray-700">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Route view</span>
+            <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+              <button type="button"
+                      class="rounded-md px-3 py-1.5"
+                      data-route-view-toggle-target="mapButton"
+                      data-action="route-view-toggle#showMap">
+                Map
+              </button>
+              <button type="button"
+                      class="rounded-md px-3 py-1.5"
+                      data-route-view-toggle-target="listButton"
+                      data-action="route-view-toggle#showList">
+                List
+              </button>
+            </div>
+          </div>
         </div>
-      <% end %>
 
-      <div class="flex flex-wrap items-center gap-2">
-        <% if current_user.google_calendar_connected? %>
-          <% calendar_synced = @route.google_calendar_sync_hash.present? && @route.google_calendar_sync_hash == @route.google_calendar_hash %>
-          <% button_class = calendar_synced ? "#{button_classes(variant: :secondary)} opacity-60 cursor-not-allowed" : button_classes(variant: :secondary) %>
-          <%= button_to(calendar_synced ? "Pushed to Google Calendar" : "Push to Google Calendar",
-                        push_to_calendar_route_path(@route),
-                        method: :post,
-                        disabled: calendar_synced,
-                        class: button_class) %>
-        <% else %>
-          <%= link_to "Connect Google Calendar",
-                google_calendar_connect_path(return_to: request.fullpath),
-                class: button_classes(variant: :secondary),
-                data: { turbo: false } %>
-        <% end %>
-
-        <%= button_to "Optimize route",
-                      route_optimization_path(@route),
-                      method: :post,
-                      class: button_classes(variant: :secondary) %>
-      </div>
-    </div>
-  <% end %>
-
-  <div class="mt-6" data-controller="route-view-toggle" data-route-view-toggle-default-value="map">
-    <div class="flex items-center justify-between">
-      <p class="text-sm font-semibold text-gray-900">Route view</p>
-      <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1 text-xs font-semibold text-gray-700">
-        <button type="button"
-                class="rounded-md px-3 py-1.5"
-                data-route-view-toggle-target="mapButton"
-                data-action="route-view-toggle#showMap">
-          Map
-        </button>
-        <button type="button"
-                class="rounded-md px-3 py-1.5"
-                data-route-view-toggle-target="listButton"
-                data-action="route-view-toggle#showList">
-          List
-        </button>
-      </div>
-    </div>
-
-    <%= card classes: "mt-3 overflow-hidden", data: { route_view_toggle_target: "map" } do %>
-      <div class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Route map</div>
-      <div class="p-4">
-        <% if GoogleMaps.api_key.blank? %>
-          <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            Google Maps API key is missing. Add it to enable the map view.
-          </div>
-        <% elsif @map_stops.empty? %>
-          <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-            No stops have coordinates yet.
-          </div>
-        <% else %>
-          <div data-controller="route-map"
-               data-route-map-api-key-value="<%= GoogleMaps.api_key %>"
-               data-route-map-stops-value="<%= json_escape(@map_stops.to_json) %>"
-               class="route-map h-[520px] w-full rounded-xl border border-gray-200"
-               data-action="route-view-toggle:map-shown->route-map#refresh">
-          </div>
-          <div class="mt-2 text-xs text-gray-500">
-            Map key source:
-            <% if Rails.application.credentials.dig(:google_maps, :api_key).present? %>
-              credentials
-            <% elsif ENV['GOOGLE_MAPS_API_KEY'].present? %>
-              env var
+        <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</p>
+          <div class="mt-3 flex flex-col gap-2">
+            <% if current_user.google_calendar_connected? %>
+              <% calendar_synced = @route.google_calendar_sync_hash.present? && @route.google_calendar_sync_hash == @route.google_calendar_hash %>
+              <% button_class = calendar_synced ? "#{button_classes(variant: :secondary)} w-full opacity-60 cursor-not-allowed" : "#{button_classes(variant: :secondary)} w-full" %>
+              <%= button_to(calendar_synced ? "Pushed to Google Calendar" : "Push to Google Calendar",
+                            push_to_calendar_route_path(@route),
+                            method: :post,
+                            disabled: calendar_synced,
+                            class: button_class) %>
             <% else %>
-              config file
+              <%= link_to "Connect Google Calendar",
+                    google_calendar_connect_path(return_to: request.fullpath),
+                    class: "#{button_classes(variant: :secondary)} w-full",
+                    data: { turbo: false } %>
             <% end %>
-          </div>
-        <% end %>
-      </div>
-    <% end %>
 
-    <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
-    <%= card classes: "mt-3 overflow-hidden hidden", data: { route_view_toggle_target: "list" } do %>
-      <%= form_with url: route_ordering_path(@route),
-                    method: :patch,
-                    local: true,
-                    data: { controller: "route-ordering", action: "submit->route-ordering#submit" } do %>
-        <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-200">
-          <p class="text-sm font-semibold text-gray-900">Route stops</p>
+            <%= button_to "Optimize route",
+                          route_optimization_path(@route),
+                          method: :post,
+                          class: "#{button_classes(variant: :secondary)} w-full" %>
+          </div>
         </div>
-        <div class="hidden" data-route-ordering-target="inputContainer">
-          <% @stop_presenters.each do |stop| %>
-            <%= hidden_field_tag "event_ids[]", stop.id %>
-          <% end %>
-        </div>
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="<%= table_header_class %>">Stop</th>
-              <th class="<%= table_header_class %>">Scheduled event</th>
-              <th class="<%= table_header_class %>">Units</th>
-              <th class="<%= table_header_class %>">Usage</th>
-              <th class="<%= table_header_class %>">Order</th>
-              <th class="<%= table_header_class('text-right') %>">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-100 bg-white"
-                 data-action="dragover->route-ordering#dragOver drop->route-ordering#drop">
-            <% if @stop_presenters.any? %>
-              <% @stop_presenters.each do |stop| %>
-                <%= render partial: "routes/stop", locals: { stop: stop } %>
+
+        <% if @route_header.weather_forecast_present? %>
+          <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Forecast</p>
+            <div class="mt-2 space-y-2">
+              <div class="flex flex-wrap items-center gap-2 text-sm">
+                <% if @route_header.forecast_high %>
+                  <span class="<%= @route_header.forecast_high[:css_class] %>"><%= @route_header.forecast_high[:text] %></span>
+                <% end %>
+                <% if @route_header.forecast_low %>
+                  <span class="<%= @route_header.forecast_low[:css_class] %>"><%= @route_header.forecast_low[:text] %></span>
+                <% end %>
+                <% if @route_header.forecast_precip %>
+                  <span><%= @route_header.forecast_precip %></span>
+                <% end %>
+              </div>
+              <% if @route_header.forecast_summary.present? %>
+                <p class="text-xs text-gray-600"><%= @route_header.forecast_summary %></p>
               <% end %>
+            </div>
+          </div>
+        <% else %>
+          <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Forecast</p>
+            <p class="mt-2 text-xs text-gray-500">No forecast available yet.</p>
+          </div>
+        <% end %>
+
+        <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Route summary</p>
+          <div class="mt-2 space-y-1 text-xs text-gray-700">
+            <div><span class="font-semibold text-gray-900">Truck:</span> <%= @route_summary.truck_label %></div>
+            <div><span class="font-semibold text-gray-900">Trailer:</span> <%= @route_summary.trailer_label %></div>
+            <div><span class="font-semibold text-gray-900">Trailer spots:</span> <%= @route_summary.trailer_usage_label %></div>
+            <div><span class="font-semibold text-gray-900">Clean water:</span> <%= @route_summary.clean_usage_label %></div>
+            <div><span class="font-semibold text-gray-900">Waste After Route:</span> <%= @route_summary.waste_usage_label %></div>
+            <div>
+              <span class="font-semibold text-gray-900">Est. drive:</span>
+              <% if @route_summary.drive_label.present? %>
+                <%= @route_summary.drive_label %>
+              <% else %>
+                <span class="text-gray-500">Run optimizer</span>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="mt-8 flex-1 space-y-6 lg:mt-0 lg:min-w-0" id="summary">
+      <section id="route-view">
+        <%= card classes: "overflow-hidden", data: { route_view_toggle_target: "map" } do %>
+          <div class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Route map</div>
+          <div class="p-4">
+            <% if GoogleMaps.api_key.blank? %>
+              <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Google Maps API key is missing. Add it to enable the map view.
+              </div>
+            <% elsif @map_stops.empty? %>
+              <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                No stops have coordinates yet.
+              </div>
             <% else %>
-              <tr>
-                <td colspan="5" class="<%= table_cell_class('text-center', tone: :muted) %>">No service events assigned to this route yet.</td>
-              </tr>
+              <div data-controller="route-map"
+                   data-route-map-api-key-value="<%= GoogleMaps.api_key %>"
+                   data-route-map-stops-value="<%= json_escape(@map_stops.to_json) %>"
+                   class="route-map h-[520px] w-full rounded-xl border border-gray-200"
+                   data-action="route-view-toggle:map-shown->route-map#refresh">
+              </div>
             <% end %>
-          </tbody>
-        </table>
-      <% end %>
-    <% end %>
+          </div>
+        <% end %>
+
+        <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
+        <%= card classes: "mt-3 overflow-hidden hidden", data: { route_view_toggle_target: "list" } do %>
+          <%= form_with url: route_ordering_path(@route),
+                        method: :patch,
+                        local: true,
+                        data: { controller: "route-ordering", action: "submit->route-ordering#submit" } do %>
+            <div class="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200" id="route-stops">
+              <p class="text-sm font-semibold text-gray-900">Route stops</p>
+              <% if @dump_sites.any? %>
+                <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex items-center gap-2 text-xs text-gray-700" do |f| %>
+                  <%= f.label :dump_site_id, "Dump site", class: "sr-only" %>
+                  <%= f.select :dump_site_id,
+                               options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
+                               { include_blank: "Pick a site" },
+                               class: "rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+                  <%= f.submit "Add dump event", class: button_classes(variant: :secondary, size: :sm) %>
+                <% end %>
+              <% else %>
+                <div class="text-xs text-gray-500">
+                  No dump sites yet.
+                  <%= link_to "Add one.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
+                </div>
+              <% end %>
+            </div>
+            <div class="hidden" data-route-ordering-target="inputContainer">
+              <% @stop_presenters.each do |stop| %>
+                <%= hidden_field_tag "event_ids[]", stop.id %>
+              <% end %>
+            </div>
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="<%= table_header_class %>">Stop</th>
+                  <th class="<%= table_header_class %>">Scheduled event</th>
+                  <th class="<%= table_header_class %>">Units</th>
+                  <th class="<%= table_header_class %>">Usage</th>
+                  <th class="<%= table_header_class %>">Order</th>
+                  <th class="<%= table_header_class('text-right') %>">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 bg-white"
+                     data-action="dragover->route-ordering#dragOver drop->route-ordering#drop">
+                <% if @stop_presenters.any? %>
+                  <% @stop_presenters.each do |stop| %>
+                    <%= render partial: "routes/stop", locals: { stop: stop } %>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="5" class="<%= table_cell_class('text-center', tone: :muted) %>">No service events assigned to this route yet.</td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          <% end %>
+        <% end %>
+      </section>
+    </main>
   </div>
 <% end %>

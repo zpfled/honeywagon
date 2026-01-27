@@ -43,3 +43,4 @@ spec/examples.txt
 
 # Ignore coverage reports
 /coverage/
+/dump.rdb

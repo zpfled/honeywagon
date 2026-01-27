@@ -51,7 +51,14 @@ module Routes
 
     def redirect_with_result(result)
       flash_type = result.success? ? :notice : :alert
-      redirect_to route_path(result.route || @route), flash_type => result.message
+      if result.success? && result.route.present? && result.route != @route
+        target_label = result.route.route_date ? I18n.l(result.route.route_date) : result.route.id
+        message = "Service event moved to route for #{target_label}."
+        destination = Route.exists?(@route.id) ? @route : result.route
+        redirect_to route_path(destination), flash_type => message
+      else
+        redirect_to route_path(result.route || @route), flash_type => result.message
+      end
     end
   end
 end
