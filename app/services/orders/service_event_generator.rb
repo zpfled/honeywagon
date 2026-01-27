@@ -56,7 +56,7 @@ module Orders
 
     # Delivery/pickup events are always present, regardless of schedule.
     def mandatory_events
-      delivery_events + [ { event_type: :pickup, scheduled_on: order.end_date } ]
+      delivery_events + pickup_events
     end
 
     # Returns recurring service events based on the order's effective schedule.
@@ -88,6 +88,20 @@ module Orders
           scheduled_on: order.start_date,
           delivery_batch_sequence: index + 1,
           delivery_batch_total: total,
+          units_by_type: batch
+        }
+      end
+    end
+
+    def pickup_events
+      batches = pickup_batches
+      total = batches.size
+      batches.each_with_index.map do |batch, index|
+        {
+          event_type: :pickup,
+          scheduled_on: order.end_date,
+          pickup_batch_sequence: index + 1,
+          pickup_batch_total: total,
           units_by_type: batch
         }
       end
@@ -129,6 +143,33 @@ module Orders
       batches
     end
 
+    def pickup_batches
+      units_by_type = order_units_by_type
+      return [ units_by_type ] if units_by_type.blank?
+
+      capacities = trailer_capacities
+      return [ units_by_type ] if capacities.blank?
+
+      remaining = units_by_type.each_with_object(Hash.new(0)) do |(unit_type, quantity), memo|
+        memo[unit_type] = quantity.to_i
+      end
+
+      batches = []
+      loop do
+        total_spots = ServiceEvents::ResourceCalculator.trailer_spots_for(remaining)
+        break if total_spots <= 0
+
+        capacity = capacity_for_remaining(total_spots, capacities)
+        batch = build_batch_for_capacity(remaining, capacity)
+        break if batch.values.sum <= 0
+
+        batches << batch
+        subtract_units!(remaining, batch)
+      end
+
+      batches
+    end
+
     def order_units_by_type
       order.rental_line_items.includes(:unit_type).each_with_object(Hash.new(0)) do |item, memo|
         unit_type = item.unit_type
@@ -151,6 +192,40 @@ module Orders
       fallback = trailers.order(capacity_spots: :desc).first
 
       (preferred || fallback)&.capacity_spots.to_i
+    end
+
+    def trailer_capacities
+      order.company&.trailers&.where('capacity_spots > 0')&.order(:capacity_spots)&.pluck(:capacity_spots) || []
+    end
+
+    def capacity_for_remaining(total_spots, capacities)
+      max = capacities.max
+      return capacities.first if max && total_spots > max
+
+      capacities.find { |capacity| capacity >= total_spots } || max
+    end
+
+    def build_batch_for_capacity(remaining_units, capacity)
+      batch = Hash.new(0)
+      sorted_units = remaining_units.sort_by { |unit_type, _| -unit_spot_weight(unit_type) }
+
+      sorted_units.each do |unit_type, quantity|
+        quantity.to_i.times do
+          candidate = batch.merge(unit_type => batch[unit_type].to_i + 1)
+          if ServiceEvents::ResourceCalculator.trailer_spots_for(candidate) <= capacity
+            batch[unit_type] = candidate[unit_type]
+          end
+        end
+      end
+
+      batch
+    end
+
+    def subtract_units!(remaining_units, batch)
+      batch.each do |unit_type, quantity|
+        remaining_units[unit_type] = remaining_units[unit_type].to_i - quantity.to_i
+        remaining_units.delete(unit_type) if remaining_units[unit_type].to_i <= 0
+      end
     end
 
     def unit_spot_weight(unit_type)

@@ -13,9 +13,11 @@ class ServiceEvent < ApplicationRecord
   has_many :service_event_units, dependent: :destroy
 
   enum :event_type, { delivery: 0, service: 1, pickup: 2, dump: 3, refill: 4 }, prefix: true
-  enum :status, { scheduled: 0, completed: 1 }, prefix: true
+  enum :status, { scheduled: 0, completed: 1, skipped: 2 }, prefix: true
 
   validates :scheduled_on, presence: true
+  validates :skip_reason, presence: true, if: :status_skipped?
+  validates :skipped_on, presence: true, if: :status_skipped?
   validate :enforce_logistics_schedule
   validates :dump_site, presence: true, if: :event_type_dump?
 
@@ -26,6 +28,7 @@ class ServiceEvent < ApplicationRecord
   before_validation :reset_route_sequence_for_new_route, if: -> { will_save_change_to_route_id? && route_id.present? }
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
+  after_update_commit :stamp_skipped_on, if: -> { saved_change_to_status? && status_skipped? }
   after_update_commit :complete_order_after_pickup, if: -> { saved_change_to_status? && status_completed? && event_type_pickup? }
   before_destroy :remember_route_for_cleanup
   after_commit :auto_assign_route, on: :create
@@ -45,14 +48,17 @@ class ServiceEvent < ApplicationRecord
       .order(:scheduled_on, :event_type)
   }
   scope :scheduled, -> { where(status: :scheduled) }
+  scope :not_skipped, -> { where.not(status: statuses[:skipped]) }
 
   # Whether the event type requires a completion report.
   def report_required?
+    return false if status_skipped?
+
     service_event_type&.requires_report?
   end
 
   def estimated_gallons_pumped
-    ServiceEvents::GallonsEstimator.call(self)
+    ServiceEvents::WasteGallonsEstimator.call(self)
   end
 
   def logistics_locked?
@@ -116,6 +122,17 @@ class ServiceEvent < ApplicationRecord
     return nil unless delivery_batch_total.to_i > 1
 
     "Delivery (#{delivery_batch_sequence}/#{delivery_batch_total})"
+  end
+
+  def pickup_batch_label
+    return nil unless event_type_pickup?
+    return nil unless pickup_batch_total.to_i > 1
+
+    "Pickup (#{pickup_batch_sequence}/#{pickup_batch_total})"
+  end
+
+  def batch_label
+    pickup_batch_label || delivery_batch_label
   end
 
   def overdue?
@@ -213,6 +230,12 @@ class ServiceEvent < ApplicationRecord
 
   def stamp_completed_on
     update_column(:completed_on, Date.current)
+  end
+
+  def stamp_skipped_on
+    return if skipped_on.present?
+
+    update_column(:skipped_on, Date.current)
   end
 
   def complete_order_after_pickup

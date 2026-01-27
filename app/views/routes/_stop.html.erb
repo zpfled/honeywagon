@@ -24,8 +24,11 @@
     <div class="text-sm font-semibold <%= stop.overdue? ? 'text-rose-600' : 'text-gray-900' %>">
       <%= l(stop.scheduled_on_long, format: :long) %>
     </div>
-    <div class="mt-1">
+    <div class="mt-1 flex flex-wrap items-center gap-2">
       <%= badge(stop.event_type_label, tone: :info) %>
+      <% if stop.skipped? %>
+        <%= badge('Skipped', tone: :warning) %>
+      <% end %>
     </div>
     <% if stop.overdue? %>
       <div class="mt-1 inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700">
@@ -88,6 +91,11 @@
       <div class="mt-1 text-xs text-gray-600">
         <%= stop.order_date_range %>
       </div>
+      <% if stop.skipped? %>
+        <div class="mt-1 text-xs text-amber-700">
+          Skipped: <%= stop.skip_reason %>
+        </div>
+      <% end %>
     <% else %>
       <div class="text-sm font-semibold text-gray-900">Unassigned</div>
     <% end %>
@@ -113,7 +121,9 @@
                       class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50 focus:z-10" %>
         <% end %>
 
-        <% if stop.delivery? || stop.refill? %>
+        <% if stop.skipped? %>
+          <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-amber-700 opacity-70">Skipped</span>
+        <% elsif stop.delivery? || stop.refill? %>
           <% if stop.completed? %>
             <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 opacity-50 cursor-not-allowed">Completed</span>
           <% else %>
@@ -133,8 +143,29 @@
           <% end %>
         <% end %>
       </div>
+      <% if stop.service? && !stop.completed? && !stop.skipped? %>
+        <details class="relative" data-controller="service-event-skip" data-service-event-skip-url-value="<%= skip_route_service_event_path(@route, event) %>">
+          <summary class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 rounded-full cursor-pointer select-none">
+            Skip
+          </summary>
+          <div class="absolute right-0 z-10 mt-2 w-72 rounded-lg border border-amber-200 bg-white p-2 shadow-lg">
+            <div class="flex items-center gap-2">
+              <%= text_field_tag :skip_reason, nil,
+                                 required: true,
+                                 placeholder: "Reason for skip",
+                                 class: "w-full rounded-md border border-amber-200 px-2 py-1 text-xs focus:border-amber-400 focus:ring-amber-200",
+                                 data: { service_event_skip_target: "reason" } %>
+              <button type="button"
+                      class="rounded-md bg-amber-600 px-2 py-1 text-xs font-semibold text-white hover:bg-amber-700"
+                      data-action="service-event-skip#submit">
+                Confirm
+              </button>
+            </div>
+          </div>
+        </details>
+      <% end %>
       <span class="h-4 w-px bg-gray-200" aria-hidden="true"></span>
-      <% if stop.completed? %>
+      <% if stop.completed? || stop.skipped? %>
         <span class="inline-flex items-center rounded-full bg-transparent px-2 py-1 text-gray-400 opacity-50 cursor-not-allowed" aria-disabled="true">
           <span class="sr-only">Delete</span>
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

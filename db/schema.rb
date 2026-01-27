@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_26_154600) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -234,11 +234,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.string "google_calendar_event_id"
     t.text "notes"
     t.uuid "order_id"
+    t.integer "pickup_batch_sequence"
+    t.integer "pickup_batch_total"
     t.date "route_date"
     t.uuid "route_id"
     t.integer "route_sequence"
     t.date "scheduled_on"
     t.uuid "service_event_type_id", null: false
+    t.text "skip_reason"
+    t.date "skipped_on"
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false

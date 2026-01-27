@@ -27,6 +27,12 @@ RSpec.describe "Order service events management", type: :request do
   end
 
   describe "assigning service events to routes" do
+    around do |example|
+      Routes::ServiceEventRouter.without_auto_assignment do
+        Route.without_auto_assignment { example.run }
+      end
+    end
+
     let(:scheduled_on) { Date.current }
     let!(:service_event) { create(:service_event, order: order, user: user, route: nil, scheduled_on: scheduled_on) }
     let!(:route_in_window) do

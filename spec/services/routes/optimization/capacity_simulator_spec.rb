@@ -96,4 +96,30 @@ RSpec.describe Routes::Optimization::CapacitySimulator do
     expect(result.steps.first.trailer_used).to eq(1)
     expect(result.steps.last.trailer_used).to eq(2)
   end
+
+  it 'ignores skipped events when calculating usage' do
+    order = create_order_with_units(quantity: 2)
+    scheduled_event = create(:service_event, :service, order: order, route: route)
+    skipped_event = create(
+      :service_event,
+      :service,
+      order: order,
+      route: route,
+      status: :skipped,
+      skipped_on: Date.current,
+      skip_reason: 'Locked gate'
+    )
+
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(scheduled_event).and_return(
+      double(usage: { waste_gallons: 10, clean_water_gallons: 0, trailer_spots: 0 })
+    )
+    allow(ServiceEvents::ResourceCalculator).to receive(:new).with(skipped_event).and_return(
+      double(usage: { waste_gallons: 999, clean_water_gallons: 999, trailer_spots: 999 })
+    )
+
+    result = described_class.call(route: route, ordered_event_ids: [ scheduled_event.id, skipped_event.id ])
+
+    expect(result.steps.size).to eq(1)
+    expect(result.steps.first.waste_used).to eq(10)
+  end
 end

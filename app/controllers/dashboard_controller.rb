@@ -1,4 +1,6 @@
 class DashboardController < ApplicationController
+  before_action :ensure_capacity_routing_access!, only: :capacity_routing_preview
+
   def index
     base_scope = current_user.company.routes.upcoming
                                    .includes(:truck, :trailer, service_events: [ { service_event_units: :unit_type }, { order: %i[customer location] } ])
@@ -21,5 +23,18 @@ class DashboardController < ApplicationController
     metrics = Dashboard::InventoryMetrics.new(company: current_user.company).call
     @inventory_stats = metrics[:inventory_stats]
     @ytd_order_total_cents = metrics[:ytd_order_total_cents]
+  end
+
+  def capacity_routing_preview
+    result = Routes::CapacityRouting::Planner.call(company: current_user.company, start_date: Date.current)
+    @preview = Routes::CapacityRoutingPreviewPresenter.new(result: result, company: current_user.company)
+  end
+
+  private
+
+  def ensure_capacity_routing_access!
+    return if current_user&.admin? || current_user&.dispatcher?
+
+    redirect_to authenticated_root_path, alert: 'Only admins or dispatchers can run capacity routing previews.'
   end
 end

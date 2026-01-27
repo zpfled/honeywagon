@@ -10,14 +10,15 @@ module Routes
     def ending_loads_by_route_id
       @ending_loads_by_route_id ||= begin
         result = {}
-        routes_grouped_by_truck.each do |truck, truck_routes|
+        routes_grouped_by_truck_id.each do |_truck_id, truck_routes|
+          truck = truck_routes.first&.truck
           # Start from completed events before the first route date to avoid double counting.
           baseline = baseline_waste_before(truck, truck_routes)
           cumulative = baseline
           capacity = truck&.waste_capacity_gal
 
           # Walk routes in date order and accumulate waste usage as the route runs.
-          truck_routes.sort_by(&:route_date).each do |route|
+          truck_routes.each do |route|
             # Simulate each route so completed events and dump resets are included.
             cumulative = simulate_route_waste(route, starting_waste: cumulative)
             result[route.id] = {
@@ -35,13 +36,14 @@ module Routes
     def starting_loads_by_route_id
       @starting_loads_by_route_id ||= begin
         result = {}
-        routes_grouped_by_truck.each do |truck, truck_routes|
+        routes_grouped_by_truck_id.each do |_truck_id, truck_routes|
+          truck = truck_routes.first&.truck
           # Snapshot the waste load at the start of each route before applying its usage.
           # Baseline is derived from completed events before the first route date.
           cumulative_waste_gal = baseline_waste_before(truck, truck_routes)
 
-          # Sort chronologically so the carryover builds in route order.
-          truck_routes.sort_by(&:route_date).each do |route|
+          # Routes already ordered by date in routes_grouped_by_truck.
+          truck_routes.each do |route|
             # Starting load for this route is whatever has accumulated so far.
             result[route.id] = cumulative_waste_gal
             # Add waste used on this route to feed into the next route's starting load.
@@ -56,9 +58,9 @@ module Routes
 
     attr_reader :routes
 
-    def routes_grouped_by_truck
-      # Capacity is tracked per truck; group the input routes accordingly.
-      routes.group_by(&:truck)
+    def routes_grouped_by_truck_id
+      # Capacity is tracked per truck; order by route date within each truck.
+      routes.sort_by(&:route_date).group_by(&:truck_id)
     end
 
     def preload_units_for(routes)
@@ -75,7 +77,9 @@ module Routes
     end
 
     def simulate_route_waste(route, starting_waste:)
-      ordered_ids = route.service_events.order(:route_sequence, :created_at).pluck(:id)
+      ordered_ids = route.service_events.not_skipped.order(:route_sequence, :created_at).pluck(:id)
+      return starting_waste.to_i if ordered_ids.empty?
+
       simulation = Routes::Optimization::CapacitySimulator.call(
         route: route,
         ordered_event_ids: ordered_ids,
@@ -91,6 +95,7 @@ module Routes
       return 0 unless earliest_date
 
       events = ServiceEvent
+               .not_skipped
                .joins(:route)
                .where(routes: { truck_id: truck.id })
                .where(status: ServiceEvent.statuses[:completed])

@@ -7,18 +7,6 @@ RSpec.describe "RoutesController", type: :request do
 
   before { sign_in user }
 
-  describe "GET /routes" do
-    it "renders the index with presenter rows" do
-      route = create(:route, company: user.company, truck: truck, trailer: trailer)
-      create(:service_event, :delivery, route: route, route_date: route.route_date)
-
-      get routes_path
-
-      expect(response).to have_http_status(:ok)
-      expect(response.body).to include(I18n.l(route.route_date))
-    end
-  end
-
   describe "GET /routes/:id" do
     it "renders the show with detail presenter data" do
       route = create(:route, company: user.company, truck: truck, trailer: trailer)
@@ -45,15 +33,15 @@ RSpec.describe "RoutesController", type: :request do
       expect(response.body).to include('Route created.')
     end
 
-    it "re-renders index with presenter rows on failure" do
+    it "redirects back with an error on failure" do
       other_company = create(:company)
       other_truck = create(:truck, company: other_company)
       params = { route: { route_date: Date.current, truck_id: other_truck.id, trailer_id: nil } }
 
       post routes_path, params: params
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include('Routes')
+      expect(response).to redirect_to(authenticated_root_path)
+      expect(flash[:alert]).to be_present
     end
   end
 

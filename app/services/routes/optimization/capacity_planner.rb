@@ -91,10 +91,10 @@ module Routes
       end
 
       def events_in_order
-        events_by_id = route.service_events.where(id: ordered_event_ids).index_by(&:id)
+        events_by_id = route.service_events.not_skipped.where(id: ordered_event_ids).index_by(&:id)
         ordered = ordered_event_ids.map { |id| events_by_id[id] }.compact
 
-        remaining = route.service_events.where.not(id: ordered_event_ids)
+        remaining = route.service_events.not_skipped.where.not(id: ordered_event_ids)
         ordered + remaining.order(:route_date, :event_type, :created_at)
       end
 

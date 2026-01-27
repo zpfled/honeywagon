@@ -27,6 +27,11 @@ module Routes
       end
     end
 
+    def skip
+      result = Routes::ServiceEventSkipper.new(@service_event, skip_reason: params[:skip_reason]).call
+      redirect_with_result(result)
+    end
+
     def destroy
       @service_event.soft_delete!(user: current_user)
       redirect_to route_path(@route), notice: 'Service event deleted.'

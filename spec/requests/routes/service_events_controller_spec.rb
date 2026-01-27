@@ -140,4 +140,32 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
       end
     end
   end
+
+  describe 'POST /routes/:route_id/service_events/:id/skip' do
+    include ActiveSupport::Testing::TimeHelpers
+
+    let(:route) { create(:route, company: company, route_date: Date.current) }
+    let(:order) { create(:order, company: company, created_by: user, start_date: Date.current - 1, end_date: Date.current + 30) }
+    let(:unit_type) { create(:unit_type, company: company) }
+    let(:rate_plan) { create(:rate_plan, unit_type: unit_type, service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly]) }
+    let!(:rental_line_item) { create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan) }
+    let(:service_event) { create(:service_event, order: order, route: route, route_date: route.route_date, event_type: :service) }
+    let!(:future_event) { create(:service_event, order: order, event_type: :service, scheduled_on: Date.current + 3.days) }
+
+    it 'marks the service event as skipped and reschedules future events' do
+      travel_to Date.new(2024, 1, 1) do
+        post skip_route_service_event_path(route, service_event), params: { skip_reason: 'Gate locked' }
+      end
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:notice]).to eq('Service event marked skipped.')
+      service_event.reload
+      expect(service_event).to be_status_skipped
+      expect(service_event.skip_reason).to eq('Gate locked')
+      expect(service_event.skipped_on).to eq(Date.new(2024, 1, 1))
+      expect(future_event.reload.scheduled_on).to eq(Date.new(2024, 1, 8))
+    ensure
+      travel_back
+    end
+  end
 end

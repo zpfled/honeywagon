@@ -22,10 +22,19 @@ module Routes
       return unless route.truck_id
 
       @waste_load ||= begin
-        routes = company.routes
-                         .where(truck_id: route.truck_id)
-                         .where('route_date <= ?', route.route_date)
-        Routes::WasteTracker.new(routes).ending_loads_by_route_id[route.id]
+        truck = route.truck
+        return unless truck
+
+        route_usage = Routes::CapacitySummary.new(route: route).waste_usage[:used]
+        starting_load = projected_starting_waste_gallons
+        cumulative = starting_load.to_i + route_usage.to_i
+        capacity = truck.waste_capacity_gal
+        {
+          cumulative_used: cumulative,
+          capacity: capacity,
+          remaining: capacity.nil? ? nil : capacity - cumulative,
+          over_capacity: capacity.present? && cumulative > capacity
+        }
       end
     end
 
@@ -60,9 +69,9 @@ module Routes
     end
 
     def build_capacity_data
-      events_for_capacity = route.service_events.includes(service_event_units: :unit_type)
+      events_for_capacity = route.service_events.not_skipped.includes(service_event_units: :unit_type)
       preload_rental_line_items_for(events_for_capacity)
-                                      .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+      events_for_capacity = events_for_capacity.order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       result = Routes::Optimization::CapacitySimulator.call(
         route: route,
         ordered_event_ids: events_for_capacity.pluck(:id),

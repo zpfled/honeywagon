@@ -1,38 +1,20 @@
 class RoutesController < ApplicationController
   before_action :set_route, only: %i[update push_to_calendar]
-  before_action :set_route_with_service_events, only: %i[show ]
-  before_action :load_fleet_assets, only: %i[index create show update]
-
-  def index
-    # TODO: Changes needed:
-    # - Ensure preloads cover row presenter usage (service_events -> order -> rental_line_items -> unit_type, plus truck/trailer).
-    # - Move per-row label formatting (over-capacity dimension text) into presenter.
-    @routes = current_user.company.routes.includes(:truck, :trailer)
-                          .order(route_date: :desc)
-    @route_rows = Routes::IndexPresenter.new(@routes).rows
-    @route = current_user.company.routes.new(
-      route_date: Date.current,
-      truck: @trucks.first,
-      trailer: @trailers.first
-    )
-  end
+  before_action :set_route_with_service_events, only: %i[show]
+  before_action :load_fleet_assets, only: %i[show update]
 
   def show
     load_route_details
   end
 
   def create
-    # TODO: Changes needed:
-    # - Ensure index preloads still applied on error branch.
     @route = current_user.company.routes.new(route_params)
 
     if @route.save
       redirect_to @route, notice: 'Route created.'
     else
-      @routes = current_user.company.routes.includes(:truck, :trailer)
-                            .order(route_date: :desc)
-      @route_rows = Routes::IndexPresenter.new(@routes).rows
-      render :index, status: :unprocessable_entity
+      redirect_back fallback_location: authenticated_root_path,
+                    alert: @route.errors.full_messages.to_sentence
     end
   end
 

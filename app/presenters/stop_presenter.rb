@@ -37,7 +37,7 @@ class StopPresenter
   end
 
   def event_type_label
-    service_event.delivery_batch_label || service_event.event_type.to_s.humanize
+    service_event.batch_label || service_event.event_type.to_s.humanize
   end
 
   def overdue?
@@ -134,6 +134,14 @@ class StopPresenter
     service_event.status_completed?
   end
 
+  def skipped?
+    service_event.status_skipped?
+  end
+
+  def skip_reason
+    service_event.skip_reason
+  end
+
   def delivery?
     service_event.event_type_delivery?
   end
@@ -142,12 +150,16 @@ class StopPresenter
     service_event.event_type_dump?
   end
 
+  def service?
+    service_event.event_type_service?
+  end
+
   def disable_move_later?
-    completed? || service_event.prevent_move_later?
+    completed? || skipped? || service_event.prevent_move_later?
   end
 
   def disable_move_earlier?
-    completed? || service_event.prevent_move_earlier?
+    completed? || skipped? || service_event.prevent_move_earlier?
   end
 
   def later_hint
@@ -162,7 +174,10 @@ class StopPresenter
 
   def row_classes
     base = 'hover:bg-gray-50'
-    completed? ? "#{base} opacity-60 bg-emerald-50" : base
+    return "#{base} opacity-60 bg-emerald-50" if completed?
+    return "#{base} opacity-70 bg-amber-50" if skipped?
+
+    base
   end
 
   private

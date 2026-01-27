@@ -13,12 +13,13 @@ Rails.application.routes.draw do
     end
   end
   resources :service_events, only: :update
-  resources :routes, only: [ :index, :show, :create, :update ] do
+  resources :routes, only: [ :show, :create, :update ] do
     post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
       post :postpone, on: :member
       post :advance, on: :member
       post :complete, on: :member
+      post :skip, on: :member
       delete :destroy, on: :member
     end
     resources :dump_events, only: :create, module: :routes
@@ -70,6 +71,8 @@ Rails.application.routes.draw do
   authenticated :user do
     root to: 'dashboard#index', as: :authenticated_root
   end
+
+  get 'dashboard/capacity_routing_preview', to: 'dashboard#capacity_routing_preview', as: :capacity_routing_preview
 
   unauthenticated do
     root to: 'public#landing', as: :unauthenticated_root
