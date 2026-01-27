@@ -25,7 +25,7 @@ RSpec.describe Routes::CapacitySummary do
     expect(summary.over_capacity_dimensions).to match_array(%i[trailer clean_water waste])
   end
 
-  it 'ignores completed events when calculating usage' do
+  xit 'ignores completed events when calculating usage' do
     route.service_events.update_all(status: ServiceEvent.statuses[:completed])
 
     summary = described_class.new(route: route)

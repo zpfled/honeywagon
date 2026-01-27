@@ -92,4 +92,19 @@ RSpec.describe Routes::WasteTracker do
 
     expect(starting[current_route.id]).to eq(10) # only usage after the dump carries over
   end
+
+  it 'keeps carryover when a route has only skipped events' do
+    route1 = create_route_with_usage(truck: truck, route_date: Date.current, gallons: 20, status: :completed)
+    route2 = create_route_with_usage(truck: truck, route_date: Date.current + 1, gallons: 10)
+    route2.service_events.each { |ev| ev.update!(status: :skipped, skipped_on: Date.current + 1, skip_reason: "Too cold!") }
+    route3 = create_route_with_usage(truck: truck, route_date: Date.current + 2, gallons: 10)
+
+    tracker = described_class.new([ route1, route2, route3 ])
+    starting = tracker.starting_loads_by_route_id
+    ending = tracker.ending_loads_by_route_id
+
+    expect(starting[route2.id]).to eq(20)
+    expect(ending[route2.id][:cumulative_used]).to eq(20)
+    expect(starting[route3.id]).to eq(20)
+  end
 end
