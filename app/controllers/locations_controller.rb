@@ -1,5 +1,6 @@
 class LocationsController < ApplicationController
   before_action :set_customer_scope
+  before_action :set_location, only: %i[edit update]
 
   def new
     @customer = find_customer_from_params
@@ -37,10 +38,34 @@ class LocationsController < ApplicationController
     end
   end
 
+  def edit
+    render layout: false if turbo_frame_request?
+  end
+
+  def update
+    place_id = location_params[:place_id]
+    @location.assign_attributes(location_params.except(:customer_id, :place_id))
+    apply_place_details(place_id)
+
+    respond_to do |format|
+      if @location.save
+        format.turbo_stream
+        format.html { redirect_to locations_company_path, notice: 'Location updated.' }
+      else
+        format.turbo_stream { render :edit, status: :unprocessable_content }
+        format.html { render :edit, status: :unprocessable_content }
+      end
+    end
+  end
+
   private
 
   def set_customer_scope
     @customer_scope = current_user.company.customers
+  end
+
+  def set_location
+    @location = current_user.company.locations.find(params[:id])
   end
 
   def find_customer_from_params

@@ -9,7 +9,7 @@ module Geocoding
     PLACES_AUTOCOMPLETE_ENDPOINT = URI('https://places.googleapis.com/v1/places:autocomplete')
     PLACES_DETAILS_BASE = 'https://places.googleapis.com/v1/places/'
 
-    def initialize(api_key: GoogleMaps.api_key)
+    def initialize(api_key: GoogleMaps.server_api_key)
       @api_key = api_key
     end
 

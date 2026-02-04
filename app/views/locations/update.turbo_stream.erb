@@ -1,0 +1,5 @@
+<%= turbo_stream.replace "location_row_#{@location.id}" do %>
+  <%= render "locations/row", location: @location %>
+<% end %>
+
+<%= turbo_stream.update "location_modal", "" %>

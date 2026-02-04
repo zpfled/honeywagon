@@ -58,4 +58,5 @@
 - Rate plan row aggregation lives in `Companies::RatePlanRowsPresenter` to keep view formatting out of controllers.
 - Route optimization inserts auto-generated dump/refill stops via `Routes::Optimization::CapacityPlanner`, using per-unit-type capacity usage fields on `UnitType`.
 - Locations can be created with manual latitude/longitude when a street address is unavailable; address fields are optional in that case.
+- Company profile includes a dedicated Locations page to edit customer locations (including lat/lng) for routing accuracy.
 - Google Calendar push uses per-user OAuth tokens and creates one all-day event per stop on the route date.

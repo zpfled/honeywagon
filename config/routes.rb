@@ -1,3 +1,5 @@
+require 'sidekiq/web'
+
 Rails.application.routes.draw do
   resources :orders do
     collection do
@@ -15,6 +17,7 @@ Rails.application.routes.draw do
   resources :service_events, only: :update
   resources :routes, only: [ :show, :create, :update ] do
     get :calendar, on: :collection
+    post :refresh_forecasts, on: :collection
     post :merge, on: :member
     post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
@@ -36,6 +39,7 @@ Rails.application.routes.draw do
   resource :company, only: %i[edit update], controller: 'company' do
     collection do
       get :customers
+      get :locations
       get :expenses
       get :new_unit_type
       get :new_rate_plan
@@ -48,11 +52,12 @@ Rails.application.routes.draw do
     get 'places/autocomplete', to: 'places#autocomplete', as: :places_autocomplete
     get 'places/details', to: 'places#details', as: :places_details
   end
-  resources :locations, only: [ :new, :create ]
+  resources :locations, only: [ :new, :create, :edit, :update ]
   resources :trucks, only: %i[edit update]
   resources :trailers, only: %i[edit update]
   resources :rate_plans, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
+  get 'operations/forecast-accuracy', to: 'forecast_accuracy#show', as: :forecast_accuracy
   get 'google_calendar/connect', to: 'google_calendars#connect', as: :google_calendar_connect
   devise_for :users, controllers: {
     registrations: 'users/registrations',
@@ -64,6 +69,10 @@ Rails.application.routes.draw do
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get 'up' => 'rails/health#show', as: :rails_health_check
+
+  authenticate :user do
+    mount Sidekiq::Web => '/rails/sidekiq'
+  end
 
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest

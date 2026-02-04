@@ -21,6 +21,7 @@
       <a href="#fleet" class="rounded-lg bg-white px-3 py-2 hover:text-gray-900">Fleet</a>
       <a href="#unit-types" class="rounded-lg bg-white px-3 py-2 hover:text-gray-900">Units</a>
       <%= link_to "Customers", customers_company_path, class: "rounded-lg bg-white px-3 py-2 hover:text-gray-900" %>
+      <%= link_to "Locations", locations_company_path, class: "rounded-lg bg-white px-3 py-2 hover:text-gray-900" %>
       <%= link_to "Costs", expenses_company_path, class: "rounded-lg bg-white px-3 py-2 hover:text-gray-900" %>
     </div>
   </nav>
@@ -34,6 +35,7 @@
           <li><a href="#fleet" class="block rounded-lg px-3 py-2 hover:bg-white hover:text-gray-900">Fleet</a></li>
           <li><a href="#unit-types" class="block rounded-lg px-3 py-2 hover:bg-white hover:text-gray-900">Unit types & rate plans</a></li>
           <li><%= link_to "Customers", customers_company_path, class: "block rounded-lg px-3 py-2 hover:bg-white hover:text-gray-900" %></li>
+          <li><%= link_to "Locations", locations_company_path, class: "block rounded-lg px-3 py-2 hover:bg-white hover:text-gray-900" %></li>
           <li><%= link_to "Costs & expenses", expenses_company_path, class: "block rounded-lg px-3 py-2 hover:bg-white hover:text-gray-900" %></li>
         </ul>
       </nav>
@@ -106,6 +108,19 @@
                   <%= f.number_field :dump_threshold_percent, min: 1, max: 100, class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
                   <p class="mt-1 text-xs text-gray-500">Insert a dump stop when waste reaches this percentage.</p>
                 </div>
+              </div>
+              <div>
+                <%= f.label :weather_provider, "Weather forecast provider", class: "text-sm font-medium text-gray-700" %>
+                <%= f.select :weather_provider,
+                      options_for_select(Company::WEATHER_PROVIDERS.map { |value, label| [ label, value ] }, @company.weather_provider),
+                      {},
+                      class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+                <p class="mt-1 text-xs text-gray-500">Select the provider used for route forecasts.</p>
+                <ul class="mt-2 space-y-1 text-xs text-gray-500">
+                  <li>NWS: ~10-day horizon (US-only).</li>
+                  <li>AccuWeather: 5-day on starter; longer on higher tiers.</li>
+                  <li>Visual Crossing: 15-day horizon (per plan).</li>
+                </ul>
               </div>
               <div>
                 <%= f.submit "Update company", class: button_classes(variant: :primary) %>

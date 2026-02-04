@@ -190,28 +190,29 @@
 
         <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
         <%= card classes: "mt-3 overflow-hidden hidden", data: { route_view_toggle_target: "list" } do %>
+          <div class="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200" id="route-stops">
+            <p class="text-sm font-semibold text-gray-900">Route stops</p>
+            <% if @dump_sites.any? %>
+              <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex items-center gap-2 text-xs text-gray-700" do |f| %>
+                <%= f.label :dump_site_id, "Dump site", class: "sr-only" %>
+                <%= f.select :dump_site_id,
+                             options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
+                             { include_blank: "Pick a site" },
+                             class: "rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
+                <%= f.submit "Add dump event", class: button_classes(variant: :secondary, size: :sm) %>
+              <% end %>
+            <% else %>
+              <div class="text-xs text-gray-500">
+                No dump sites yet.
+                <%= link_to "Add one.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
+              </div>
+            <% end %>
+          </div>
+
           <%= form_with url: route_ordering_path(@route),
                         method: :patch,
                         local: true,
                         data: { controller: "route-ordering", action: "submit->route-ordering#submit" } do %>
-            <div class="flex items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200" id="route-stops">
-              <p class="text-sm font-semibold text-gray-900">Route stops</p>
-              <% if @dump_sites.any? %>
-                <%= form_with url: route_dump_events_path(@route), scope: :dump_event, local: true, class: "flex items-center gap-2 text-xs text-gray-700" do |f| %>
-                  <%= f.label :dump_site_id, "Dump site", class: "sr-only" %>
-                  <%= f.select :dump_site_id,
-                               options_for_select(@dump_sites.map { |site| ["#{site.name} — #{site.location.display_label}", site.id] }),
-                               { include_blank: "Pick a site" },
-                               class: "rounded-lg border border-gray-300 px-2 py-1 text-xs text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
-                  <%= f.submit "Add dump event", class: button_classes(variant: :secondary, size: :sm) %>
-                <% end %>
-              <% else %>
-                <div class="text-xs text-gray-500">
-                  No dump sites yet.
-                  <%= link_to "Add one.", edit_company_path(anchor: "dump-sites"), class: "font-medium text-gray-900 hover:underline" %>
-                </div>
-              <% end %>
-            </div>
             <div class="hidden" data-route-ordering-target="inputContainer">
               <% @stop_presenters.each do |stop| %>
                 <%= hidden_field_tag "event_ids[]", stop.id %>

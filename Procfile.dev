@@ -1,3 +1,4 @@
 web: PORT=3000 bin/rails server
 css: bin/rails tailwindcss:watch
 redis: redis-server
+sidekiq: bundle exec sidekiq

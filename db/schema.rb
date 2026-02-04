@@ -10,19 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_26_154600) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "dump_threshold_percent", default: 90, null: false
+    t.datetime "forecast_refresh_at"
     t.integer "fuel_price_per_gal_cents", default: 0, null: false
     t.uuid "home_base_id"
     t.string "name", null: false
     t.integer "routing_horizon_days", default: 3, null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
+    t.string "weather_provider", default: "nws", null: false
     t.index ["home_base_id"], name: "index_companies_on_home_base_id"
   end
 
@@ -70,6 +72,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_26_154600) do
     t.index ["applies_to"], name: "index_expenses_on_applies_to", using: :gin
     t.index ["company_id", "category"], name: "index_expenses_on_company_id_and_category"
     t.index ["company_id"], name: "index_expenses_on_company_id"
+  end
+
+  create_table "forecast_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.date "forecast_date", null: false
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
+    t.integer "observed_high_temp"
+    t.integer "observed_low_temp"
+    t.integer "predicted_high_temp"
+    t.integer "predicted_low_temp"
+    t.integer "predicted_precip_percent"
+    t.string "provider", null: false
+    t.datetime "retrieved_at"
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "forecast_date"], name: "index_forecast_logs_on_company_id_and_forecast_date"
+    t.index ["company_id", "provider", "forecast_date", "latitude", "longitude"], name: "idx_forecast_logs_unique", unique: true
+    t.index ["company_id"], name: "index_forecast_logs_on_company_id"
   end
 
   create_table "location_distances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -356,10 +377,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_26_154600) do
     t.decimal "longitude", precision: 9, scale: 4
     t.integer "low_temp"
     t.integer "precip_percent"
+    t.string "provider", default: "nws", null: false
     t.datetime "retrieved_at", null: false
     t.string "summary"
     t.datetime "updated_at", null: false
-    t.index ["company_id", "forecast_date", "latitude", "longitude"], name: "index_weather_forecasts_on_company_date_and_location", unique: true
+    t.index ["company_id", "provider", "forecast_date", "latitude", "longitude"], name: "idx_weather_forecasts_provider"
     t.index ["company_id"], name: "index_weather_forecasts_on_company_id"
   end
 
@@ -368,6 +390,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_26_154600) do
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"
   add_foreign_key "expenses", "companies"
+  add_foreign_key "forecast_logs", "companies"
   add_foreign_key "location_distances", "locations", column: "from_location_id", on_delete: :cascade
   add_foreign_key "location_distances", "locations", column: "to_location_id", on_delete: :cascade
   add_foreign_key "locations", "customers"

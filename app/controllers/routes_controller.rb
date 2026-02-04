@@ -11,6 +11,7 @@ class RoutesController < ApplicationController
     @calendar_start = calendar_start_date
     @calendar_end = @calendar_start + 27.days
     company = current_user.company
+    Weather::ForecastRefresher.call(company: company)
     @routes = company.routes
                          .includes(:truck, :trailer, :service_events)
                          .where(route_date: @calendar_start..@calendar_end)
@@ -48,6 +49,11 @@ class RoutesController < ApplicationController
     else
       redirect_to @route, alert: result.errors.to_sentence
     end
+  end
+
+  def refresh_forecasts
+    Weather::ForecastRefreshJob.perform_later(current_user.company_id)
+    redirect_to calendar_routes_path, notice: 'Forecast refresh queued.'
   end
 
   def merge
@@ -114,16 +120,39 @@ class RoutesController < ApplicationController
     location = company.home_base
     return {} unless location&.lat.present? && location&.lng.present?
 
+    lat = location.lat.to_f.round(4)
+    lng = location.lng.to_f.round(4)
+    today = Date.current
     forecasts = {}
+
+    provider = company.weather_provider.presence || 'nws'
+    past_logs = ForecastLog
+                .where(company: company, provider: provider, latitude: lat, longitude: lng)
+                .where(forecast_date: @calendar_start..@calendar_end)
+                .where('forecast_date < ?', today)
+                .where.not(observed_high_temp: nil, observed_low_temp: nil)
+
+    past_logs.each do |log|
+      forecasts[log.forecast_date] = Struct.new(:high_temp, :low_temp, :precip_percent).new(
+        high_temp: log.observed_high_temp,
+        low_temp: log.observed_low_temp,
+        precip_percent: log.predicted_precip_percent
+      )
+    end
+
+    horizon = Weather::ForecastFetcher.forecast_horizon(company)
     @calendar_start.upto(@calendar_end) do |date|
+      next if date < today || date > today + horizon
+
       forecast = Weather::ForecastFetcher.call(
         company: company,
         date: date,
-        latitude: location.lat,
-        longitude: location.lng
+        latitude: lat,
+        longitude: lng
       )
       forecasts[date] = forecast if forecast.present?
     end
+
     forecasts
   end
 end

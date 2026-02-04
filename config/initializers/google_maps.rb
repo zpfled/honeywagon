@@ -7,6 +7,13 @@ module GoogleMaps
       config['api_key']
   end
 
+  def server_api_key
+    Rails.application.credentials.dig(:google_maps, :server_api_key) ||
+      ENV['GOOGLE_MAPS_SERVER_API_KEY'] ||
+      config['server_api_key'] ||
+      api_key
+  end
+
   def verify_ssl?
     value = Rails.application.credentials.dig(:google_maps, :verify_ssl)
     value = ENV['GOOGLE_MAPS_VERIFY_SSL'] if value.nil?

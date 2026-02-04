@@ -10,6 +10,10 @@
       </p>
     </div>
     <div class="flex items-center gap-2">
+      <%= button_to "Refresh forecasts",
+                    refresh_forecasts_routes_path,
+                    method: :post,
+                    class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
       <%= link_to "← Previous 4 weeks",
                   calendar_routes_path(start: (@calendar_start - 28.days).to_s),
                   class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
@@ -27,10 +31,12 @@
       </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-7">
+      <% today = Date.current %>
       <% @calendar_start.upto(@calendar_end).with_index do |date, idx| %>
         <% day_routes = @routes_by_date.fetch(date, []) %>
         <% week_divider = (idx % 7).zero? && idx.positive? ? " sm:border-t" : "" %>
-        <div class="min-h-[170px] border-b border-gray-200 p-3 transition-colors hover:bg-amber-50 sm:border-b sm:border-r sm:last:border-r-0<%= week_divider %>"
+        <% today_classes = date == today ? " bg-emerald-50/60 ring-2 ring-emerald-200" : "" %>
+        <div class="min-h-[170px] border-b border-gray-200 p-3 transition-colors hover:bg-amber-50 sm:border-b sm:border-r sm:last:border-r-0<%= week_divider %><%= today_classes %>"
              data-routes-calendar-target="day"
              data-date="<%= date.to_s %>"
              data-action="dragover->routes-calendar#dragOver drop->routes-calendar#drop dragleave->routes-calendar#dragLeave">
@@ -50,6 +56,8 @@
                   <span><%= forecast.precip_percent %>%</span>
                 <% end %>
               </div>
+            <% elsif date >= Date.current %>
+              <div class="mt-1 text-xs text-gray-400">No forecast available</div>
             <% end %>
           <% end %>
 

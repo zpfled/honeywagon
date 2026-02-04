@@ -37,6 +37,7 @@ class CompanyController < ApplicationController
     template =
       case redirect_target
       when customers_company_path then :customers
+      when locations_company_path then :locations
       when expenses_company_path then :expenses
       else :edit
       end
@@ -44,6 +45,8 @@ class CompanyController < ApplicationController
     case template
     when :customers
       load_customers_page_data
+    when :locations
+      load_locations_page_data
     when :expenses
       load_expenses_page_data
     else
@@ -56,6 +59,11 @@ class CompanyController < ApplicationController
   def customers
     build_forms
     load_customers_page_data
+  end
+
+  def locations
+    build_forms
+    load_locations_page_data
   end
 
   def expenses
@@ -93,6 +101,10 @@ class CompanyController < ApplicationController
     @customers = @company.customers.order(:display_name)
   end
 
+  def load_locations_page_data
+    @locations = @company.locations.includes(:customer).order(:label)
+  end
+
   def load_expenses_page_data
     @expenses = @company.expenses.order(:name)
     @expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] }
@@ -106,6 +118,7 @@ class CompanyController < ApplicationController
       :fuel_price_per_gallon,
       :routing_horizon_days,
       :dump_threshold_percent,
+      :weather_provider,
       home_base_attributes: %i[id label street city state zip lat lng]
     )
   end

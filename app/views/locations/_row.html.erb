@@ -1,0 +1,33 @@
+<tr id="location_row_<%= location.id %>">
+  <td class="<%= table_cell_class %>">
+    <div class="font-medium text-gray-900"><%= location.customer&.display_name || "Unknown customer" %></div>
+  </td>
+  <td class="<%= table_cell_class %>">
+    <div class="font-medium text-gray-900"><%= location.display_label %></div>
+  </td>
+  <td class="<%= table_cell_class %>">
+    <div class="text-sm text-gray-700"><%= location.full_address.presence || "—" %></div>
+  </td>
+  <td class="<%= table_cell_class %>">
+    <% if location.lat.present? && location.lng.present? %>
+      <div class="text-sm text-gray-700">
+        <%= number_with_precision(location.lat.to_f, precision: 6) %>,
+        <%= number_with_precision(location.lng.to_f, precision: 6) %>
+      </div>
+    <% else %>
+      <div class="text-sm text-gray-500">—</div>
+    <% end %>
+  </td>
+  <td class="<%= table_cell_class %>">
+    <% if location.lat.blank? || location.lng.blank? %>
+      <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">Missing coordinates</span>
+    <% else %>
+      <span class="text-xs text-gray-500">OK</span>
+    <% end %>
+  </td>
+  <td class="<%= table_cell_class('text-right') %>">
+    <%= link_to "Edit", edit_location_path(location),
+                data: { turbo_frame: "location_modal" },
+                class: button_classes(variant: :outline, size: :xs) %>
+  </td>
+</tr>

@@ -5,8 +5,8 @@
     <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
       <div class="flex items-start justify-between">
         <div>
-          <h2 class="text-xl font-semibold text-gray-900">Add Location</h2>
-          <p class="text-sm text-gray-600">Capture a job site without leaving this order.</p>
+          <h2 class="text-xl font-semibold text-gray-900">Edit Location</h2>
+          <p class="text-sm text-gray-600">Update coordinates and address details for routing.</p>
         </div>
         <button class="text-gray-400 hover:text-gray-700" data-action="click->modal#close">
           <span class="sr-only">Close</span>
@@ -15,7 +15,8 @@
       </div>
 
       <%= form_with model: @location,
-        url: locations_path,
+        url: location_path(@location),
+        method: :patch,
         class: "mt-6 space-y-4",
         data: {
           controller: "address-autocomplete",
