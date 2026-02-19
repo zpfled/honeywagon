@@ -96,10 +96,11 @@ class Route < ApplicationRecord
 
   def resequence_service_events!(ordered_ids)
     transaction do
-      events = service_events.includes(:order).index_by(&:id)
+      normalized_ids = Array(ordered_ids).map(&:presence).compact.map(&:to_s)
+      events = service_events.includes(:order).index_by { |event| event.id.to_s }
       sequence = 0
 
-      Array(ordered_ids).each do |id|
+      normalized_ids.each do |id|
         event = events.delete(id)
         next unless event
 

@@ -17,6 +17,10 @@ class RoutesController < ApplicationController
                          .where(route_date: @calendar_start..@calendar_end)
                          .order(:route_date, :id)
     @routes_by_date = @routes.group_by(&:route_date)
+    @tasks = company.tasks
+                    .where(due_on: @calendar_start..@calendar_end)
+                    .order(:due_on, :created_at)
+    @tasks_by_date = @tasks.group_by(&:due_on)
     @forecast_by_date = calendar_forecasts(company)
   end
 

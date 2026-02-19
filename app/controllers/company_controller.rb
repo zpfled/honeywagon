@@ -71,8 +71,6 @@ class CompanyController < ApplicationController
     load_expenses_page_data
   end
 
-  private
-
   def set_company
     @company = Company.find(current_user.company_id)
   end
@@ -210,6 +208,8 @@ class CompanyController < ApplicationController
     }
     render partial: 'company/expense_modal', locals: locals, layout: false
   end
+
+  private
 
   def build_forms
     @truck ||= @company.trucks.new

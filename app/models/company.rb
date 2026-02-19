@@ -16,10 +16,12 @@ class Company < ApplicationRecord
   has_many :trucks, dependent: :destroy
   has_many :trailers, dependent: :destroy
   has_many :service_events, through: :orders
+  has_many :order_series, dependent: :destroy
   has_many :rate_plans, dependent: :destroy
   has_many :dump_sites, dependent: :destroy
   has_many :weather_forecasts, dependent: :destroy
   has_many :expenses, dependent: :destroy
+  has_many :tasks, dependent: :destroy
   belongs_to :home_base, class_name: 'Location', optional: true
 
   validates :name, presence: true

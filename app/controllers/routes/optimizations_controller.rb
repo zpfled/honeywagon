@@ -10,7 +10,7 @@ class Routes::OptimizationsController < ApplicationController
     puts("[route optimization] distance_meters=#{result.distance_meters.inspect} duration_seconds=#{result.duration_seconds.inspect}")
 
     if result.success?
-      puts("[route optimization] applying resequence + drive metrics")
+      puts('[route optimization] applying resequence + drive metrics')
       @route.resequence_service_events!(result.event_ids_in_order)
       @route.record_stop_drive_metrics(event_ids: result.event_ids_in_order, legs: result.legs)
       if result.duration_seconds.present? || result.distance_meters.present?

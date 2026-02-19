@@ -1,7 +1,18 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["customer", "location", "locationLink", "startDate", "endDate", "availability"]
+  static targets = [
+    "customer",
+    "location",
+    "locationLink",
+    "startDate",
+    "endDate",
+    "availability",
+    "singleDates",
+    "seriesToggle",
+    "seriesSection",
+    "availabilityPanel"
+  ]
   static values = {
     locationUrl: String,
     availabilityUrl: String
@@ -9,6 +20,7 @@ export default class extends Controller {
 
   connect() {
     this.update()
+    this.toggleSeriesMode()
     this.fetchAvailability()
   }
 
@@ -17,6 +29,7 @@ export default class extends Controller {
   }
 
   datesChanged() {
+    if (this.seriesModeEnabled()) return
     this.fetchAvailability()
   }
 
@@ -48,6 +61,10 @@ export default class extends Controller {
 
   fetchAvailability() {
     if (!this.hasAvailabilityTarget || !this.hasAvailabilityUrlValue) return
+    if (this.seriesModeEnabled()) {
+      this.showAvailabilityMessage("Availability is shown per date pair in series mode.", "text-gray-500")
+      return
+    }
 
     const start = this.hasStartDateTarget ? this.startDateTarget.value : null
     const end = this.hasEndDateTarget ? this.endDateTarget.value : null
@@ -82,6 +99,32 @@ export default class extends Controller {
         const message = error?.error || "Unable to load availability."
         this.showAvailabilityMessage(message, "text-rose-600")
       })
+  }
+
+  seriesModeChanged() {
+    this.toggleSeriesMode()
+  }
+
+  seriesModeEnabled() {
+    return this.hasSeriesToggleTarget && this.seriesToggleTarget.checked
+  }
+
+  toggleSeriesMode() {
+    const enabled = this.seriesModeEnabled()
+    if (this.hasSingleDatesTarget) {
+      this.singleDatesTargets.forEach((el) => el.classList.toggle("hidden", enabled))
+    }
+    if (this.hasSeriesSectionTarget) {
+      this.seriesSectionTarget.classList.toggle("hidden", !enabled)
+    }
+    if (this.hasAvailabilityPanelTarget) {
+      this.availabilityPanelTarget.classList.toggle("opacity-60", enabled)
+    }
+    if (enabled) {
+      this.showAvailabilityMessage("Availability is shown per date pair in series mode.", "text-gray-500")
+    } else {
+      this.fetchAvailability()
+    }
   }
 
   renderAvailability(entries) {

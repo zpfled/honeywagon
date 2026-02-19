@@ -5,6 +5,7 @@ class Order < ApplicationRecord
   belongs_to :created_by, class_name: 'User', optional: true
   belongs_to :customer
   belongs_to :location
+  belongs_to :order_series, optional: true
 
   has_many :rental_line_items, dependent: :destroy
   has_many :service_line_items, dependent: :destroy

@@ -61,6 +61,8 @@ module Orders
 
     # Returns recurring service events based on the order's effective schedule.
     def recurring_service_events
+      return [] if order.suppress_recurring_service_events?
+
       interval_days = recurring_interval_days
       return [] unless interval_days
 

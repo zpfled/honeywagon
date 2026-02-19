@@ -53,6 +53,9 @@ Rails.application.routes.draw do
     get 'places/details', to: 'places#details', as: :places_details
   end
   resources :locations, only: [ :new, :create, :edit, :update ]
+  resources :tasks, only: %i[index create update] do
+    patch :postpone, on: :member
+  end
   resources :trucks, only: %i[edit update]
   resources :trailers, only: %i[edit update]
   resources :rate_plans, only: [ :new, :create ]

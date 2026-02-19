@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_04_121600) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -122,6 +122,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
     t.index ["dump_site"], name: "index_locations_on_dump_site"
   end
 
+  create_table "order_series", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "created_by_id"
+    t.string "name", null: false
+    t.text "notes"
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_order_series_on_company_id"
+    t.index ["created_by_id"], name: "index_order_series_on_created_by_id"
+  end
+
   create_table "order_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "billing_period", null: false
     t.datetime "created_at", null: false
@@ -147,10 +158,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
     t.string "external_reference"
     t.uuid "location_id", null: false
     t.text "notes"
+    t.uuid "order_series_id"
     t.integer "pickup_fee_cents"
     t.integer "rental_subtotal_cents"
     t.date "start_date"
     t.string "status"
+    t.boolean "suppress_recurring_service_events", default: false, null: false
     t.integer "tax_cents"
     t.integer "total_cents"
     t.datetime "updated_at", null: false
@@ -158,6 +171,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
     t.index ["created_by_id"], name: "index_orders_on_created_by_id"
     t.index ["customer_id"], name: "index_orders_on_customer_id"
     t.index ["location_id"], name: "index_orders_on_location_id"
+    t.index ["order_series_id"], name: "index_orders_on_order_series_id"
   end
 
   create_table "rate_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -292,6 +306,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
     t.index ["rate_plan_id"], name: "index_service_line_items_on_rate_plan_id"
   end
 
+  create_table "tasks", force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.date "due_on", null: false
+    t.text "notes"
+    t.string "status", default: "todo", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "due_on"], name: "index_tasks_on_company_id_and_due_on"
+    t.index ["company_id", "status"], name: "index_tasks_on_company_id_and_status"
+    t.index ["company_id"], name: "index_tasks_on_company_id"
+  end
+
   create_table "trailers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "capacity_spots", default: 0, null: false
     t.uuid "company_id", null: false
@@ -420,6 +449,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_28_150130) do
   add_foreign_key "service_events", "users", column: "deleted_by_id"
   add_foreign_key "service_line_items", "orders"
   add_foreign_key "service_line_items", "rate_plans"
+  add_foreign_key "tasks", "companies"
   add_foreign_key "trailers", "companies"
   add_foreign_key "trucks", "companies"
   add_foreign_key "unit_types", "companies"

@@ -66,13 +66,13 @@ module Weather
 
     def client
       @client ||= case provider
-                  when 'accuweather'
+      when 'accuweather'
                     Weather::AccuWeatherClient.new(latitude: latitude, longitude: longitude)
-                  when 'visual_crossing'
+      when 'visual_crossing'
                     Weather::VisualCrossingClient.new(latitude: latitude, longitude: longitude)
-                  else
+      else
                     Weather::Client.new(latitude: latitude, longitude: longitude)
-                  end
+      end
     end
 
     def self.forecast_horizon(company)

@@ -26,6 +26,14 @@
             <span class="font-medium text-gray-700"><%= @order_presenter.external_reference %></span>
           </div>
         <% end %>
+        <% if @order.order_series.present? %>
+          <div class="text-xs text-gray-500">
+            Series:
+            <span class="font-medium text-gray-700"><%= @order.order_series.name %></span>
+            <span class="text-gray-400">•</span>
+            <span class="text-gray-600"><%= pluralize(@order.order_series.orders.count, "order") %></span>
+          </div>
+        <% end %>
       </div>
     </div>
 
