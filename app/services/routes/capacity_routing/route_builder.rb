@@ -2,7 +2,7 @@ module Routes
   module CapacityRouting
     # Builds one or more routes for a cluster using greedy ordering + capacity checks.
     class RouteBuilder
-      RoutePlan = Struct.new(:date, :stops, keyword_init: true)
+      RoutePlan = Struct.new(:date, :stops, :warnings, :errors, keyword_init: true)
 
       def initialize(company:, start_date:, candidates:)
         @company = company
@@ -18,6 +18,8 @@ module Routes
         while remaining.any?
           route = build_single_route(remaining)
           routes << route
+          # Known edge case for follow-up: strict home-base termination may
+          # produce routes with only operational stops.
         end
 
         routes
@@ -29,12 +31,17 @@ module Routes
 
       def build_single_route(remaining)
         stops = []
-        delivered_spots = 0
-        picked_up_spots = 0
-        total_delivery_spots = 0
-        waste_used = starting_waste_load
-        clean_used = 0
-        last_location = home_base
+        warnings = []
+        errors = []
+        route_state = RouteState.new(
+          waste_gal: starting_waste_load,
+          clean_water_gal: clean_capacity.to_f,
+          current_position: home_base,
+          trailer_inventory: {}
+        )
+        config = TruckConfig.new(truck: preferred_truck, trailer: preferred_trailer, company: company)
+
+        last_location = route_state.current_position
         current_date = start_date
         placed_event = false
         iterations = 0
@@ -45,26 +52,9 @@ module Routes
           if iterations > max_iterations
             raise "CapacityRouting::RouteBuilder exceeded #{max_iterations} iterations; remaining=#{remaining.size} stops=#{stops.size}"
           end
-          if dump_threshold && waste_used >= dump_threshold && stops.empty?
-            dump_site = nearest_dump_site(last_location)
-            if dump_site
-              stops << virtual_dump_stop(dump_site)
-              waste_used = 0
-              last_location = dump_site.location || last_location
-            end
-          end
 
           eligible = eligible_candidates(remaining, current_date)
-          candidate = next_candidate(
-            eligible,
-            last_location,
-            current_date,
-            waste_used: waste_used,
-            clean_used: clean_used,
-            total_delivery_spots: total_delivery_spots,
-            delivered_spots: delivered_spots,
-            picked_up_spots: picked_up_spots
-          )
+          candidate = next_candidate(eligible, last_location, current_date)
           unless candidate
             next_date = remaining.map { |item| item.event&.scheduled_on }.compact.min
             break unless next_date
@@ -74,96 +64,44 @@ module Routes
           end
 
           event = candidate.event
-          usage = event_usage(event)
-          waste_delta = usage[:waste_gallons].to_i
-          clean_delta = usage[:clean_water_gallons].to_i
-          delivery_delta = delivery_spots(event)
 
-          inserted_dump = false
-          if dump_needed_before?(waste_used, waste_delta)
-            dump_site = nearest_dump_site(last_location)
-            if dump_site
-              stops << virtual_dump_stop(dump_site)
-              waste_used = 0
-              last_location = dump_site.location || last_location
-              inserted_dump = true
-            end
+          inserter_result = OperationalStopInserter.new(
+            route_state,
+            event,
+            config,
+            remaining_stops: remaining.reject { |item| item == candidate }.map(&:event),
+            distance_lookup: distance_lookup
+          ).call
+          warnings.concat(Array(inserter_result.warnings))
+          errors.concat(Array(inserter_result.errors))
+
+          if inserter_result.errors.present?
+            remaining.delete(candidate)
+            next
           end
 
-          if clean_capacity && clean_used + clean_delta > clean_capacity
-            if home_base && placed_event
-              stops << virtual_home_stop(:refill, reset_clean: true)
-              break
-            end
+          if inserter_result.resequence
+            move_candidate_before_current!(remaining, candidate: candidate, stop_id: inserter_result.resequence[:stop_id])
+            next
           end
 
-          pickup_delta = pickup_spots(event)
-          if trailer_capacity && delivery_delta.positive?
-            projected_deliveries = total_delivery_spots + delivery_delta
-            if projected_deliveries > trailer_capacity
-              if placed_event
-                stops << virtual_home_stop(:reload, reset_trailer: true)
-                break
-              end
-            end
-          end
-          if trailer_capacity && pickup_delta.positive?
-            current_used = trailer_used(total_delivery_spots, delivered_spots, picked_up_spots)
-            if current_used + pickup_delta > trailer_capacity
-              if placed_event
-                stops << virtual_home_stop(:reload, reset_trailer: true)
-                break
-              end
-            end
+          inserter_result.operational_stops.compact.each do |stop|
+            stops << stop
+            route_state.apply_stop!(stop, config)
+            last_location = route_state.current_position || last_location
           end
 
-          total_delivery_spots += delivery_delta
-
-          projected_used = trailer_used(total_delivery_spots, delivered_spots, picked_up_spots)
-          if trailer_capacity && projected_used > trailer_capacity
-            if stops.any?
-              # End the route at home base when trailer capacity would be exceeded.
-              stops << virtual_home_stop(:reload, reset_trailer: true)
-              break
-            else
-              # Ensure forward progress even if the first stop exceeds trailer capacity.
-              stops << event
-              remaining.delete(candidate)
-              placed_event = true
-              delivered_spots += delivery_spots(event)
-              picked_up_spots += pickup_spots(event)
-              last_location = candidate.location || last_location
-              current_date = event.scheduled_on if event.event_type_delivery? && event.scheduled_on < current_date
-              waste_used += waste_delta
-              clean_used += clean_delta
-              next
-            end
+          if inserter_result.terminate_route
+            # Strict spec behavior: any home-base visit ends this route.
+            break
           end
 
           stops << event
           remaining.delete(candidate)
           placed_event = true
-
-          delivered_spots += delivery_spots(event)
-          picked_up_spots += pickup_delta
-          last_location = candidate.location || last_location
-          waste_used += waste_delta
-          clean_used += clean_delta
-
-          if dump_threshold && waste_used >= dump_threshold && !inserted_dump
-            dump_site = nearest_dump_site(last_location)
-            if dump_site
-              stops << virtual_dump_stop(dump_site)
-              waste_used = 0
-              last_location = dump_site.location || last_location
-            end
-          end
-
-          if event.event_type_delivery? && event.scheduled_on < current_date
-            current_date = event.scheduled_on
-          elsif event.event_type_pickup?
-            current_date = event.scheduled_on if event.scheduled_on
-          end
+          route_state.apply_stop!(event, config)
+          last_location = route_state.current_position || last_location
+          current_date = update_current_date(current_date, event)
         end
 
         if !placed_event && remaining.any?
@@ -172,21 +110,12 @@ module Routes
           stops << blocked.event
         end
 
-        RoutePlan.new(date: current_date, stops: reorder_for_dump(stops))
+        RoutePlan.new(date: current_date, stops: reorder_for_dump(stops), warnings: warnings.uniq, errors: errors)
       end
 
-      def next_candidate(remaining, last_location, current_date, waste_used:, clean_used:, total_delivery_spots:, delivered_spots:, picked_up_spots:)
+      def next_candidate(remaining, last_location, current_date)
         remaining.min_by do |candidate|
-          score_for(
-            candidate,
-            last_location,
-            current_date,
-            waste_used: waste_used,
-            clean_used: clean_used,
-            total_delivery_spots: total_delivery_spots,
-            delivered_spots: delivered_spots,
-            picked_up_spots: picked_up_spots
-          )
+          score_for(candidate, last_location, current_date)
         end
       end
 
@@ -229,16 +158,13 @@ module Routes
         end
       end
 
-      def score_for(candidate, last_location, current_date, waste_used:, clean_used:, total_delivery_spots:, delivered_spots:, picked_up_spots:)
+      def score_for(candidate, last_location, current_date)
         distance_score = distance_lookup.distance_km(from: last_location, to: candidate.location) || 0
         urgency_score = days_until_due(candidate, current_date)
         remote_score = distance_from_home(candidate).to_f / 100.0
-        # Bias toward dump/home when capacity is getting tight to keep the last stop nearby.
-        dump_bias = dump_bias_score(candidate, waste_used)
-        home_bias = home_bias_score(candidate, total_delivery_spots, delivered_spots, picked_up_spots)
 
         # Lower scores are chosen first; urgency and distance dominate.
-        distance_score + urgency_score + remote_score + dump_bias + home_bias
+        distance_score + urgency_score + remote_score
       end
 
       def days_until_due(candidate, current_date)
@@ -250,45 +176,13 @@ module Routes
         distance_lookup.distance_km(from: home_base, to: candidate.location)
       end
 
-      def delivery_spots(event)
-        return 0 unless event.event_type_delivery?
-        event_usage(event)[:trailer_spots].to_i
-      end
-
-      def pickup_spots(event)
-        return 0 unless event.event_type_pickup?
-        event_usage(event)[:trailer_spots].to_i
-      end
-
       def event_usage(event)
         @event_usage ||= {}
         @event_usage[event.id] ||= ServiceEvents::ResourceCalculator.new(event).usage
       end
 
-      def trailer_used(total_delivery_spots, delivered_spots, picked_up_spots)
-        [ total_delivery_spots - delivered_spots + picked_up_spots, 0 ].max
-      end
-
-      def trailer_capacity
-        preferred_trailer&.capacity_spots
-      end
-
-      def waste_capacity
-        preferred_truck&.waste_capacity_gal
-      end
-
       def clean_capacity
         preferred_truck&.clean_water_capacity_gal
-      end
-
-      def dump_threshold_percent
-        company.dump_threshold_percent || 90
-      end
-
-      def dump_threshold
-        return unless waste_capacity
-
-        waste_capacity * (dump_threshold_percent.to_f / 100.0)
       end
 
       def starting_waste_load
@@ -322,65 +216,27 @@ module Routes
         candidates.map { |candidate| event_usage(candidate.event)[:trailer_spots].to_i }.max.to_i
       end
 
-      def dump_sites_with_locations
-        @dump_sites_with_locations ||= company.dump_sites.includes(:location).to_a
-      end
-
       def home_base
         company.home_base
       end
 
-      def dump_needed_before?(waste_used, waste_delta)
-        return false unless dump_threshold
-
-        waste_used + waste_delta > dump_threshold
-      end
-
-      def nearest_dump_site(from_location)
-        return unless from_location
-
-        @nearest_dump_sites ||= {}
-        return @nearest_dump_sites[from_location.id] if @nearest_dump_sites.key?(from_location.id)
-
-        @nearest_dump_sites[from_location.id] = dump_sites_with_locations.min_by do |site|
-          distance_lookup.distance_km(from: from_location, to: site.location) || Float::INFINITY
+      def update_current_date(current_date, event)
+        if event.event_type_delivery? && event.scheduled_on < current_date
+          event.scheduled_on
+        elsif event.event_type_pickup? && event.scheduled_on
+          event.scheduled_on
+        else
+          current_date
         end
       end
 
-      def dump_bias_score(candidate, waste_used)
-        return 0 unless waste_capacity
-        return 0 unless waste_used.positive?
+      def move_candidate_before_current!(remaining, candidate:, stop_id:)
+        index = remaining.index { |item| item.event.id == stop_id }
+        return unless index
 
-        remaining_ratio = (waste_capacity - waste_used).to_f / waste_capacity
-        return 0 unless remaining_ratio <= 0.2
-
-        dump_site = nearest_dump_site(candidate.location)
-        return 0 unless dump_site
-
-        distance_lookup.distance_km(from: candidate.location, to: dump_site.location).to_f * 0.25
-      end
-
-      def home_bias_score(candidate, total_delivery_spots, delivered_spots, picked_up_spots)
-        return 0 unless trailer_capacity
-        return 0 unless home_base
-
-        projected_used = trailer_used(
-          total_delivery_spots + delivery_spots(candidate.event),
-          delivered_spots,
-          picked_up_spots
-        )
-        remaining_ratio = (trailer_capacity - projected_used).to_f / trailer_capacity
-        return 0 unless remaining_ratio <= 0.2
-
-        distance_lookup.distance_km(from: candidate.location, to: home_base).to_f * 0.25
-      end
-
-      def virtual_dump_stop(dump_site)
-        { type: :dump, location: dump_site.location, dump_site: dump_site }
-      end
-
-      def virtual_home_stop(reason, reset_clean: false, reset_trailer: false)
-        { type: :home_base, location: home_base, reason: reason, reset_clean: reset_clean, reset_trailer: reset_trailer }
+        target = remaining.delete_at(index)
+        current_index = remaining.index(candidate) || 0
+        remaining.insert(current_index, target)
       end
     end
   end

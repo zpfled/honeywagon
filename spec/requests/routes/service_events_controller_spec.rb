@@ -21,7 +21,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         service_event.reload
         expect(service_event.route).to eq(next_route)
         expect(service_event.route_date).to eq(next_route.route_date)
-        expect(flash[:notice]).to eq('Service event postponed to the next route.')
+        expect(flash[:notice]).to include('Service event moved to route for')
       end
     end
 
@@ -54,7 +54,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         expect(response).to redirect_to(route_path(previous_route))
         service_event.reload
         expect(service_event.route).to eq(previous_route)
-        expect(flash[:notice]).to eq('Service event moved to the previous route.')
+        expect(flash[:notice]).to include('Service event moved to route for')
       end
     end
 
@@ -71,7 +71,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         service_event.reload
         expect(service_event.route).to eq(new_route)
         expect(service_event.route_date).to eq(new_route.route_date)
-        expect(flash[:notice]).to eq('Service event moved to the previous route.')
+        expect(flash[:notice]).to include('Service event moved to route for')
       end
     end
   end

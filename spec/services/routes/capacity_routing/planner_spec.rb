@@ -7,7 +7,7 @@ RSpec.describe Routes::CapacityRouting::Planner do
     Routes::ServiceEventRouter.without_auto_assignment { example.run }
   end
 
-  it "splits routes when trailer capacity would be exceeded" do
+  it "surfaces delivery inventory shortfall as a hard planner error" do
     company = create(:company, :with_home_base)
     user = create(:user, company: company)
     trailer = create(:trailer, company: company, capacity_spots: 2, preference_rank: 1)
@@ -32,11 +32,13 @@ RSpec.describe Routes::CapacityRouting::Planner do
 
     Orders::ServiceEventGenerator.new(order).call
 
+    delivery_event_ids = order.service_events.where(event_type: :delivery).pluck(:id)
     result = described_class.call(company: company, start_date: Date.new(2024, 8, 1), horizon_days: 3)
-    planned_routes = result.routes
 
-    expect(planned_routes.length).to be >= 2
-    expect(planned_routes.flat_map(&:stops).any? { |stop| stop.is_a?(Hash) && stop[:type] == :home_base }).to be(true)
+    shortfall_error = result.errors.find { |error| error[:type] == "delivery_inventory_shortfall" }
+    expect(shortfall_error).not_to be_nil
+    expect(shortfall_error[:missing_unit_type]).to eq("standard")
+    expect(delivery_event_ids).to include(shortfall_error[:stop_id])
   end
 
   it "inserts dump stops when the waste threshold would be exceeded" do

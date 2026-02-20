@@ -4,6 +4,9 @@ module Routes
     # when a truck/trailer would exceed its limits. Later we can insert dump
     # stops automatically, but for now we just report violations so the UX
     # can surface them.
+    # NOTE: Routes::CapacityRouting::RouteState now tracks similar resource
+    # state in the upstream planner. Refactor is intentionally deferred for this
+    # pass to avoid coupling optimizer behavior changes into algorithm rollout.
     class CapacitySimulator
       Step = Struct.new(
         :event_id,

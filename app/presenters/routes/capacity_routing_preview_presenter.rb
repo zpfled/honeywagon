@@ -176,8 +176,8 @@ module Routes
           when :dump
             waste_used = 0
           when :home_base
-            clean_used = 0 if stop[:reset_clean]
-            trailer_used = 0 if stop[:reset_trailer]
+            clean_used = 0 if %i[refill both].include?(stop[:reason]&.to_sym)
+            trailer_used = 0 if %i[reload both].include?(stop[:reason]&.to_sym)
           end
         elsif stop.status_skipped?
           # Skipped events do not consume capacity; record current usage.

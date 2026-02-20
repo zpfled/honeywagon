@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_04_121600) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_20_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -343,7 +343,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_04_121600) do
     t.integer "preference_rank"
     t.datetime "updated_at", null: false
     t.integer "waste_capacity_gal", default: 0, null: false
+    t.decimal "waste_early_dump_proximity_miles", precision: 5, scale: 2
     t.integer "waste_load_gal", default: 0, null: false
+    t.decimal "waste_red_nearby_miles", precision: 5, scale: 2
+    t.integer "waste_red_threshold_pct"
+    t.integer "waste_yellow_threshold_pct"
+    t.decimal "water_early_refill_proximity_miles", precision: 5, scale: 2
+    t.integer "water_min_reserve_gal"
+    t.decimal "water_red_nearby_miles", precision: 5, scale: 2
+    t.integer "water_red_threshold_pct"
+    t.integer "water_yellow_threshold_pct"
     t.index ["company_id", "number"], name: "index_trucks_on_company_id_and_number", unique: true
     t.index ["company_id"], name: "index_trucks_on_company_id"
   end
