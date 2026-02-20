@@ -1,7 +1,8 @@
 # Capacity Routing v2 Plan
 
 This plan defines the next-generation capacity-aware routing approach. It is a
-proposed implementation plan, not yet executed.
+living implementation document. Major portions are now implemented, while some
+sections remain future work.
 
 ## Goals
 - Minimize total miles driven (primary success metric).
@@ -18,7 +19,8 @@ proposed implementation plan, not yet executed.
 - Use a review/accept step before new routes replace existing ones.
 - Use straight-line (lat/lng) distances for clustering/ordering.
 - Dump when waste reaches 90% capacity (configurable).
-- Prefer the largest truck; choose trailer by preference rank.
+- Prefer truck/trailer by preference rank; when ranks are tied or missing,
+  truck selection currently falls back to lower waste capacity.
 - Remote locations are prioritized, not forced into their own route.
 - Rerun routing on every new order scheduled.
 
@@ -38,13 +40,15 @@ proposed implementation plan, not yet executed.
 
 ## Phase 2 - Auto-Splitting Deliveries
 - Split large deliveries into multiple delivery events when trailer capacity
-  or same-day pickup offsets require it.
-- Only split delivery events; pickups/services remain intact.
+  requires it.
+- Split pickups into multiple pickup events when trailer capacity requires it.
+- Services remain intact (not split by this phase).
 - Link split events to the parent order for auditability.
 
 ## Phase 3 - Route Builder (Cluster First, Then Order)
 - Build a candidate pool within `routing_horizon_days`.
-- Cluster by geography (straight-line distance).
+- Cluster by candidate-to-candidate proximity using straight-line distance
+  and connected-neighbor grouping (not distance bands from home base).
 - For each cluster, build routes:
   - Start/end at home base.
   - Greedy next-stop ordering with weighted scoring:
@@ -64,7 +68,15 @@ proposed implementation plan, not yet executed.
 - When multiple routes share a day, use other available equipment if possible.
 
 ## Phase 5 - Review/Accept Workflow
-- Every schedule change creates a proposed route plan.
+Current state (implemented):
+- Capacity routing preview exists as a read-only screen for inspection.
+- Route optimization runs per-route from the route page and applies immediately
+  when successful (resequence + drive metrics update).
+- Routes are marked `optimization_stale` when relevant service events change,
+  so operators can see that re-optimization is needed.
+
+Future state (not yet implemented):
+- Every schedule change creates a proposed route plan for review.
 - Dashboard banner: "New route plan ready • Review".
 - Review screen shows:
   - route list + changes (moved stops, dumps/refills, splits)
