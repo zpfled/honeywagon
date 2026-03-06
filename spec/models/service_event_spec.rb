@@ -289,4 +289,58 @@ RSpec.describe ServiceEvent, type: :model do
       expect(event.errors[:route_date]).to include('cannot be before the scheduled date for pickups')
     end
   end
+
+  describe '#uncompletion_allowed?' do
+    it 'is false when not completed' do
+      event = create(:service_event, :service, status: :scheduled)
+      expect(event).not_to be_uncompletion_allowed
+    end
+
+    it 'is true for completed events with no report' do
+      event = create(:service_event, :delivery, status: :completed)
+
+      expect(event).to be_uncompletion_allowed
+      expect(event.uncompletion_allowed?).to be(true)
+    end
+
+    it 'is true for completed service events with nil gallons' do
+      event = create(:service_event, :service)
+      event.update!(status: :completed)
+
+      expect(event.service_event_report).not_to be_nil
+      expect(event).to be_uncompletion_allowed
+    end
+
+    it 'is true for completed service events with zero gallons' do
+      event = create(:service_event, :service)
+      event.update!(status: :completed)
+      event.service_event_report.update!(data: { estimated_gallons_pumped: '0' })
+
+      expect(event).to be_uncompletion_allowed
+    end
+
+    it 'is false for completed service events with positive gallons' do
+      event = create(:service_event, :service)
+      event.update!(status: :completed)
+      event.service_event_report.update!(data: { estimated_gallons_pumped: '12' })
+
+      expect(event.uncompletion_allowed?).to be(false)
+    end
+
+    it 'is false for completed dump events with positive dumped gallons' do
+      event = create(:service_event, :dump)
+      event.update!(status: :completed)
+      event.service_event_report.update!(data: { estimated_gallons_dumped: '40' })
+
+      expect(event.uncompletion_allowed?).to be(false)
+    end
+
+    it 'is true for completed dump events with zero dumped gallons' do
+      event = create(:service_event, :dump)
+      event.update!(status: :completed)
+      event.service_event_report.update!(data: { estimated_gallons_dumped: '0' })
+
+      expect(event.uncompletion_allowed?).to be(true)
+    end
+  end
 end

@@ -180,6 +180,10 @@ class StopPresenter
     base
   end
 
+  def uncomplete_available?
+    service_event.uncompletion_allowed?
+  end
+
   private
 
   attr_reader :service_event, :capacity_step

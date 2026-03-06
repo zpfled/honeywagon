@@ -24,6 +24,7 @@ Rails.application.routes.draw do
       post :postpone, on: :member
       post :advance, on: :member
       post :complete, on: :member
+      post :uncomplete, on: :member
       post :skip, on: :member
       delete :destroy, on: :member
     end

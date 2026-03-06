@@ -119,13 +119,6 @@ export default class extends Controller {
     }
   }
 
-  refresh() {
-    if (!this.map || !this.bounds) return
-    google.maps.event.trigger(this.map, "resize")
-    if (this.bounds.isEmpty()) return
-    this.map.fitBounds(this.bounds, 60)
-  }
-
   showStatus(message) {
     this.element.innerHTML = `<div class="flex h-full w-full items-center justify-center text-sm text-gray-500">${message}</div>`
   }

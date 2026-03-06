@@ -168,4 +168,62 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
       travel_back
     end
   end
+
+  describe 'POST /routes/:route_id/service_events/:id/uncomplete' do
+    let(:route) { create(:route, company: company, route_date: Date.current) }
+    let(:order) { create(:order, company: company, created_by: user) }
+    let(:unit_type) { create(:unit_type, company: company) }
+    let(:rate_plan) { create(:rate_plan, unit_type: unit_type, service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly]) }
+    let!(:rental_line_item) { create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan) }
+    let(:service_event) { create(:service_event, :service, order: order, route: route, route_date: route.route_date) }
+    let(:completed_service_event) { create(:service_event, :service, order: order, route: route, route_date: route.route_date) }
+
+    it 'reverts a completed event to scheduled when uncomplete is safe' do
+      completed_service_event.update!(status: :completed)
+      completed_service_event.update_column(:completed_on, Date.current)
+
+      post uncomplete_route_service_event_path(route, completed_service_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:notice]).to eq('Service event marked not completed.')
+
+      completed_service_event.reload
+      expect(completed_service_event).to be_status_scheduled
+      expect(completed_service_event.completed_on).to be_nil
+    end
+
+    it 'reverts a delivery completion without a report' do
+      delivery_event = create(:service_event, :delivery, order: order, route: route, route_date: route.route_date, status: :completed)
+
+      post uncomplete_route_service_event_path(route, delivery_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:notice]).to eq('Service event marked not completed.')
+      delivery_event.reload
+      expect(delivery_event).to be_status_scheduled
+    end
+
+    it 'rejects uncomplete when report has recorded gallons' do
+      completed_service_event.update!(status: :completed)
+      completed_service_event.service_event_report.update!(data: { estimated_gallons_pumped: '11' })
+
+      post uncomplete_route_service_event_path(route, completed_service_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:alert]).to eq('This service event cannot be uncompleted because it has a completed service log with gallons recorded.')
+
+      completed_service_event.reload
+      expect(completed_service_event).to be_status_completed
+      expect(completed_service_event.service_event_report.data['estimated_gallons_pumped']).to eq('11')
+    end
+
+    it 'rejects uncomplete for non-completed events' do
+      post uncomplete_route_service_event_path(route, service_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:alert]).to eq('Only completed service events can be uncompleted.')
+      service_event.reload
+      expect(service_event).to be_status_scheduled
+    end
+  end
 end

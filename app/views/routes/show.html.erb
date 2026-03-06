@@ -68,28 +68,9 @@
     </div>
   <% end %>
 
-  <div class="mt-6 w-full lg:flex lg:items-start lg:gap-8" data-controller="route-view-toggle" data-route-view-toggle-default-value="map">
+  <div class="mt-6 w-full lg:flex lg:items-start lg:gap-8">
     <aside class="hidden lg:block lg:w-64 lg:flex-none">
       <div class="space-y-4 lg:sticky lg:top-6">
-        <div class="rounded-3xl border border-gray-200 bg-white p-3 text-xs font-semibold text-gray-700">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Route view</span>
-            <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1">
-              <button type="button"
-                      class="rounded-md px-3 py-1.5"
-                      data-route-view-toggle-target="mapButton"
-                      data-action="route-view-toggle#showMap">
-                Map
-              </button>
-              <button type="button"
-                      class="rounded-md px-3 py-1.5"
-                      data-route-view-toggle-target="listButton"
-                      data-action="route-view-toggle#showList">
-                List
-              </button>
-            </div>
-          </div>
-        </div>
 
         <div class="rounded-3xl border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
           <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</p>
@@ -166,30 +147,8 @@
 
     <main class="mt-8 flex-1 space-y-6 lg:mt-0 lg:min-w-0" id="summary">
       <section id="route-view">
-        <%= card classes: "overflow-hidden", data: { route_view_toggle_target: "map" } do %>
-          <div class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Route map</div>
-          <div class="p-4">
-            <% if GoogleMaps.api_key.blank? %>
-              <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                Google Maps API key is missing. Add it to enable the map view.
-              </div>
-            <% elsif @map_stops.empty? %>
-              <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                No stops have coordinates yet.
-              </div>
-            <% else %>
-              <div data-controller="route-map"
-                   data-route-map-api-key-value="<%= GoogleMaps.api_key %>"
-                   data-route-map-stops-value="<%= json_escape(@map_stops.to_json) %>"
-                   class="route-map h-[520px] w-full rounded-xl border border-gray-200"
-                   data-action="route-view-toggle:map-shown->route-map#refresh">
-              </div>
-            <% end %>
-          </div>
-        <% end %>
-
         <%# TODO: Replace inline stop rendering with StopPresenter + partial for readability and testability %>
-        <%= card classes: "mt-3 overflow-hidden hidden", data: { route_view_toggle_target: "list" } do %>
+        <%= card classes: "overflow-hidden" do %>
           <div class="flex flex-wrap items-center justify-between gap-4 px-4 py-3 bg-gray-50 border-b border-gray-200" id="route-stops">
             <p class="text-sm font-semibold text-gray-900">Route stops</p>
             <% if @dump_sites.any? %>
@@ -221,7 +180,7 @@
                              disabled: true,
                              data: { action: "route-ordering#save", route_ordering_target: "saveButton" } %>
             </div>
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-100 bg-white">
               <thead class="bg-gray-50">
                 <tr>
                   <th class="<%= table_header_class %>">Stop</th>
@@ -246,6 +205,27 @@
               </tbody>
             </table>
           <% end %>
+        <% end %>
+
+        <%= card classes: "mt-3 overflow-hidden" do %>
+          <div class="border-b border-gray-100 px-4 py-3 text-sm font-semibold text-gray-900">Route map</div>
+          <div class="p-4">
+            <% if GoogleMaps.api_key.blank? %>
+              <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                Google Maps API key is missing. Add it to enable the map view.
+              </div>
+            <% elsif @map_stops.empty? %>
+              <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                No stops have coordinates yet.
+              </div>
+            <% else %>
+              <div data-controller="route-map"
+                   data-route-map-api-key-value="<%= GoogleMaps.api_key %>"
+                   data-route-map-stops-value="<%= json_escape(@map_stops.to_json) %>"
+                   class="route-map h-[520px] w-full rounded-xl border border-gray-200">
+              </div>
+            <% end %>
+          </div>
         <% end %>
       </section>
     </main>

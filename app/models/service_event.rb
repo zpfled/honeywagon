@@ -244,6 +244,31 @@ class ServiceEvent < ApplicationRecord
     order.update!(status: 'completed', end_date: Date.current)
   end
 
+  def uncompletion_allowed?
+    return false unless status_completed?
+
+    report = service_event_report
+    return true unless report.present?
+
+    gallons = completion_report_gallons(report)
+    gallons.nil? || gallons.to_i.zero?
+  end
+
+  def completion_report_gallons(report)
+    return nil unless report
+
+    raw = if event_type_dump?
+            report.data['estimated_gallons_dumped']
+    else
+            report.data['estimated_gallons_pumped']
+    end
+
+    return nil if raw.blank?
+    raw.to_i
+  end
+
+  public :uncompletion_allowed?
+
   def default_route_date
     self.route_date ||= route&.route_date || scheduled_on
   end

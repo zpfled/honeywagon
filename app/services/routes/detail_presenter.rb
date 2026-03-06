@@ -113,6 +113,7 @@ module Routes
     def service_events_for_display
       events = route.service_events
                     .includes(order: [ :customer, :location ], service_event_units: :unit_type)
+                    .includes(:service_event_report)
                     .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       preload_rental_line_items_for(events)
       dump_events = events.select(&:event_type_dump?)

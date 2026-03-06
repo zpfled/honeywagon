@@ -125,7 +125,14 @@
           <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-amber-700 opacity-70">Skipped</span>
         <% elsif stop.delivery? || stop.refill? %>
           <% if stop.completed? %>
-            <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 opacity-50 cursor-not-allowed">Completed</span>
+            <% if stop.uncomplete_available? %>
+              <%= link_to "Uncomplete ↶",
+                          uncomplete_route_service_event_path(@route, event),
+                          class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 focus:z-10",
+                          data: { turbo_method: :post, turbo_confirm: "Unmark this service event as complete?" } %>
+            <% else %>
+              <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 opacity-50 cursor-not-allowed" title="This event has a completed service log with gallons and cannot be uncompleted.">Completed</span>
+            <% end %>
           <% else %>
             <%= link_to "Complete ✓",
                         complete_route_service_event_path(@route, event),
@@ -134,7 +141,14 @@
           <% end %>
         <% else %>
           <% if stop.completed? %>
-            <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 opacity-50">Completed</span>
+            <% if stop.uncomplete_available? %>
+              <%= link_to "Uncomplete ↶",
+                          uncomplete_route_service_event_path(@route, event),
+                          class: "inline-flex items-center px-3 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 focus:z-10",
+                          data: { turbo_method: :post, turbo_confirm: "Unmark this service event as complete?" } %>
+            <% else %>
+              <span class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-emerald-600 opacity-50" title="This event has a completed service log with gallons and cannot be uncompleted.">Completed</span>
+            <% end %>
           <% else %>
             <%= link_to "Complete ✓",
                         complete_route_service_event_path(@route, event),

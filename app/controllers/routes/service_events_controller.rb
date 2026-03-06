@@ -27,6 +27,11 @@ module Routes
       end
     end
 
+    def uncomplete
+      result = Routes::ServiceEventUncompleter.new(@service_event).call
+      redirect_with_result(result)
+    end
+
     def skip
       result = Routes::ServiceEventSkipper.new(@service_event, skip_reason: params[:skip_reason]).call
       redirect_with_result(result)
