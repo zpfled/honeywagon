@@ -76,8 +76,8 @@ module Routes
       ).call
     end
 
-    def simulate_route_waste(route, starting_waste:)
-      ordered_ids = route.service_events.not_skipped.order(:route_sequence, :created_at).pluck(:id)
+  def simulate_route_waste(route, starting_waste:)
+      ordered_ids = route.ordered_service_event_ids(not_skipped: true)
       return starting_waste.to_i if ordered_ids.empty?
 
       simulation = Routes::Optimization::CapacitySimulator.call(

@@ -5,8 +5,11 @@ class Route < ApplicationRecord
   belongs_to :company
   belongs_to :truck
   belongs_to :trailer, optional: true
+  belongs_to :generation_run, class_name: 'RouteGenerationRun', optional: true
   has_many :service_events, dependent: :nullify
   has_many :service_events_with_deleted, -> { with_deleted }, class_name: 'ServiceEvent'
+  has_many :route_stops, dependent: :destroy
+  has_many :stop_service_events, through: :route_stops, source: :service_event
 
   validates :route_date, presence: true
   validates :truck, presence: true
@@ -59,6 +62,110 @@ class Route < ApplicationRecord
     rental_units + service_line_units
   end
 
+  def ordered_route_stops
+    route_stops.order(:position)
+  end
+
+  def ordered_service_event_ids(not_skipped: false)
+    scope = ordered_service_event_scope
+    scope = scope.not_skipped if not_skipped
+    scope.pluck(:id)
+  end
+
+  def ordered_service_event_relation(not_skipped: false)
+    scope = ordered_service_event_scope
+    scope = scope.not_skipped if not_skipped
+    scope
+  end
+
+  def ordered_service_event_scope
+    return service_events
+             .joins(:route_stops)
+             .where(route_stops: { route_id: id })
+             .order('route_stops.position ASC') if has_stop_projection?
+
+    service_events.order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+  end
+
+  def has_stop_projection?
+    route_stops.loaded? ? route_stops.any? : route_stops.exists?
+  end
+
+  def stop_for_event(event)
+    return unless has_stop_projection?
+
+    stop_service_hash[event&.id]
+  end
+
+  def stop_position_for(event)
+    stop_for_event(event)&.position
+  end
+
+  def append_service_event_stop!(service_event, position: nil, created_by: nil)
+    return if service_event.blank?
+
+    stop_position = position.presence || (route_stops.where(route_date: route_date).maximum(:position).to_i + 1)
+    route_stops.create!(
+      service_event: service_event,
+      position: stop_position,
+      route_date: route_date,
+      status: service_event.status,
+      created_by: created_by
+    )
+    service_event.update_column(:route_sequence, stop_position)
+    stop_position
+  end
+
+  def remove_service_event_stop!(service_event)
+    stop = route_stops.find_by(service_event_id: service_event.id)
+    return if stop.blank?
+
+    stop.destroy!
+    synchronize_route_sequence_with_stops! if has_stop_projection?
+  end
+
+  def synchronize_route_sequence_with_stops!
+    return unless has_stop_projection?
+
+    ordered_route_stops.includes(:service_event).each_with_index do |stop, index|
+      next unless stop.service_event
+
+      stop.service_event.update_column(:route_sequence, index)
+    end
+  end
+
+  def ordered_service_events
+    ordered_service_event_scope.to_a
+  end
+
+  def ordered_stops_or_events
+    return ordered_route_stops.includes(:service_event).to_a if has_stop_projection?
+
+    ordered_service_event_scope.to_a
+  end
+
+  def route_position_label(event)
+    return stop_position_for(event) if has_stop_projection?
+    event&.route_sequence.to_i
+  end
+
+  def has_operational_stops?
+    has_stop_projection? && route_stops.any?
+  end
+
+  def google_calendar_hash
+    ordered_events = ordered_service_events.to_a
+    digest_input = ordered_events.map.with_index do |event, index|
+      [
+        event&.id,
+        has_stop_projection? ? (stop_position_for(event) || event&.route_sequence || index) : event&.route_sequence.to_i,
+        event&.scheduled_on
+      ].join(':')
+    end.join('|')
+
+    Digest::SHA256.hexdigest([ route_date, digest_input ].join('::'))
+  end
+
   def record_drive_metrics(seconds:, meters:)
     update!(
       estimated_drive_seconds: seconds,
@@ -97,6 +204,33 @@ class Route < ApplicationRecord
   def resequence_service_events!(ordered_ids)
     transaction do
       normalized_ids = Array(ordered_ids).map(&:presence).compact.map(&:to_s)
+
+      if has_stop_projection?
+        stop_map = ordered_route_stops.includes(:service_event).index_by { |stop| stop.service_event_id.to_s }
+        sequence = 0
+
+        normalized_ids.each do |id|
+          stop = stop_map.delete(id)
+          next unless stop
+          next unless stop.service_event
+
+          stop.update!(position: sequence)
+          stop.service_event.update!(route_sequence: sequence)
+          sequence += 1
+        end
+
+        stop_map.values.each do |stop|
+          next unless stop.service_event
+
+          stop.update!(position: sequence)
+          stop.service_event.update!(route_sequence: sequence)
+          sequence += 1
+        end
+
+        @stop_service_hash = nil
+        return
+      end
+
       events = service_events.includes(:order).index_by { |event| event.id.to_s }
       sequence = 0
 
@@ -115,13 +249,8 @@ class Route < ApplicationRecord
     end
   end
 
-  def google_calendar_hash
-    digest_input = service_events
-                   .order(:route_sequence, :created_at)
-                   .pluck(:id, :route_sequence, :scheduled_on)
-                   .map { |id, sequence, scheduled_on| "#{id}:#{sequence}:#{scheduled_on}" }
-                   .join('|')
-    Digest::SHA256.hexdigest([ route_date, digest_input ].join('::'))
+  def assigned_service_events_count
+    has_stop_projection? ? ordered_service_events.length : service_events.count
   end
 
   private
@@ -192,5 +321,9 @@ class Route < ApplicationRecord
     return unless orders.any? { |order| order.association(:rental_line_items).loaded? ? order.rental_line_items.any? : order.rental_line_items.exists? }
 
     ActiveRecord::Associations::Preloader.new(records: orders, associations: { rental_line_items: :unit_type }).call
+  end
+
+  def stop_service_hash
+    @stop_service_hash ||= ordered_route_stops.includes(:service_event).index_by(&:service_event_id)
   end
 end

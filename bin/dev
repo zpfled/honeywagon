@@ -7,6 +7,8 @@ fi
 
 # Always use port 3000 in development to avoid env collisions
 export PORT="3000"
+export REDIS_PORT="${REDIS_PORT:-6380}"
+export REDIS_URL="${REDIS_URL:-redis://127.0.0.1:${REDIS_PORT}/0}"
 
 # Let the debug gem allow remote connections,
 # but avoid loading until `debugger` is called

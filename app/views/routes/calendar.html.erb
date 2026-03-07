@@ -9,17 +9,43 @@
         <%= l(@calendar_start, format: :long) %> – <%= l(@calendar_end, format: :long) %>
       </p>
     </div>
-    <div class="flex items-center gap-2">
-      <%= button_to "Refresh forecasts",
-                    refresh_forecasts_routes_path,
-                    method: :post,
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-wrap items-center gap-2">
+        <%= button_to "Refresh forecasts",
+                      refresh_forecasts_routes_path,
+                      method: :post,
+                      class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "← Previous 4 weeks",
+                    calendar_routes_path(start: (@calendar_start - 28.days).to_s),
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
-      <%= link_to "← Previous 4 weeks",
-                  calendar_routes_path(start: (@calendar_start - 28.days).to_s),
-                  class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
-      <%= link_to "Next 4 weeks →",
-                  calendar_routes_path(start: (@calendar_start + 28.days).to_s),
-                  class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "Today",
+                    calendar_routes_path(start: Date.current.beginning_of_week(:sunday).to_s, strategy: @calendar_strategy, run_id: @generation_run&.id),
+                    class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+        <%= link_to "Next 4 weeks →",
+                    calendar_routes_path(start: (@calendar_start + 28.days).to_s),
+                    class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <% if @generation_run %>
+          <%= form_with url: calendar_routes_path(start: @calendar_start), method: :get, class: "inline-flex items-center gap-2" do %>
+            <%= label_tag :run_id, "Run", class: "text-xs font-semibold text-gray-600" %>
+            <%= select_tag :run_id,
+                           options_for_select(
+                             @generation_runs.map { |run| [ run_label(run), run.id ] },
+                             @generation_run&.id
+                           ),
+                           class: "rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm" %>
+            <%= submit_tag "Use", class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+          <% end %>
+        <% end %>
+        <% @horizon_options.each do |horizon| %>
+          <%= button_to "Plan next #{horizon} days",
+                        generate_routes_path(start: @calendar_start, horizon_days: horizon, strategy: @calendar_strategy),
+                        method: :post,
+                        form: { class: "inline-block" },
+                        class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+        <% end %>
+      </div>
     </div>
   </div>
 
@@ -33,20 +59,40 @@
     <div class="grid grid-cols-1 sm:grid-cols-7">
       <% today = Date.current %>
       <% @calendar_start.upto(@calendar_end).with_index do |date, idx| %>
+        <% due_events = @due_events_by_date.fetch(date, []) %>
         <% day_routes = @routes_by_date.fetch(date, []) %>
-        <% day_tasks = @tasks_by_date.fetch(date, []) %>
+        <% assigned_count = @run_stops_by_date.fetch(date, []).size %>
+        <% due_count = due_events.size %>
+        <% unassigned_count = [ due_count - assigned_count, 0 ].max %>
+        <% days_out = (date - today).to_i %>
+        <% urgent_unassigned = unassigned_count.positive? && days_out.between?(0, 2) %>
+        <% cell_state_class = urgent_unassigned ? "border-l-4 border-amber-400" : "bg-white" %>
         <% week_divider = (idx % 7).zero? && idx.positive? ? " sm:border-t" : "" %>
-        <% today_classes = date == today ? " bg-emerald-50/60 ring-2 ring-emerald-200" : "" %>
-        <div class="min-h-[170px] border-b border-gray-200 p-3 transition-colors hover:bg-amber-50 sm:border-b sm:border-r sm:last:border-r-0<%= week_divider %><%= today_classes %>"
+        <% is_today = date == today %>
+        <% today_classes = is_today ? " ring-2 ring-emerald-200" : "" %>
+        <% today_header_classes = is_today ? "rounded-md bg-emerald-700 px-2 py-1 text-white shadow-sm" : "rounded-md bg-white px-2 py-1" %>
+        <div class="min-h-[170px] border-b border-gray-200 p-3 transition-colors hover:bg-amber-50 sm:border-b sm:border-r sm:last:border-r-0<%= week_divider %><%= today_classes %> <%= cell_state_class %>"
              data-routes-calendar-target="day"
              data-date="<%= date.to_s %>"
              data-action="dragover->routes-calendar#dragOver drop->routes-calendar#drop dragleave->routes-calendar#dragLeave">
-          <div class="flex items-center justify-between text-sm font-semibold text-gray-900">
-            <span><%= l(date, format: :short) %></span>
-            <span class="text-xs font-medium text-gray-500" data-routes-calendar-target="count" data-date="<%= date.to_s %>">
-              <%= day_routes.size %> route<%= "s" if day_routes.size != 1 %>
-            </span>
-          </div>
+          <%= link_to day_routes_path(date: date.to_s, run_id: @generation_run&.id, strategy: @calendar_strategy),
+                      class: "block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60" do %>
+            <div class="flex items-start justify-between <%= today_header_classes %> cursor-pointer hover:brightness-95" data-routes-calendar-target="count" data-date="<%= date.to_s %>">
+              <div class="leading-none">
+                <div class="text-[11px] font-semibold uppercase tracking-wide <%= is_today ? 'text-emerald-100' : 'text-gray-500' %>"><%= date.strftime('%b') %></div>
+                <div class="mt-0.5 text-[22px] font-extrabold tracking-tight <%= is_today ? 'text-white' : 'text-gray-900' %>"><%= date.strftime('%d') %></div>
+              </div>
+              <% if unassigned_count.positive? %>
+                <span class="inline-flex min-w-[1.5rem] items-center justify-center rounded-full px-1.5 py-0.5 text-[11px] font-bold <%= is_today ? 'bg-white/25 text-white' : 'bg-amber-100 text-amber-900' %>"
+                      title="Unassigned events">
+                  <%= unassigned_count %>
+                </span>
+              <% end %>
+            </div>
+          <% end %>
+          <% if due_count.positive? %>
+            <div class="mt-1 text-[11px] <%= is_today ? 'text-emerald-900' : 'text-gray-500' %>"><%= due_count %> due · <%= assigned_count %> assigned</div>
+          <% end %>
           <% if @forecast_by_date.present? %>
             <% forecast = @forecast_by_date[date] %>
             <% if forecast.present? %>
@@ -63,12 +109,21 @@
           <% end %>
 
           <div class="mt-3 space-y-2" data-routes-calendar-target="list">
-              <% if day_routes.empty? %>
-                <div class="text-xs text-gray-400">No routes scheduled</div>
-              <% else %>
-                <% day_routes.each do |route| %>
+            <% if day_routes.empty? %>
+              <div class="text-xs text-gray-500">No routes</div>
+            <% else %>
+              <% day_routes.each do |route| %>
                 <% over_capacity = route.over_capacity? %>
                 <% capacity_dims = route.over_capacity_dimensions.map { |dim| dim.to_s.humanize } %>
+                <% summary_events = if route.route_stops.loaded? && route.route_stops.any?
+                                      route.stop_service_events.to_a
+                                    else
+                                      route.service_events.to_a
+                                    end %>
+                <% delivery_count = summary_events.count(&:event_type_delivery?) %>
+                <% service_count = summary_events.count(&:event_type_service?) %>
+                <% pickup_count = summary_events.count(&:event_type_pickup?) %>
+                <% stop_count = summary_events.size %>
                 <%= link_to route_path(route),
                             class: "block rounded-lg border px-3 py-2 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-100 #{over_capacity ? 'border-rose-300 bg-rose-50' : 'border-gray-200 bg-gray-50'}",
                             draggable: true,
@@ -87,41 +142,26 @@
                       </span>
                     <% end %>
                   </div>
-                    <div class="text-gray-600">
-                      <%= route.service_events.size %> stop<%= "s" if route.service_events.size != 1 %>
-                      <% if route.trailer %>
-                        • <%= route.trailer.name || "Trailer" %>
-                      <% end %>
-                    </div>
-                  <% end %>
-                <% end %>
-              <% end %>
-            </div>
-
-          <div class="mt-3 border-t border-dashed border-gray-200 pt-2">
-            <div class="flex items-center justify-between text-xs font-semibold text-gray-600">
-              <span>Tasks</span>
-              <%= link_to "View", tasks_path(date: date.to_s), class: "text-gray-600 hover:text-gray-900" %>
-            </div>
-            <% if day_tasks.any? %>
-              <div class="mt-2 space-y-1">
-                <% day_tasks.first(3).each do |task| %>
-                  <% done = task.status_done? %>
-                  <div class="flex items-center justify-between gap-2 rounded-md border border-gray-200 bg-white px-2 py-1 text-[11px]">
-                    <span class="<%= done ? 'line-through text-gray-400' : 'text-gray-700' %>"><%= task.title %></span>
-                    <span class="rounded-full px-2 py-0.5 font-semibold <%= done ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800' %>">
-                      <%= task.status.humanize %>
-                    </span>
+                  <div class="text-gray-600">
+                    <%= stop_count %> stop<%= "s" if stop_count != 1 %> ·
+                    <%= delivery_count %> del / <%= service_count %> svc / <%= pickup_count %> pu
                   </div>
                 <% end %>
-                <% if day_tasks.size > 3 %>
-                  <div class="text-[11px] text-gray-500">+ <%= day_tasks.size - 3 %> more</div>
-                <% end %>
-              </div>
-            <% else %>
-              <div class="mt-1 text-[11px] text-gray-400">No tasks</div>
+              <% end %>
             <% end %>
-          </div>
+            <% if unassigned_count.positive? %>
+              <div class="mt-2 border-t border-dashed border-gray-300 pt-2">
+                <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">Unassigned events</p>
+              </div>
+              <% unassigned_events_for_day = @unassigned_events_by_date.fetch(date, []) %>
+              <ul class="mt-1 divide-y divide-gray-200 text-xs">
+                <% unassigned_events_for_day.each do |event| %>
+                  <%= render "unassigned_event_row", event: event %>
+                <% end %>
+              </ul>
+            <% end %>
+            </div>
+
         </div>
       <% end %>
     </div>

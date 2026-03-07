@@ -88,9 +88,9 @@ module Routes
     end
 
     def build_capacity_data
-      events_for_capacity = route.service_events.not_skipped.includes(service_event_units: :unit_type)
+      events_for_capacity = route.ordered_service_event_relation(not_skipped: true)
+                             .includes(service_event_units: :unit_type)
       preload_rental_line_items_for(events_for_capacity)
-      events_for_capacity = events_for_capacity.order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       result = Routes::Optimization::CapacitySimulator.call(
         route: route,
         ordered_event_ids: events_for_capacity.pluck(:id),
@@ -111,10 +111,9 @@ module Routes
     end
 
     def service_events_for_display
-      events = route.service_events
+      events = route.ordered_service_event_relation
                     .includes(order: [ :customer, :location ], service_event_units: :unit_type)
                     .includes(:service_event_report)
-                    .order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
       preload_rental_line_items_for(events)
       dump_events = events.select(&:event_type_dump?)
       if dump_events.any?

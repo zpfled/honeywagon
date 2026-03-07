@@ -83,7 +83,7 @@ module Routes
       attr_reader :route, :ordered_events
 
       def load_events_in_order(ids)
-        @events_by_id = route.service_events.not_skipped.where(id: ids).index_by(&:id)
+        @events_by_id = route.ordered_service_event_relation(not_skipped: true).where(id: ids).index_by(&:id)
         ids.map { |id| @events_by_id[id] }.compact
       end
 

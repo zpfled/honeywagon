@@ -52,7 +52,7 @@ module Routes
       end
 
       def events_by_id
-        @events_by_id ||= route.service_events.where(id: ordered_event_ids).index_by(&:id)
+        @events_by_id ||= route.ordered_service_event_relation.where(id: ordered_event_ids).index_by(&:id)
       end
 
       def validation_errors

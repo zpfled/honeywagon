@@ -44,9 +44,8 @@ module Routes
     private
 
     def aggregate_usage
-      events = route.service_events.not_skipped # Scope to events that should count toward usage.
-      events = events.order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
-      events = events.includes(service_event_units: :unit_type).to_a unless events.loaded? # Ensure unit types are preloaded.
+      events = route.ordered_service_event_relation(not_skipped: true)
+      events = events.includes(service_event_units: :unit_type).to_a unless events.loaded?
       preload_rental_line_items_for(events) # Preload rental items when unit counts come from orders.
 
       events.each_with_object({ trailer_spots: 0, clean_water_gallons: 0, waste_gallons: 0 }) do |event, memo| # Seed totals at zero.

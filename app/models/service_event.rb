@@ -8,6 +8,7 @@ class ServiceEvent < ApplicationRecord
   belongs_to :user
   belongs_to :route, optional: true
   belongs_to :deleted_by, class_name: 'User', optional: true
+  has_many :route_stops, dependent: :destroy
   has_one :service_event_report, dependent: :destroy
   belongs_to :dump_site, optional: true
   has_many :service_event_units, dependent: :destroy

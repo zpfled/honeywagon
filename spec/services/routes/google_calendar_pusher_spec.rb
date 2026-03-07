@@ -27,4 +27,26 @@ RSpec.describe Routes::GoogleCalendarPusher do
       hash_including(summary: "2 - Dump - #{dump_site.name}")
     )
   end
+
+  it 'uses projected stop order when route stops are present' do
+    reordered_first = create(:service_event, :service, route: route, scheduled_on: route.route_date)
+    reordered_second = create(:service_event, :delivery, order: create(:order, company: company, created_by: user), route: route, scheduled_on: route.route_date)
+    create(:route_stop, route: route, service_event: reordered_second, route_date: route.route_date, position: 0)
+    create(:route_stop, route: route, service_event: reordered_first, route_date: route.route_date, position: 1)
+
+    calendar_client = instance_double(Google::CalendarClient)
+    allow(Google::CalendarClient).to receive(:new).with(user).and_return(calendar_client)
+    allow(calendar_client).to receive(:upsert_event)
+
+    described_class.new(route: route, user: user).call
+
+    expect(calendar_client).to have_received(:upsert_event).with(
+      reordered_second,
+      hash_including(summary: "1 - Delivery - #{reordered_second.order.customer.display_name}")
+    )
+    expect(calendar_client).to have_received(:upsert_event).with(
+      reordered_first,
+      hash_including(summary: "2 - Service - #{reordered_first.order.customer.display_name}")
+    )
+  end
 end

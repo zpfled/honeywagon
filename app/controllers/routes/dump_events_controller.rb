@@ -20,6 +20,7 @@ module Routes
       )
 
       if event.save
+        @route.append_service_event_stop!(event) if @route.has_stop_projection?
         redirect_to route_path(@route), notice: 'Dump event scheduled on this route.'
       else
         redirect_to route_path(@route), alert: event.errors.full_messages.to_sentence.presence || 'Unable to schedule dump event.'

@@ -21,25 +21,38 @@ export default class extends Controller {
 
   connect() {
     this.draggedCard = null
+    this.draggedServiceEvent = null
     const token = document.querySelector("meta[name='csrf-token']")
     this.csrfToken = token ? token.content : null
   }
 
   dragStart(event) {
     const card = event.target.closest("[data-route-id]")
-    if (!card) return
+    if (card) {
+      this.draggedCard = card
+      card.classList.add("opacity-60")
 
-    this.draggedCard = card
-    card.classList.add("opacity-60")
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move"
+        event.dataTransfer.setData("text/plain", card.dataset.routeId || "")
+      }
+      return
+    }
 
-    if (event.dataTransfer) {
-      event.dataTransfer.effectAllowed = "move"
-      event.dataTransfer.setData("text/plain", card.dataset.routeId || "")
+    const serviceEventRow = event.target.closest("[data-service-event-id]")
+    if (serviceEventRow) {
+      this.draggedServiceEvent = serviceEventRow
+      serviceEventRow.classList.add("opacity-60")
+
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move"
+        event.dataTransfer.setData("text/plain", serviceEventRow.dataset.serviceEventId || "")
+      }
     }
   }
 
   dragOver(event) {
-    if (!this.draggedCard) return
+    if (!this.draggedCard && !this.draggedServiceEvent) return
 
     const day = event.target.closest("[data-routes-calendar-target='day']")
     if (!day) return
@@ -55,14 +68,34 @@ export default class extends Controller {
     day.classList.remove("ring-1", "ring-brand-primary")
   }
 
-  drop(event) {
-    if (!this.draggedCard) return
-
+  async drop(event) {
     event.preventDefault()
     const day = event.target.closest("[data-routes-calendar-target='day']")
     if (!day) return
 
     day.classList.remove("ring-1", "ring-brand-primary")
+
+    if (this.draggedServiceEvent) {
+      const newDate = day.dataset.date
+      const currentDate = this.draggedServiceEvent.dataset.serviceEventDate
+      const serviceEventId = this.draggedServiceEvent.dataset.serviceEventId
+      if (!newDate || !currentDate || !serviceEventId || newDate === currentDate) {
+        this.clearDragState()
+        return
+      }
+
+      const moveScope = this.pickServiceEventMoveScope(this.draggedServiceEvent)
+      if (!moveScope) {
+        this.clearDragState()
+        return
+      }
+
+      await this.persistServiceEventDate(serviceEventId, newDate, moveScope)
+      this.clearDragState()
+      return
+    }
+
+    if (!this.draggedCard) return
 
     const newDate = day.dataset.date
     const currentDate = this.draggedCard.dataset.routeDate
@@ -88,6 +121,47 @@ export default class extends Controller {
   dragEnd() {
     if (this.pendingMove) return
     this.clearDragState()
+  }
+
+  pickServiceEventMoveScope(serviceEventRow) {
+    if (!serviceEventRow) return "single"
+
+    const seriesEligible = serviceEventRow.dataset.serviceEventSeriesEligible === "true"
+    if (!seriesEligible) return "single"
+
+    const applyToFuture = window.confirm(
+      "Recurring service event:\n\nOK = Move this and all future events\nCancel = Move just this event"
+    )
+    return applyToFuture ? "future" : "single"
+  }
+
+  async persistServiceEventDate(serviceEventId, targetDate, moveScope = "single") {
+    if (!serviceEventId || !targetDate || !this.csrfToken) return
+
+    try {
+      const response = await fetch("/routes/reschedule_service_event", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "X-CSRF-Token": this.csrfToken
+        },
+        body: JSON.stringify({ service_event_id: serviceEventId, target_date: targetDate, move_scope: moveScope })
+      })
+
+      if (response.ok) {
+        window.location.reload()
+        return
+      }
+
+      const payload = await response.json().catch(() => ({}))
+      if (payload.message) {
+        window.alert(payload.message)
+      }
+      window.location.reload()
+    } catch (_error) {
+      window.location.reload()
+    }
   }
 
   async persistRouteDate(routeId, routeDate) {
@@ -315,9 +389,13 @@ export default class extends Controller {
     if (this.draggedCard) {
       this.draggedCard.classList.remove("opacity-60")
     }
+    if (this.draggedServiceEvent) {
+      this.draggedServiceEvent.classList.remove("opacity-60")
+    }
     this.dayTargets.forEach((day) => {
       day.classList.remove("ring-1", "ring-brand-primary")
     })
     this.draggedCard = null
+    this.draggedServiceEvent = null
   }
 }
