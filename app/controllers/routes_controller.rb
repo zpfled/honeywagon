@@ -37,16 +37,9 @@ class RoutesController < ApplicationController
                                     .where(route_date: @calendar_start..@calendar_end)
                                     .order(:route_date, :id)
       @routes_by_date = @run_routes.group_by(&:route_date)
-      @run_stops = RouteStop
-                   .where(route_id: @run_routes.map(&:id))
-                   .joins(:service_event)
-                   .where(service_events: { event_type: due_event_types })
-                   .includes(:service_event)
-                   .to_a
     else
       @run_routes = []
       @routes_by_date = {}
-      @run_stops = []
     end
 
     @due_events = company.service_events
