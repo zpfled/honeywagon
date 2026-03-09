@@ -20,6 +20,7 @@ module Routes
         horizon_end = start_date + horizon_days.days
         ServiceEvent
           .scheduled
+          .where.not(status: ServiceEvent.statuses[:completed])
           .where(event_type: %i[delivery service pickup])
           .where(scheduled_on: start_date..horizon_end)
           .joins(:order)
