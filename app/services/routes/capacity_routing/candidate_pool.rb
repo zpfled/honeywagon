@@ -18,13 +18,13 @@ module Routes
 
       def scheduled_events
         horizon_end = start_date + horizon_days.days
-        company.service_events
-               .scheduled
-               .where(event_type: %i[delivery service pickup])
-               .where(scheduled_on: start_date..horizon_end)
-               .joins(:order)
-               .where(orders: { status: %w[scheduled active] })
-               .includes(order: :location, service_event_units: :unit_type)
+        ServiceEvent
+          .scheduled
+          .where(event_type: %i[delivery service pickup])
+          .where(scheduled_on: start_date..horizon_end)
+          .joins(:order)
+          .where(orders: { company_id: company.id, status: Order::BLOCKING_STATUSES })
+          .includes(order: :location, service_event_units: :unit_type)
       end
 
       # Wraps a ServiceEvent with constraint metadata for routing decisions.

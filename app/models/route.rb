@@ -104,11 +104,10 @@ class Route < ApplicationRecord
   def append_service_event_stop!(service_event, position: nil, created_by: nil)
     return if service_event.blank?
 
-    stop_position = position.presence || (route_stops.where(route_date: route_date).maximum(:position).to_i + 1)
+    stop_position = position.presence || (route_stops.maximum(:position).to_i + 1)
     route_stops.create!(
       service_event: service_event,
       position: stop_position,
-      route_date: route_date,
       status: service_event.status,
       created_by: created_by
     )

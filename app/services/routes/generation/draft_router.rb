@@ -3,30 +3,33 @@ module Routes
     class DraftRouter
       Result = Struct.new(:run, :routes, :warnings, :errors, keyword_init: true)
 
-      def self.call(company:, scope:, horizon_days:, replace: true, strategy: 'capacity_v1', created_by: nil)
+      def self.call(company:, scope:, horizon_days:, planning_start_date: nil, replace: true, strategy: 'capacity_v1', created_by: nil)
         new(
           company: company,
           scope: scope,
           horizon_days: horizon_days,
+          planning_start_date: planning_start_date,
           replace: replace,
           strategy: strategy,
           created_by: created_by
         ).call
       end
 
-      def initialize(company:, scope:, horizon_days:, replace:, strategy:, created_by:)
+      def initialize(company:, scope:, horizon_days:, planning_start_date:, replace:, strategy:, created_by:)
         @company = company
         @scope = scope
         @horizon_days = horizon_days
+        @planning_start_date = planning_start_date
         @replace = replace
         @strategy = strategy
         @created_by = created_by
       end
 
       def call
+        previous_active_run = replace ? active_run_for_scope : nil
         planning = Routes::CapacityRouting::Planner.call(
           company: company,
-          start_date: scope.window_start,
+          start_date: planning_window_start,
           horizon_days: horizon_days
         )
 
@@ -37,6 +40,8 @@ module Routes
           # Route locking is handled by the active-run state transition.
           run = build_run
           @run = run
+          carry_forward_non_overlapping_routes!(from_run: previous_active_run, to_run: run) if replace
+
           planning.routes.each do |route_plan|
             next unless route_plan&.stops&.any?
 
@@ -59,7 +64,7 @@ module Routes
 
       private
 
-      attr_reader :company, :scope, :horizon_days, :replace, :strategy, :created_by, :run
+      attr_reader :company, :scope, :horizon_days, :planning_start_date, :replace, :strategy, :created_by, :run
 
       def build_run
         run = RouteGenerationRun.create!(
@@ -70,7 +75,12 @@ module Routes
           window_end: scope.window_end,
           strategy: strategy,
           state: RouteGenerationRun::STATE_DRAFT,
-          source_params: { horizon_days: horizon_days, strategy: strategy }
+          source_params: {
+            horizon_days: horizon_days,
+            strategy: strategy,
+            planning_start_date: planning_window_start.to_s,
+            planning_end_date: planning_window_end.to_s
+          }
         )
 
         supersede_previous_runs(run) if replace
@@ -94,6 +104,49 @@ module Routes
             truck: company.trucks.order(:created_at).first,
             trailer: choose_trailer(route_plan),
             generation_run: run
+          )
+        end
+      end
+
+      def active_run_for_scope
+        company.route_generation_runs
+               .where(scope_key: scope.scope_key, state: :active)
+               .order(created_at: :desc)
+               .first
+      end
+
+      def carry_forward_non_overlapping_routes!(from_run:, to_run:)
+        return unless from_run
+
+        overlap_range = planning_window_start..planning_window_end
+        from_run.routes
+                .includes(:route_stops)
+                .where.not(route_date: overlap_range)
+                .order(:route_date, :id)
+                .find_each do |old_route|
+          duplicate_route_with_stops!(old_route: old_route, new_run: to_run)
+        end
+      end
+
+      def duplicate_route_with_stops!(old_route:, new_run:)
+        copied_route = old_route.dup
+        copied_route.generation_run = new_run
+        copied_route.save!
+
+        old_route.route_stops.order(:position).find_each do |stop|
+          copied_route.route_stops.create!(
+            service_event_id: stop.service_event_id,
+            position: stop.position,
+            planned_arrival_at: stop.planned_arrival_at,
+            planned_departure_at: stop.planned_departure_at,
+            status: stop.status,
+            created_by: created_by || stop.created_by
+          )
+
+          stop.service_event.update_columns(
+            route_id: copied_route.id,
+            route_date: copied_route.route_date,
+            route_sequence: stop.position
           )
         end
       end
@@ -164,6 +217,14 @@ module Routes
         stops.select { |stop| stop.is_a?(ServiceEvent) }.sum do |event|
           ServiceEvents::ResourceCalculator.new(event).usage[:trailer_spots].to_i
         end
+      end
+
+      def planning_window_start
+        (planning_start_date || scope.window_start).to_date
+      end
+
+      def planning_window_end
+        planning_window_start + (horizon_days - 1).days
       end
     end
   end

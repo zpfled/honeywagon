@@ -8,6 +8,14 @@
         <p class="text-lg font-semibold text-gray-900"><%= l(@date, format: :long) %></p>
       </div>
       <div class="flex gap-2">
+        <% if @generation_run.present? && @date >= Date.current %>
+          <%= button_to "Clear day routes",
+                        clear_day_routes_path(date: @date.to_s, run_id: @generation_run.id, strategy: @calendar_strategy),
+                        method: :post,
+                        local: true,
+                        form: { data: { turbo_confirm: "Clear all routes for this day and release events back to unassigned?" }, class: "inline-block" },
+                        class: "rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100" %>
+        <% end %>
         <%= link_to "←",
                     day_routes_path(date: @date - 1.day, run_id: @generation_run&.id, strategy: @calendar_strategy),
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50",
@@ -17,7 +25,11 @@
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50",
                     aria: { label: "Next day" } %>
         <%= link_to "← Back to calendar",
-                    calendar_routes_path(start: @date.beginning_of_week(:sunday), run_id: @generation_run&.id),
+                    calendar_routes_path(
+                      start: (@generation_run&.window_start || @date.beginning_of_week(:sunday)),
+                      run_id: @generation_run&.id,
+                      strategy: @calendar_strategy
+                    ),
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
         <%= link_to "Tasks",
                     tasks_path(date: @date.to_s),
@@ -50,20 +62,27 @@
       <section class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
         <h2 class="text-sm font-semibold text-gray-900">Assigned in active run</h2>
         <% if @assigned_stops.any? %>
-          <ul class="mt-3 space-y-2">
-            <% @assigned_stops.each do |stop| %>
-              <% event = stop.service_event %>
-              <li class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm">
-                <%= stop.position + 1 %>. <%= event&.event_type.to_s&.humanize %>
-                <% if event&.route_id %>
-                  via <%= link_to "Route ##{event.route_id}", route_path(event.route), class: "text-blue-700 underline" %>
-                <% end %>
-                <% if event&.order %>
-                  · <%= event.order.customer&.display_name %>
-                <% end %>
-              </li>
+          <div class="mt-3 space-y-4">
+            <% @assigned_stops.group_by(&:route_id).each do |_route_id, stops| %>
+              <% route = stops.first.route %>
+              <div>
+                <h3 class="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                  <%= link_to RoutePresenter.new(route).display_name, route_path(route), class: "text-blue-700 underline" %>
+                </h3>
+                <ul class="mt-2 space-y-2">
+                  <% stops.each do |stop| %>
+                    <% event = stop.service_event %>
+                    <li class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm">
+                      <%= stop.position + 1 %>. <%= event&.event_type.to_s&.humanize %>
+                      <% if event&.order %>
+                        · <%= event.order.customer&.display_name %>
+                      <% end %>
+                    </li>
+                  <% end %>
+                </ul>
+              </div>
             <% end %>
-          </ul>
+          </div>
         <% else %>
           <p class="mt-2 text-sm text-gray-500">No assigned events for this active run.</p>
         <% end %>
@@ -76,7 +95,7 @@
         <ul class="mt-3 space-y-2">
           <% @generation_run.routes.where(route_date: @date).each do |route| %>
             <li>
-              <%= link_to "Route ##{route.id} (#{route.truck&.name || 'Unassigned truck'})",
+              <%= link_to RoutePresenter.new(route).display_name,
                           route_path(route),
                           class: "text-sm text-blue-700 underline" %>
             </li>

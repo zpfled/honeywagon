@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_07_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_122000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -230,7 +230,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_07_130000) do
     t.datetime "planned_arrival_at"
     t.datetime "planned_departure_at"
     t.integer "position", null: false
-    t.date "route_date", null: false
+    t.date "route_date"
     t.uuid "route_id", null: false
     t.uuid "service_event_id", null: false
     t.string "status"

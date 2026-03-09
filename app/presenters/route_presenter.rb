@@ -3,6 +3,14 @@ class RoutePresenter
     @route = route
   end
 
+  def display_name
+    towns = ordered_events.filter_map { |event| town_for_event(event) }
+    deduped_towns = towns.each_with_object([]) { |town, memo| memo << town unless memo.include?(town) }
+    return deduped_towns.join(" -> ") if deduped_towns.any?
+
+    route.truck&.name.presence || "Route #{route.id}"
+  end
+
   def deliveries_count
     service_events.count(&:event_type_delivery?)
   end
@@ -48,5 +56,18 @@ class RoutePresenter
 
   def service_events
     @service_events ||= route.service_events.to_a
+  end
+
+  def ordered_events
+    @ordered_events ||= route.ordered_stops_or_events.filter_map do |item|
+      item.respond_to?(:service_event) ? item.service_event : item
+    end
+  end
+
+  def town_for_event(event)
+    return nil unless event
+
+    city = event.order&.location&.city.presence || event.dump_site&.location&.city.presence
+    city&.strip&.titleize
   end
 end

@@ -61,7 +61,7 @@ class RoutesController < ApplicationController
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
     @unassigned_events_by_date = @unassigned_events.group_by(&:scheduled_on)
     @forecast_by_date = calendar_forecasts(company)
-    @horizon_options = [ 3, 7 ]
+    @plan_window_start, @plan_window_end = selected_planning_window
   end
 
   def day
@@ -80,7 +80,8 @@ class RoutesController < ApplicationController
     @generation_run = Routes::Generation::RunResolver.call(
       company: company,
       scope: @scope,
-      run_id: params[:run_id]
+      run_id: params[:run_id],
+      allow_cross_scope_run_id: true
     ).run
 
     @due_events = company.service_events
@@ -94,10 +95,9 @@ class RoutesController < ApplicationController
                         RouteStop.joins(:route)
                                  .joins(:service_event)
                                  .where(service_events: { event_type: due_event_types })
-                                 .where(routes: { generation_run_id: @generation_run.id })
-                                 .where(route_date: @date)
+                                 .where(routes: { generation_run_id: @generation_run.id, route_date: @date })
                                  .includes(:route, :service_event)
-                                 .order(:position)
+                                 .order("route_stops.route_id ASC, route_stops.position ASC")
     else
                         []
     end
@@ -106,6 +106,37 @@ class RoutesController < ApplicationController
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
 
     @tasks = company.tasks.where(due_on: @date).order(:created_at)
+  end
+
+  def clear_day
+    date = route_day_date
+    company = current_user.company
+    scope_start = date.beginning_of_week(:sunday)
+    scope_end = scope_start + 27.days
+    scope = Routes::Generation::Scope.new(
+      company: company,
+      scope_start: scope_start,
+      scope_end: scope_end,
+      strategy: calendar_strategy
+    )
+    run = Routes::Generation::RunResolver.call(
+      company: company,
+      scope: scope,
+      run_id: params[:run_id],
+      allow_cross_scope_run_id: true
+    ).run
+
+    unless run
+      return redirect_to(day_routes_path(date: date, strategy: calendar_strategy), alert: "No active run available for this date.")
+    end
+
+    result = Routes::DayRouteClearer.new(run: run, date: date).call
+    if result.success?
+      message = "Cleared #{result.routes_cleared} route#{'s' if result.routes_cleared != 1} and released #{result.events_released} event#{'s' if result.events_released != 1}."
+      redirect_to day_routes_path(date: date, run_id: run.id, strategy: calendar_strategy), notice: message
+    else
+      redirect_to day_routes_path(date: date, run_id: run.id, strategy: calendar_strategy), alert: result.error
+    end
   end
 
   def reschedule_service_event
@@ -155,17 +186,19 @@ class RoutesController < ApplicationController
   end
 
   def generate
+    plan_start, plan_end = selected_planning_window
+    horizon = ((plan_end - plan_start).to_i + 1).clamp(1, 28)
     scope = Routes::Generation::Scope.new(
       company: current_user.company,
       scope_start: calendar_start_date,
       scope_end: calendar_start_date + 27.days,
       strategy: calendar_strategy
     )
-    horizon = selected_generation_horizon
     result = Routes::Generation::DraftRouter.call(
       company: current_user.company,
       scope: scope,
       horizon_days: horizon,
+      planning_start_date: plan_start,
       replace: params[:replace] != 'false',
       strategy: scope.strategy,
       created_by: current_user
@@ -173,8 +206,8 @@ class RoutesController < ApplicationController
 
     if result.run
       route_count = result.routes.size
-      start_date = scope.window_start
-      end_date = start_date + (horizon - 1).days
+      start_date = plan_start
+      end_date = plan_end
       due_count = current_user.company.service_events
                               .scheduled
                               .where(event_type: due_event_types)
@@ -186,9 +219,32 @@ class RoutesController < ApplicationController
                                 .where(service_events: { event_type: due_event_types })
                                 .count
       unassigned_count = [ due_count - assigned_count, 0 ].max
+      candidate_count = Routes::CapacityRouting::CandidatePool
+                        .new(
+                          company: current_user.company,
+                          start_date: start_date,
+                          horizon_days: ((end_date - start_date).to_i + 1)
+                        )
+                        .events
+                        .size
       range_label = "#{I18n.l(start_date, format: '%b %-d')}–#{I18n.l(end_date, format: '%b %-d')}"
-      flash[:notice] = "#{route_count} route#{'s' if route_count != 1} generated for #{range_label}. #{unassigned_count} event#{'s' if unassigned_count != 1} unassigned."
-      redirect_to calendar_routes_path(start: scope.window_start, run_id: result.run.id, horizon_days: horizon, strategy: scope.strategy)
+      if route_count.zero? && due_count.positive?
+        base_message = "No routes generated for #{range_label}. #{due_count} due event#{'s' if due_count != 1}, #{candidate_count} eligible candidate#{'s' if candidate_count != 1}, #{unassigned_count} unassigned."
+        if result.errors.present?
+          flash[:alert] = "#{base_message} Error: #{Array(result.errors).join(', ')}"
+        else
+          flash[:alert] = base_message
+        end
+      else
+        flash[:notice] = "#{route_count} route#{'s' if route_count != 1} generated for #{range_label}. #{unassigned_count} event#{'s' if unassigned_count != 1} unassigned."
+      end
+      redirect_to calendar_routes_path(
+        start: scope.window_start,
+        run_id: result.run.id,
+        plan_start: plan_start,
+        plan_end: plan_end,
+        strategy: scope.strategy
+      )
     else
       message = "Could not generate routes: #{result.errors.join(', ')}"
       redirect_to calendar_routes_path(start: scope.window_start), alert: message
@@ -291,10 +347,11 @@ class RoutesController < ApplicationController
 
   def calendar_start_date
     seed = params[:start].presence
-    date = seed ? Date.parse(seed) : Date.current
-    date.beginning_of_week(:sunday)
+    return Date.parse(seed).beginning_of_week(:sunday) if seed
+
+    (Date.current.beginning_of_week(:sunday) - 7.days)
   rescue ArgumentError
-    Date.current.beginning_of_week(:sunday)
+    (Date.current.beginning_of_week(:sunday) - 7.days)
   end
 
   def route_day_date
@@ -309,10 +366,17 @@ class RoutesController < ApplicationController
     params[:strategy].presence || 'capacity_v1'
   end
 
-  def selected_generation_horizon
-    value = params[:horizon_days].to_i
-    valid = [ 3, 7 ]
-    valid.include?(value) ? value : 3
+  def selected_planning_window
+    raw_start = params[:plan_start].presence
+    raw_end = params[:plan_end].presence
+
+    start_date = raw_start ? Date.parse(raw_start) : Date.current
+    end_date = raw_end ? Date.parse(raw_end) : (start_date + 2.days)
+    end_date = start_date if end_date < start_date
+
+    [ start_date, end_date ]
+  rescue ArgumentError
+    [ Date.current, Date.current + 2.days ]
   end
 
   def run_label(run)
