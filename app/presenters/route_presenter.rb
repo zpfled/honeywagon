@@ -6,7 +6,7 @@ class RoutePresenter
   def display_name
     towns = ordered_events.filter_map { |event| town_for_event(event) }
     deduped_towns = towns.each_with_object([]) { |town, memo| memo << town unless memo.include?(town) }
-    return deduped_towns.join(" -> ") if deduped_towns.any?
+    return deduped_towns.join(' -> ') if deduped_towns.any?
 
     route.truck&.name.presence || "Route #{route.id}"
   end

@@ -1,5 +1,5 @@
 class RouteStop < ApplicationRecord
-  self.ignored_columns += [ "route_date" ]
+  self.ignored_columns += [ 'route_date' ]
 
   belongs_to :route
   belongs_to :service_event

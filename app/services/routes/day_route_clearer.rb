@@ -8,7 +8,7 @@ module Routes
     end
 
     def call
-      return failure("Only future dates can be cleared.") if date < Date.current
+      return failure('Only future dates can be cleared.') if date < Date.current
 
       routes = run.routes.where(route_date: date).includes(:service_events, route_stops: :service_event).to_a
       return Result.new(success?: true, routes_cleared: 0, events_released: 0, error: nil) if routes.empty?

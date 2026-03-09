@@ -63,7 +63,7 @@
       <% @calendar_start.upto(@calendar_end).with_index do |date, idx| %>
         <% due_events = @due_events_by_date.fetch(date, []) %>
         <% day_routes = @routes_by_date.fetch(date, []) %>
-        <% assigned_count = @run_stops_by_date.fetch(date, []).size %>
+        <% assigned_count = @assigned_due_events_by_date.fetch(date, []).size %>
         <% due_count = due_events.size %>
         <% unassigned_count = [ due_count - assigned_count, 0 ].max %>
         <% days_out = (date - today).to_i %>

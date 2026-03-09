@@ -43,12 +43,10 @@ class RoutesController < ApplicationController
                    .where(service_events: { event_type: due_event_types })
                    .includes(:service_event)
                    .to_a
-      @run_stops_by_date = @run_stops.group_by(&:route_date)
     else
       @run_routes = []
       @routes_by_date = {}
       @run_stops = []
-      @run_stops_by_date = {}
     end
 
     @due_events = company.service_events
@@ -57,7 +55,9 @@ class RoutesController < ApplicationController
                          .where(scheduled_on: @calendar_start..@calendar_end)
                          .includes(:dump_site, :route_stops, order: :customer)
     @due_events_by_date = @due_events.group_by(&:scheduled_on)
-    assigned_event_ids = @run_stops.map(&:service_event_id).to_set
+    assigned_event_ids = assigned_event_ids_in_run(run: @generation_run, event_ids: @due_events.map(&:id))
+    @assigned_due_events_by_date = @due_events.select { |event| assigned_event_ids.include?(event.id) }
+                                              .group_by(&:scheduled_on)
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
     @unassigned_events_by_date = @unassigned_events.group_by(&:scheduled_on)
     @forecast_by_date = calendar_forecasts(company)
@@ -97,12 +97,12 @@ class RoutesController < ApplicationController
                                  .where(service_events: { event_type: due_event_types })
                                  .where(routes: { generation_run_id: @generation_run.id, route_date: @date })
                                  .includes(:route, :service_event)
-                                 .order("route_stops.route_id ASC, route_stops.position ASC")
+                                 .order('route_stops.route_id ASC, route_stops.position ASC')
     else
                         []
     end
 
-    assigned_event_ids = @assigned_stops.map(&:service_event_id).to_set
+    assigned_event_ids = assigned_event_ids_in_run(run: @generation_run, event_ids: @due_events.map(&:id))
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
 
     @tasks = company.tasks.where(due_on: @date).order(:created_at)
@@ -127,7 +127,7 @@ class RoutesController < ApplicationController
     ).run
 
     unless run
-      return redirect_to(day_routes_path(date: date, strategy: calendar_strategy), alert: "No active run available for this date.")
+      return redirect_to(day_routes_path(date: date, strategy: calendar_strategy), alert: 'No active run available for this date.')
     end
 
     result = Routes::DayRouteClearer.new(run: run, date: date).call
@@ -387,6 +387,17 @@ class RoutesController < ApplicationController
     state = run.state || 'draft'
 
     "#{state.titleize} · #{created_label} · #{run.strategy}"
+  end
+
+  def assigned_event_ids_in_run(run:, event_ids:)
+    return Set.new if run.blank? || event_ids.blank?
+
+    RouteStop.joins(:route)
+             .where(routes: { generation_run_id: run.id })
+             .where(service_event_id: event_ids)
+             .distinct
+             .pluck(:service_event_id)
+             .to_set
   end
 
   def series_eligible_service_event?(service_event)
