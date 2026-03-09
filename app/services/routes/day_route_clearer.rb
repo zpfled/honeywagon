@@ -2,19 +2,24 @@ module Routes
   class DayRouteClearer
     Result = Struct.new(:success?, :routes_cleared, :events_released, :error, keyword_init: true)
 
-    def initialize(run:, date:)
+    def initialize(date:, run: nil, company: nil)
       @run = run
+      @company = company
       @date = date
     end
 
     def call
       return failure('Only future dates can be cleared.') if date < Date.current
 
-      routes = run.routes.where(route_date: date).includes(:service_events, route_stops: :service_event).to_a
+      routes = routes_scope.where(route_date: date).includes(:service_events, route_stops: :service_event).to_a
       return Result.new(success?: true, routes_cleared: 0, events_released: 0, error: nil) if routes.empty?
 
       events_to_release = routes.flat_map do |route|
-        (route.route_stops.map(&:service_event) + route.service_events.to_a).compact
+        if route.has_stop_projection?
+          route.route_stops.map(&:service_event)
+        else
+          route.service_events.to_a
+        end
       end.uniq
 
       ActiveRecord::Base.transaction do
@@ -44,9 +49,16 @@ module Routes
       failure(e.message)
     end
 
-    private
+  private
 
-    attr_reader :run, :date
+    attr_reader :run, :company, :date
+
+    def routes_scope
+      return run.routes if run.present?
+      return company.routes if company.present?
+
+      Route.none
+    end
 
     def failure(message)
       Result.new(success?: false, routes_cleared: 0, events_released: 0, error: message)

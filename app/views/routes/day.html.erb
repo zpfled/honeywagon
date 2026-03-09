@@ -60,7 +60,7 @@
       </section>
 
       <section class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-        <h2 class="text-sm font-semibold text-gray-900">Assigned in active run</h2>
+        <h2 class="text-sm font-semibold text-gray-900">Assigned routes</h2>
         <% if @assigned_stops.any? %>
           <div class="mt-3 space-y-4">
             <% @assigned_stops.group_by(&:route_id).each do |_route_id, stops| %>
@@ -84,7 +84,7 @@
             <% end %>
           </div>
         <% else %>
-          <p class="mt-2 text-sm text-gray-500">No assigned events for this active run.</p>
+          <p class="mt-2 text-sm text-gray-500">No assigned events for this date.</p>
         <% end %>
       </section>
     </div>
@@ -102,7 +102,7 @@
           <% end %>
         </ul>
       <% else %>
-        <p class="mt-2 text-sm text-gray-500">No routes for this date in the active planning run.</p>
+        <p class="mt-2 text-sm text-gray-500">No routes for this date.</p>
       <% end %>
     </section>
   </div>

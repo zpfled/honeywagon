@@ -14,32 +14,43 @@ class RoutesController < ApplicationController
     @calendar_strategy = calendar_strategy
     company = current_user.company
     Weather::ForecastRefresher.call(company: company)
-    @scope = Routes::Generation::Scope.new(
-      company: company,
-      scope_start: @calendar_start,
-      scope_end: @calendar_end,
-      strategy: @calendar_strategy
-    )
 
-    resolver = Routes::Generation::RunResolver.call(
-      company: company,
-      scope: @scope,
-      run_id: params[:run_id]
-    )
-    @generation_run = resolver.run
-    @generation_runs = company.route_generation_runs
-                              .where(scope_key: @scope.scope_key)
-                              .order(created_at: :desc)
-
-    if @generation_run
-      @run_routes = @generation_run.routes
-                                    .includes(:truck, :trailer, :route_stops, :stop_service_events)
-                                    .where(route_date: @calendar_start..@calendar_end)
-                                    .order(:route_date, :id)
+    if replace_window_v2_enabled?
+      @generation_run = nil
+      @generation_runs = []
+      @run_routes = company.routes
+                           .includes(:truck, :trailer, :route_stops, :stop_service_events)
+                           .where(route_date: @calendar_start..@calendar_end)
+                           .order(:route_date, :id)
       @routes_by_date = @run_routes.group_by(&:route_date)
     else
-      @run_routes = []
-      @routes_by_date = {}
+      @scope = Routes::Generation::Scope.new(
+        company: company,
+        scope_start: @calendar_start,
+        scope_end: @calendar_end,
+        strategy: @calendar_strategy
+      )
+
+      resolver = Routes::Generation::RunResolver.call(
+        company: company,
+        scope: @scope,
+        run_id: params[:run_id]
+      )
+      @generation_run = resolver.run
+      @generation_runs = company.route_generation_runs
+                                .where(scope_key: @scope.scope_key)
+                                .order(created_at: :desc)
+
+      if @generation_run
+        @run_routes = @generation_run.routes
+                                      .includes(:truck, :trailer, :route_stops, :stop_service_events)
+                                      .where(route_date: @calendar_start..@calendar_end)
+                                      .order(:route_date, :id)
+        @routes_by_date = @run_routes.group_by(&:route_date)
+      else
+        @run_routes = []
+        @routes_by_date = {}
+      end
     end
 
     @due_events = company.service_events
@@ -48,7 +59,7 @@ class RoutesController < ApplicationController
                          .where(scheduled_on: @calendar_start..@calendar_end)
                          .includes(:dump_site, :route_stops, order: :customer)
     @due_events_by_date = @due_events.group_by(&:scheduled_on)
-    assigned_event_ids = assigned_event_ids_in_run(run: @generation_run, event_ids: @due_events.map(&:id))
+    assigned_event_ids = assigned_event_ids_for_events(event_ids: @due_events.map(&:id), run: @generation_run)
     @assigned_due_events_by_date = @due_events.select { |event| assigned_event_ids.include?(event.id) }
                                               .group_by(&:scheduled_on)
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
@@ -60,22 +71,30 @@ class RoutesController < ApplicationController
   def day
     @date = route_day_date
     company = current_user.company
-    scope_start = @date.beginning_of_week(:sunday)
-    scope_end = scope_start + 27.days
     @calendar_strategy = calendar_strategy
 
-    @scope = Routes::Generation::Scope.new(
-      company: company,
-      scope_start: scope_start,
-      scope_end: scope_end,
-      strategy: @calendar_strategy
-    )
-    @generation_run = Routes::Generation::RunResolver.call(
-      company: company,
-      scope: @scope,
-      run_id: params[:run_id],
-      allow_cross_scope_run_id: true
-    ).run
+    if replace_window_v2_enabled?
+      @generation_run = Struct.new(:id, :routes, :window_start).new(
+        nil,
+        company.routes,
+        @date.beginning_of_week(:sunday)
+      )
+    else
+      scope_start = @date.beginning_of_week(:sunday)
+      scope_end = scope_start + 27.days
+      @scope = Routes::Generation::Scope.new(
+        company: company,
+        scope_start: scope_start,
+        scope_end: scope_end,
+        strategy: @calendar_strategy
+      )
+      @generation_run = Routes::Generation::RunResolver.call(
+        company: company,
+        scope: @scope,
+        run_id: params[:run_id],
+        allow_cross_scope_run_id: true
+      ).run
+    end
 
     @due_events = company.service_events
                          .scheduled
@@ -84,7 +103,14 @@ class RoutesController < ApplicationController
                          .includes(:order, :dump_site, :route_stops)
                          .order(:scheduled_on, :created_at)
 
-    @assigned_stops = if @generation_run
+    @assigned_stops = if replace_window_v2_enabled?
+                        RouteStop.joins(:route)
+                                 .joins(:service_event)
+                                 .where(service_events: { event_type: due_event_types })
+                                 .where(routes: { company_id: company.id, route_date: @date })
+                                 .includes(:route, :service_event)
+                                 .order('route_stops.route_id ASC, route_stops.position ASC')
+    elsif @generation_run
                         RouteStop.joins(:route)
                                  .joins(:service_event)
                                  .where(service_events: { event_type: due_event_types })
@@ -95,7 +121,10 @@ class RoutesController < ApplicationController
                         []
     end
 
-    assigned_event_ids = assigned_event_ids_in_run(run: @generation_run, event_ids: @due_events.map(&:id))
+    assigned_event_ids = assigned_event_ids_for_events(
+      event_ids: @due_events.map(&:id),
+      run: (replace_window_v2_enabled? ? nil : @generation_run)
+    )
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
 
     @tasks = company.tasks.where(due_on: @date).order(:created_at)
@@ -104,6 +133,17 @@ class RoutesController < ApplicationController
   def clear_day
     date = route_day_date
     company = current_user.company
+
+    if replace_window_v2_enabled?
+      result = Routes::DayRouteClearer.new(company: company, date: date).call
+      if result.success?
+        message = "Cleared #{result.routes_cleared} route#{'s' if result.routes_cleared != 1} and released #{result.events_released} event#{'s' if result.events_released != 1}."
+        return redirect_to day_routes_path(date: date, strategy: calendar_strategy), notice: message
+      end
+
+      return redirect_to day_routes_path(date: date, strategy: calendar_strategy), alert: result.error
+    end
+
     scope_start = date.beginning_of_week(:sunday)
     scope_end = scope_start + 27.days
     scope = Routes::Generation::Scope.new(
@@ -180,6 +220,57 @@ class RoutesController < ApplicationController
 
   def generate
     plan_start, plan_end = selected_planning_window
+
+    if replace_window_v2_enabled?
+      result = Routes::Planning::ReplaceWindow.call(
+        company: current_user.company,
+        start_date: plan_start,
+        end_date: plan_end,
+        actor: current_user
+      )
+
+      start_date = plan_start
+      end_date = plan_end
+      route_count = result.routes.size
+      due_count = current_user.company.service_events
+                              .scheduled
+                              .where(event_type: due_event_types)
+                              .where(scheduled_on: start_date..end_date)
+                              .count
+      assigned_count = RouteStop.joins(:route)
+                                .joins(:service_event)
+                                .where(routes: { company_id: current_user.company.id, route_date: start_date..end_date })
+                                .where(service_events: { event_type: due_event_types })
+                                .count
+      unassigned_count = [ due_count - assigned_count, 0 ].max
+      candidate_count = Routes::CapacityRouting::CandidatePool
+                        .new(
+                          company: current_user.company,
+                          start_date: start_date,
+                          horizon_days: ((end_date - start_date).to_i + 1)
+                        )
+                        .events
+                        .size
+      range_label = "#{I18n.l(start_date, format: '%b %-d')}–#{I18n.l(end_date, format: '%b %-d')}"
+
+      if result.success?
+        if route_count.zero? && due_count.positive?
+          flash[:alert] = "No routes generated for #{range_label}. #{due_count} due event#{'s' if due_count != 1}, #{candidate_count} eligible candidate#{'s' if candidate_count != 1}, #{unassigned_count} unassigned."
+        else
+          flash[:notice] = "#{route_count} route#{'s' if route_count != 1} generated for #{range_label}. #{unassigned_count} event#{'s' if unassigned_count != 1} unassigned."
+        end
+      else
+        flash[:alert] = result.errors.join(', ')
+      end
+
+      return redirect_to calendar_routes_path(
+        start: calendar_start_date,
+        plan_start: plan_start,
+        plan_end: plan_end,
+        strategy: calendar_strategy
+      )
+    end
+
     horizon = ((plan_end - plan_start).to_i + 1).clamp(1, 28)
     scope = Routes::Generation::Scope.new(
       company: current_user.company,
@@ -382,15 +473,16 @@ class RoutesController < ApplicationController
     "#{state.titleize} · #{created_label} · #{run.strategy}"
   end
 
-  def assigned_event_ids_in_run(run:, event_ids:)
-    return Set.new if run.blank? || event_ids.blank?
+  def assigned_event_ids_for_events(event_ids:, run: nil)
+    return Set.new if event_ids.blank?
 
-    RouteStop.joins(:route)
-             .where(routes: { generation_run_id: run.id })
-             .where(service_event_id: event_ids)
-             .distinct
-             .pluck(:service_event_id)
-             .to_set
+    scope = RouteStop.joins(:route).where(service_event_id: event_ids)
+    scope = scope.where(routes: { generation_run_id: run.id }) if run.present?
+    scope.distinct.pluck(:service_event_id).to_set
+  end
+
+  def replace_window_v2_enabled?
+    Rails.configuration.x.feature_flags.routes_replace_window_v2
   end
 
   def series_eligible_service_event?(service_event)

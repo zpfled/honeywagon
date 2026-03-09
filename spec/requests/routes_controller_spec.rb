@@ -180,7 +180,7 @@ RSpec.describe "RoutesController", type: :request do
       get day_routes_path(date: date.to_s, run_id: run.id)
 
       expect(response.body).to include('Unassigned due events')
-      expect(response.body).to include('Assigned in active run')
+      expect(response.body).to include('Assigned routes')
       expect(response.body).to include(assigned_order.customer.display_name)
       expect(response.body).to include(unassigned_order.customer.display_name)
     end
