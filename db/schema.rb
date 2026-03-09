@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_09_122000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_123200) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -239,6 +239,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_122000) do
     t.index ["route_id", "service_event_id"], name: "index_route_stops_on_route_id_and_service_event_id", unique: true
     t.index ["route_id"], name: "index_route_stops_on_route_id"
     t.index ["service_event_id"], name: "index_route_stops_on_service_event_id"
+    t.index ["service_event_id"], name: "index_route_stops_on_service_event_id_unique", unique: true
   end
 
   create_table "routes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

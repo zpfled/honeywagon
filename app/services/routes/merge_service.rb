@@ -35,6 +35,8 @@ module Routes
     def append_stops_to_target!
       sequence = start_sequence_for_target
       source.ordered_service_events.each do |event|
+        source_stop = source.route_stops.find_by(service_event_id: event.id)
+
         event.update!(
           route: target,
           route_date: target.route_date,
@@ -43,7 +45,15 @@ module Routes
         )
 
         if target.has_stop_projection?
-          target.append_service_event_stop!(event, position: sequence)
+          if source_stop
+            source_stop.update!(
+              route: target,
+              position: sequence,
+              status: event.status
+            )
+          else
+            target.append_service_event_stop!(event, position: sequence)
+          end
         end
 
         sequence += 1

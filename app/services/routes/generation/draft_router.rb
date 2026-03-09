@@ -134,12 +134,12 @@ module Routes
         copied_route.save!
 
         old_route.route_stops.order(:position).find_each do |stop|
-          copied_route.route_stops.create!(
-            service_event_id: stop.service_event_id,
+          stop.update!(
+            route: copied_route,
             position: stop.position,
+            status: stop.status,
             planned_arrival_at: stop.planned_arrival_at,
             planned_departure_at: stop.planned_departure_at,
-            status: stop.status,
             created_by: created_by || stop.created_by
           )
 
@@ -157,18 +157,32 @@ module Routes
           event = stop.is_a?(ServiceEvent) ? stop : build_operational_event(stop, route: route)
           next unless event
 
-          event.update_columns(
-            route_id: route.id,
-            route_sequence: position,
-            route_date: route.route_date
-          )
-          event.reload
+          existing_stop = RouteStop.find_by(service_event_id: event.id)
+          if existing_stop
+            existing_stop.update!(
+              route: route,
+              position: position,
+              status: event.status
+            )
+            event.update_columns(
+              route_id: route.id,
+              route_sequence: position,
+              route_date: route.route_date
+            )
+          else
+            event.update_columns(
+              route_id: route.id,
+              route_sequence: position,
+              route_date: route.route_date
+            )
+            event.reload
 
-          route.append_service_event_stop!(
-            event,
-            position: position,
-            created_by: created_by
-          )
+            route.append_service_event_stop!(
+              event,
+              position: position,
+              created_by: created_by
+            )
+          end
           position += 1
         end
       end
