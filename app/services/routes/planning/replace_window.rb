@@ -106,7 +106,10 @@ module Routes
 
       def acquire_window_lock!
         key = advisory_lock_key
-        ActiveRecord::Base.connection.select_value("SELECT pg_advisory_xact_lock(#{key})")
+        ActiveRecord::Base.connection.raw_connection.exec_params(
+          'SELECT pg_advisory_xact_lock($1)',
+          [ key ]
+        )
       end
 
       def advisory_lock_key
