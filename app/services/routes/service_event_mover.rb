@@ -7,6 +7,7 @@ module Routes
     end
 
     def move_to_next
+      return locked_failure('Completed events cannot be moved.') if service_event.status_completed?
       return locked_failure('Deliveries must stay on or before their scheduled date.') if service_event.prevent_move_later?
 
       target_route = next_candidate
@@ -16,6 +17,7 @@ module Routes
     end
 
     def move_to_previous
+      return locked_failure('Completed events cannot be moved.') if service_event.status_completed?
       return locked_failure('Pickups must stay on or before their scheduled date.') if service_event.prevent_move_earlier?
 
       target_route = previous_candidate

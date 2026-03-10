@@ -69,4 +69,14 @@ RSpec.describe Routes::ServiceEventMover do
     expect(event.reload.route).to eq(previous_route)
     expect(event.scheduled_on).to eq(previous_route.route_date)
   end
+
+  it "refuses to move completed events" do
+    event = create(:service_event, :service, :completed, order: order, route: route, route_date: route.route_date, scheduled_on: route.route_date)
+
+    result = described_class.new(event).move_to_next
+
+    expect(result).not_to be_success
+    expect(result.message).to include("Completed events cannot be moved")
+    expect(event.reload.route).to eq(route)
+  end
 end

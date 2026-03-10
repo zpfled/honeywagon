@@ -54,4 +54,23 @@ RSpec.describe 'Routes::OrderingsController', type: :request do
       [ event_two.id, event_three.id, event_one.id ]
     )
   end
+
+  it 'keeps completed events attached to the same route when resequencing' do
+    event_one.update_column(:status, ServiceEvent.statuses[:completed])
+    manual_result = Routes::Optimization::ManualRun::Result.new(
+      success?: true,
+      event_ids_in_order: [ event_two.id, event_three.id, event_one.id ],
+      warnings: [],
+      errors: [],
+      total_distance_meters: 0,
+      total_duration_seconds: 0,
+      legs: []
+    )
+    allow(Routes::Optimization::ManualRun).to receive(:call).and_return(manual_result)
+
+    patch route_ordering_path(route), params: { event_ids: [ event_two.id, event_three.id, event_one.id ] }
+
+    expect(response).to redirect_to(route_path(route))
+    expect(RouteStop.exists?(route_id: route.id, service_event_id: event_one.id)).to be(true)
+  end
 end

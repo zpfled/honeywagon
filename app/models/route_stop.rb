@@ -6,7 +6,7 @@ class RouteStop < ApplicationRecord
   belongs_to :created_by, class_name: 'User', optional: true
 
   validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
-  validates :service_event_id, uniqueness: { scope: :route_id }
+  validates :service_event_id, uniqueness: true
   validates :position, uniqueness: { scope: :route_id }
   after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
   after_commit :mark_routes_optimization_stale, on: [ :create, :update, :destroy ]

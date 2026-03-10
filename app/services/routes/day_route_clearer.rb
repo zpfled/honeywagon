@@ -13,6 +13,7 @@ module Routes
 
       routes = routes_scope.where(route_date: date).includes(route_stops: :service_event).to_a
       return Result.new(success?: true, routes_cleared: 0, events_released: 0, error: nil) if routes.empty?
+      return failure('Cannot clear routes for this day because completed events are present.') if completed_events_present?(routes)
 
       events_to_release = routes.flat_map { |route| route.route_stops.map(&:service_event) }.compact.uniq
 
@@ -48,6 +49,14 @@ module Routes
 
     def failure(message)
       Result.new(success?: false, routes_cleared: 0, events_released: 0, error: message)
+    end
+
+    def completed_events_present?(routes)
+      route_ids = routes.map(&:id)
+      RouteStop.joins(:service_event)
+               .where(route_id: route_ids)
+               .where(service_events: { status: ServiceEvent.statuses[:completed] })
+               .exists?
     end
   end
 end

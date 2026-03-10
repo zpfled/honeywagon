@@ -50,4 +50,17 @@ RSpec.describe Routes::MergeService do
 
     expect(result.success?).to be(false)
   end
+
+  it 'refuses to merge when the source route has completed events' do
+    target = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
+    source = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current + 1.day)
+    completed_event = create(:service_event, :service, :completed, order: nil, route: source, scheduled_on: source.route_date)
+
+    result = described_class.call(source: source, target: target)
+
+    expect(result.success?).to be(false)
+    expect(result.errors.join).to include('completed events')
+    expect(Route.exists?(source.id)).to be(true)
+    expect(RouteStop.exists?(route_id: source.id, service_event_id: completed_event.id)).to be(true)
+  end
 end

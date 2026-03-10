@@ -155,4 +155,32 @@ RSpec.describe "RoutesController", type: :request do
       expect(response.body).not_to include(dump_site.name)
     end
   end
+
+  describe "POST /routes/clear_day" do
+    it "clears future day routes when no completed events are present" do
+      date = Date.current + 2.days
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
+      event = create(:service_event, :service, order: nil, route: route, scheduled_on: date)
+
+      post clear_day_routes_path, params: { date: date.to_s }
+
+      expect(response).to redirect_to(day_routes_path(date: date, strategy: 'capacity_v1'))
+      expect(flash[:notice]).to include('Cleared 1 route')
+      expect(Route.exists?(route.id)).to be(false)
+      expect(RouteStop.exists?(service_event_id: event.id)).to be(false)
+    end
+
+    it "does not clear day routes when completed events are present" do
+      date = Date.current + 2.days
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
+      completed_event = create(:service_event, :service, :completed, order: nil, route: route, scheduled_on: date)
+
+      post clear_day_routes_path, params: { date: date.to_s }
+
+      expect(response).to redirect_to(day_routes_path(date: date, strategy: 'capacity_v1'))
+      expect(flash[:alert]).to include('completed events')
+      expect(Route.exists?(route.id)).to be(true)
+      expect(RouteStop.exists?(route_id: route.id, service_event_id: completed_event.id)).to be(true)
+    end
+  end
 end

@@ -13,6 +13,7 @@ module Routes
 
     def call
       return Result.new(success?: false, errors: [ 'Route merge requires two different routes.' ]) if source.id == target.id
+      return Result.new(success?: false, errors: [ 'Cannot merge routes that include completed events.' ]) if completed_stops_in_source?
 
       ActiveRecord::Base.transaction do
         append_stops_to_target!
@@ -47,6 +48,13 @@ module Routes
 
     def start_sequence_for_target
       target.route_stops.maximum(:position).to_i + 1
+    end
+
+    def completed_stops_in_source?
+      source.route_stops
+            .joins(:service_event)
+            .where(service_events: { status: ServiceEvent.statuses[:completed] })
+            .exists?
     end
   end
 end
