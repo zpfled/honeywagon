@@ -91,12 +91,12 @@ RSpec.describe "RoutesController", type: :request do
       date = Date.current.beginning_of_week(:sunday)
       route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      assigned_order = create(:order, company: user.company, start_date: date, end_date: date + 1.day)
-      assigned_event = create(:service_event, :service, order: assigned_order, route: route, scheduled_on: date, route_date: date)
-      create(:route_stop, route: route, service_event: assigned_event, route_date: date, position: 0)
+      assigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date + 1.day)
+      create(:service_event, :service, order: assigned_order, route: route, route_date: date, scheduled_on: date)
 
-      unassigned_order = create(:order, company: user.company, start_date: date, end_date: date + 1.day)
-      create(:service_event, :pickup, order: unassigned_order, scheduled_on: date)
+      unassigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date + 1.day)
+      unassigned_event = create(:service_event, :pickup, order: unassigned_order, scheduled_on: date)
+      unassigned_event.route_stops.destroy_all
 
       get calendar_routes_path(start: date.to_s)
 
@@ -108,13 +108,10 @@ RSpec.describe "RoutesController", type: :request do
       date = Date.current.beginning_of_week(:sunday)
       route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      due_order = create(:order, company: user.company, start_date: date, end_date: date + 1.day)
-      due_event = create(:service_event, :service, order: due_order, route: route, scheduled_on: date, route_date: date)
+      due_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date + 1.day)
+      create(:service_event, :service, order: due_order, route: route, route_date: date, scheduled_on: date)
       dump_site = create(:dump_site, company: user.company)
-      dump_event = create(:service_event, :dump, route: route, route_date: date, scheduled_on: date, dump_site: dump_site)
-
-      create(:route_stop, route: route, service_event: due_event, route_date: date, position: 0)
-      create(:route_stop, route: route, service_event: dump_event, route_date: date, position: 1)
+      create(:service_event, :dump, route: route, route_date: date, scheduled_on: date, dump_site: dump_site)
 
       get calendar_routes_path(start: date.to_s)
 
@@ -128,12 +125,12 @@ RSpec.describe "RoutesController", type: :request do
       date = Date.current
       route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      assigned_order = create(:order, company: user.company, start_date: date, end_date: date)
-      assigned_event = create(:service_event, :service, order: assigned_order, route: route, scheduled_on: date, route_date: date)
-      create(:route_stop, route: route, service_event: assigned_event, route_date: date, position: 0)
+      assigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date)
+      create(:service_event, :service, order: assigned_order, route: route, route_date: date, scheduled_on: date)
 
-      unassigned_order = create(:order, company: user.company, start_date: date, end_date: date)
-      create(:service_event, :service, order: unassigned_order, scheduled_on: date)
+      unassigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date)
+      unassigned_event = create(:service_event, :service, order: unassigned_order, scheduled_on: date)
+      unassigned_event.route_stops.destroy_all
 
       get day_routes_path(date: date.to_s)
 
@@ -147,13 +144,10 @@ RSpec.describe "RoutesController", type: :request do
       date = Date.current
       route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      due_order = create(:order, company: user.company, start_date: date, end_date: date)
-      due_event = create(:service_event, :pickup, order: due_order, route: route, scheduled_on: date, route_date: date)
+      due_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date)
+      create(:service_event, :pickup, order: due_order, route: route, route_date: date, scheduled_on: date)
       dump_site = create(:dump_site, company: user.company)
-      dump_event = create(:service_event, :dump, route: route, scheduled_on: date, route_date: date, dump_site: dump_site)
-
-      create(:route_stop, route: route, service_event: due_event, route_date: date, position: 0)
-      create(:route_stop, route: route, service_event: dump_event, route_date: date, position: 1)
+      create(:service_event, :dump, route: route, route_date: date, scheduled_on: date, dump_site: dump_site)
 
       get day_routes_path(date: date.to_s)
 

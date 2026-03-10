@@ -16,9 +16,11 @@ module Orders
       return if order.start_date.blank? || order.end_date.blank?
 
       order.with_lock do
-        delete_scope = order.service_events.auto_generated
+        # Completed events are historical records and must not be regenerated away.
+        # Destroy (not delete_all) so dependent route_stops are cleaned up safely.
+        delete_scope = order.service_events.auto_generated.where.not(status: :completed)
         delete_scope = delete_scope.where(ServiceEvent.arel_table[:scheduled_on].gteq(from_date)) if from_date
-        delete_scope.delete_all
+        delete_scope.find_each(&:destroy!)
 
         build_events.each do |attrs|
           next if from_date && attrs[:scheduled_on] < from_date

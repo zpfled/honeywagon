@@ -48,10 +48,8 @@ RSpec.describe Routes::ServiceEventMover do
     source = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
     target = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current + 1.day)
     target_stop_event = create(:service_event, :service, route: target, route_date: target.route_date, scheduled_on: target.route_date)
-    create(:route_stop, route: target, service_event: target_stop_event, route_date: target.route_date, position: 0)
 
     moved_event = create(:service_event, :service, order: order, route: source, route_date: source.route_date, scheduled_on: order.start_date)
-    create(:route_stop, route: source, service_event: moved_event, route_date: source.route_date, position: 0)
 
     result = described_class.new(moved_event).move_to_next
 

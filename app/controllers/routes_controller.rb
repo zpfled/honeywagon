@@ -95,12 +95,7 @@ class RoutesController < ApplicationController
     else
                     ActiveRecord::Base.transaction do
                       detach_event_from_route!(service_event)
-                      service_event.update!(
-                        scheduled_on: target_date,
-                        route: nil,
-                        route_date: target_date,
-                        route_sequence: nil
-                      )
+                      service_event.update!(scheduled_on: target_date)
                     end
                     1
     end
@@ -335,12 +330,7 @@ class RoutesController < ApplicationController
 
     ActiveRecord::Base.transaction do
       detach_event_from_route!(service_event)
-      service_event.update!(
-        scheduled_on: target_date,
-        route: nil,
-        route_date: target_date,
-        route_sequence: nil
-      )
+      service_event.update!(scheduled_on: target_date)
       moved += 1
 
       next_date = target_date
@@ -351,12 +341,7 @@ class RoutesController < ApplicationController
         if order.end_date.present? && next_date > order.end_date
           event.destroy!
         else
-          event.update!(
-            scheduled_on: next_date,
-            route: nil,
-            route_date: next_date,
-            route_sequence: nil
-          )
+          event.update!(scheduled_on: next_date)
         end
         moved += 1
       end
@@ -366,12 +351,10 @@ class RoutesController < ApplicationController
   end
 
   def detach_event_from_route!(event)
-    source_route = event.route
-    source_stop = if source_route&.has_stop_projection?
-                    source_route.route_stops.find_by(service_event_id: event.id)
-    end
+    source_stop = RouteStop.find_by(service_event_id: event.id)
+    source_route = source_stop&.route
     source_stop&.destroy!
-    source_route&.synchronize_route_sequence_with_stops! if source_route&.has_stop_projection?
+    source_route&.synchronize_route_sequence_with_stops!
   end
 
   def calendar_forecasts(company)

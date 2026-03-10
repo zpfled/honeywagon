@@ -34,8 +34,10 @@ RSpec.describe 'Routes::OptimizationsController', type: :request do
       end
 
       it 'reorders service events based on the returned sequence' do
-        event_a = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
-        event_b = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
+        event_a = create(:service_event, :service, order: nil, scheduled_on: route.route_date)
+        event_b = create(:service_event, :service, order: nil, scheduled_on: route.route_date)
+        create(:route_stop, route: route, service_event: event_a, position: 0)
+        create(:route_stop, route: route, service_event: event_b, position: 1)
 
         allow(Routes::Optimization::Run).to receive(:call)
           .and_return(stub_result(success: true,
@@ -46,7 +48,9 @@ RSpec.describe 'Routes::OptimizationsController', type: :request do
 
         post route_optimization_path(route)
 
-        expect(event_b.reload.route_sequence).to be < event_a.reload.route_sequence
+        expect(route.reload.ordered_service_event_ids).to eq([ event_b.id, event_a.id ])
+        expect(route.route_stops.find_by(service_event_id: event_b.id)&.position).to eq(0)
+        expect(route.route_stops.find_by(service_event_id: event_a.id)&.position).to eq(1)
         expect(route.reload.estimated_drive_seconds).to eq(3_600)
         expect(route.estimated_drive_meters).to eq(5_000)
         expect(route.optimization_stale).to be(false)

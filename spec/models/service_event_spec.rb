@@ -144,7 +144,7 @@ RSpec.describe ServiceEvent, type: :model do
 
       event.update!(drive_distance_meters: 1000)
       truck.update!(miles_per_gallon: nil)
-      expect(event.estimated_fuel_cost_cents).to be_nil
+      expect(event.reload.estimated_fuel_cost_cents).to be_nil
     end
 
     it 'returns nil when company fuel price is not set' do
@@ -254,8 +254,8 @@ RSpec.describe ServiceEvent, type: :model do
     it 'flags delivery events whose route date is after the scheduled date' do
       travel_to Date.new(2024, 1, 10) do
         route = create(:route, route_date: Date.new(2024, 1, 10))
-        event = create(:service_event, :delivery, scheduled_on: Date.new(2024, 1, 10), route: route, route_date: route.route_date)
-        event.update_column(:route_date, Date.new(2024, 1, 12))
+        event = create(:service_event, :delivery, scheduled_on: Date.new(2024, 1, 10), route: route)
+        route.update_column(:route_date, Date.new(2024, 1, 12))
         expect(event.reload).to be_overdue
         expect(event.days_overdue).to eq(2)
       end

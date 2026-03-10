@@ -38,16 +38,22 @@ module Orders
       end
 
       attrs = {
-        route: route,
-        route_date: route.route_date,
         scheduled_on: route.route_date
       }
 
-      if @service_event.update(attrs)
-        redirect_to(order_path(@order), notice: 'Service event assigned to route.')
-      else
-        redirect_to(order_path(@order), alert: @service_event.errors.full_messages.to_sentence.presence || 'Unable to assign route.')
+      ActiveRecord::Base.transaction do
+        stop = RouteStop.find_or_initialize_by(service_event: @service_event)
+        stop.route = route
+        stop.position ||= route.route_stops.maximum(:position).to_i + 1
+        stop.status = @service_event.status
+        stop.save!
+        @service_event.update!(attrs)
+        route.synchronize_route_sequence_with_stops!
       end
+
+      redirect_to(order_path(@order), notice: 'Service event assigned to route.')
+    rescue ActiveRecord::RecordInvalid => e
+      redirect_to(order_path(@order), alert: e.record.errors.full_messages.to_sentence.presence || 'Unable to assign route.')
     rescue ActiveRecord::RecordNotFound
       redirect_to(order_path(@order), alert: 'Service event or route could not be found.')
     end

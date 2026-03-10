@@ -70,13 +70,6 @@ module Routes
               created_by: actor
             )
           end
-
-          # Compatibility write for legacy read paths during migration.
-          event.update_columns(
-            route_id: route.id,
-            route_date: route.route_date,
-            route_sequence: position
-          )
           position += 1
         end
       end
@@ -88,8 +81,6 @@ module Routes
         type = ServiceEventType.find_by!(key: event_type.to_s)
         attrs = {
           service_event_type: type,
-          route: route,
-          route_date: route.route_date,
           scheduled_on: route.route_date,
           auto_generated: true,
           user: actor || company.users.first,

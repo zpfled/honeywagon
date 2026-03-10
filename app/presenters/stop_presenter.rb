@@ -12,7 +12,8 @@ class StopPresenter
   def event = service_event
 
   def stop_number
-    service_event.route_sequence.present? ? service_event.route_sequence + 1 : '—'
+    position = service_event.route&.stop_position_for(service_event)
+    position.present? ? position + 1 : '—'
   end
 
   def leg_distance

@@ -8,6 +8,8 @@ class RouteStop < ApplicationRecord
   validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :service_event_id, uniqueness: { scope: :route_id }
   validates :position, uniqueness: { scope: :route_id }
+  after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
+  after_commit :mark_routes_optimization_stale, on: [ :create, :update, :destroy ]
 
   scope :ordered, -> { order(:position) }
 
@@ -21,4 +23,33 @@ class RouteStop < ApplicationRecord
 
   # Accept legacy assignment calls but ignore to avoid UnknownAttribute errors.
   def route_date=(_value); end
+
+  private
+
+  def cleanup_empty_routes
+    route_ids = []
+    route_ids << route_id if route_id.present?
+    if previous_changes.key?('route_id')
+      old_id, new_id = previous_changes['route_id']
+      route_ids << old_id
+      route_ids << new_id
+    end
+
+    route_ids.compact.uniq.each { |id| Routes::Lifecycle.cleanup_route(id) }
+  end
+
+  def mark_routes_optimization_stale
+    route_ids = []
+    route_ids << route_id if route_id.present?
+    if previous_changes.key?('route_id')
+      old_id, new_id = previous_changes['route_id']
+      route_ids << old_id
+      route_ids << new_id
+    end
+
+    ids = route_ids.compact.uniq
+    return if ids.empty?
+
+    Route.where(id: ids).update_all(optimization_stale: true)
+  end
 end

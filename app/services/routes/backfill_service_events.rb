@@ -20,9 +20,12 @@ module Routes
         route = target_route_for(event)
         created_routes += 1 if route.previous_changes.key?('id')
 
-        attributes = { route: route }
-        attributes[:route_date] = event.logistics_locked? ? event.scheduled_on : route.route_date
-        event.update!(attributes)
+        stop = RouteStop.find_or_initialize_by(service_event: event)
+        stop.route = route
+        stop.position ||= route.route_stops.maximum(:position).to_i + 1
+        stop.status = event.status
+        stop.save!
+        route.synchronize_route_sequence_with_stops!
         assigned += 1
       end
 
@@ -34,7 +37,7 @@ module Routes
     attr_reader :company
 
     def unrouted_events
-      company.service_events.scheduled.where(route_id: nil)
+      company.service_events.scheduled.left_outer_joins(:route_stops).where(route_stops: { id: nil })
     end
 
     def target_route_for(event)

@@ -27,7 +27,8 @@ module Orders
           event.destroy
         else
           # Update date and clear routing so it can be re-assigned.
-          event.update!(scheduled_on: target_date, route: nil, route_date: target_date)
+          event.update!(scheduled_on: target_date)
+          event.route_stops.delete_all
         end
       end
 

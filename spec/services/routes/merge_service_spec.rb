@@ -27,13 +27,11 @@ RSpec.describe Routes::MergeService do
     target = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
     source = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current + 1)
 
-    first_order = create(:order, company: company)
-    second_order = create(:order, company: company)
-    first_event = create(:service_event, :service, order: first_order, route: target, route_date: target.route_date)
-    second_event = create(:service_event, :service, order: second_order, route: source, route_date: source.route_date)
+    first_event = create(:service_event, :service, order: nil, scheduled_on: target.route_date)
+    second_event = create(:service_event, :service, order: nil, scheduled_on: source.route_date)
 
-    create(:route_stop, route: target, service_event: first_event, route_date: target.route_date, position: 0)
-    create(:route_stop, route: source, service_event: second_event, route_date: source.route_date, position: 0)
+    create(:route_stop, route: target, service_event: first_event, position: 0)
+    create(:route_stop, route: source, service_event: second_event, position: 0)
 
     result = described_class.call(source: source, target: target)
 

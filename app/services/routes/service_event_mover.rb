@@ -30,27 +30,29 @@ module Routes
 
     def move_to_route(target_route, success_message)
       source_route = route
-      source_stop = source_route&.route_stops&.find_by(service_event_id: service_event.id) if source_route&.has_stop_projection?
+      source_stop = source_route&.route_stops&.find_by(service_event_id: service_event.id)
+      existing_stop = RouteStop.find_by(service_event_id: service_event.id)
 
-      service_event.assign_attributes(
-        route: target_route,
-        route_date: target_route.route_date,
-        scheduled_on: target_route.route_date
-      )
+      new_position = target_route.route_stops.maximum(:position).to_i + 1
 
       ActiveRecord::Base.transaction do
-        service_event.save!
+        source_stop&.destroy!
+        source_route&.synchronize_route_sequence_with_stops!
 
-        source_stop.destroy! if source_stop
-        source_route&.synchronize_route_sequence_with_stops! if source_route&.has_stop_projection?
-
-        if target_route.has_stop_projection?
-          target_route.append_service_event_stop!(service_event, created_by: nil)
-          target_route.synchronize_route_sequence_with_stops!
+        if existing_stop && existing_stop != source_stop
+          existing_stop.update!(route: target_route, position: new_position, status: service_event.status)
         else
-          next_sequence = target_route.service_events.maximum(:route_sequence).to_i + 1
-          service_event.update_column(:route_sequence, next_sequence)
+          target_route.route_stops.create!(
+            service_event: service_event,
+            position: new_position,
+            status: service_event.status
+          )
         end
+        # Reload to clear association cache so logistics validation reads the
+        # newly assigned route stop (important for pickup/delivery constraints).
+        service_event.reload
+        service_event.update!(scheduled_on: target_route.route_date)
+        target_route.synchronize_route_sequence_with_stops!
       end
 
       service_event.reload

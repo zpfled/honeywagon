@@ -11,26 +11,12 @@ module Routes
     def call
       return failure('Only future dates can be cleared.') if date < Date.current
 
-      routes = routes_scope.where(route_date: date).includes(:service_events, route_stops: :service_event).to_a
+      routes = routes_scope.where(route_date: date).includes(route_stops: :service_event).to_a
       return Result.new(success?: true, routes_cleared: 0, events_released: 0, error: nil) if routes.empty?
 
-      events_to_release = routes.flat_map do |route|
-        if route.has_stop_projection?
-          route.route_stops.map(&:service_event)
-        else
-          route.service_events.to_a
-        end
-      end.uniq
+      events_to_release = routes.flat_map { |route| route.route_stops.map(&:service_event) }.compact.uniq
 
       ActiveRecord::Base.transaction do
-        events_to_release.each do |event|
-          event.update!(
-            route: nil,
-            route_date: event.scheduled_on,
-            route_sequence: nil
-          )
-        end
-
         routes.each do |route|
           route.route_stops.delete_all
           route.destroy!
