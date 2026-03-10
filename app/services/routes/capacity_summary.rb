@@ -45,7 +45,10 @@ module Routes
 
     def aggregate_usage
       events = route.ordered_service_event_relation(not_skipped: true)
-      events = events.includes(service_event_units: :unit_type).to_a unless events.loaded?
+      events = events.includes(:order, service_event_units: :unit_type).to_a unless events.loaded?
+      if events.any?(&:event_type_dump?)
+        ActiveRecord::Associations::Preloader.new(records: events, associations: :dump_site).call
+      end
       preload_rental_line_items_for(events) # Preload rental items when unit counts come from orders.
 
       events.each_with_object({ trailer_spots: 0, clean_water_gallons: 0, waste_gallons: 0 }) do |event, memo| # Seed totals at zero.

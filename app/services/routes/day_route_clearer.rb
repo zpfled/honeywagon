@@ -11,11 +11,15 @@ module Routes
     def call
       return failure('Only future dates can be cleared.') if date < Date.current
 
-      routes = routes_scope.where(route_date: date).includes(route_stops: :service_event).to_a
+      routes = routes_scope.where(route_date: date).to_a
       return Result.new(success?: true, routes_cleared: 0, events_released: 0, error: nil) if routes.empty?
       return failure('Cannot clear routes for this day because completed events are present.') if completed_events_present?(routes)
 
-      events_to_release = routes.flat_map { |route| route.route_stops.map(&:service_event) }.compact.uniq
+      route_ids = routes.map(&:id)
+      events_to_release = ServiceEvent.joins(:route_stops)
+                                      .where(route_stops: { route_id: route_ids })
+                                      .distinct
+                                      .count
 
       ActiveRecord::Base.transaction do
         routes.each do |route|
@@ -27,7 +31,7 @@ module Routes
       Result.new(
         success?: true,
         routes_cleared: routes.size,
-        events_released: events_to_release.size,
+        events_released: events_to_release,
         error: nil
       )
     rescue ActiveRecord::RecordInvalid => e

@@ -51,7 +51,6 @@ class RoutesController < ApplicationController
                          .scheduled
                          .where(event_type: due_event_types)
                          .where(scheduled_on: @date)
-                         .includes(:order, :dump_site, :route_stops)
                          .order(:scheduled_on, :created_at)
 
     @assigned_stops = RouteStop.joins(:route)
@@ -63,6 +62,22 @@ class RoutesController < ApplicationController
 
     assigned_event_ids = assigned_event_ids_for_events(event_ids: @due_events.map(&:id))
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
+    if @unassigned_events.any?
+      preload_associations = [ { order: :customer } ]
+      preload_associations << :dump_site if @unassigned_events.any?(&:event_type_dump?)
+      ActiveRecord::Associations::Preloader.new(
+        records: @unassigned_events,
+        associations: preload_associations
+      ).call
+    end
+
+    assigned_events = @assigned_stops.map(&:service_event).compact
+    if assigned_events.any? { |event| event.order_id.present? }
+      ActiveRecord::Associations::Preloader.new(
+        records: assigned_events,
+        associations: { order: :customer }
+      ).call
+    end
 
     @routes_for_day = company.routes.where(route_date: @date).order(:id)
     @tasks = company.tasks.where(due_on: @date).order(:created_at)

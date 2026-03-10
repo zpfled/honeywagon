@@ -67,7 +67,35 @@ class RoutePresenter
   def town_for_event(event)
     return nil unless event
 
-    city = event.order&.location&.city.presence || event.dump_site&.location&.city.presence
+    city = order_city_by_id[event.order_id].presence || dump_site_city_by_id[event.dump_site_id].presence
     city&.strip&.titleize
+  end
+
+  def order_city_by_id
+    @order_city_by_id ||= begin
+      order_ids = ordered_events.filter_map(&:order_id).uniq
+      if order_ids.empty?
+        {}
+      else
+        Order.joins(:location)
+             .where(id: order_ids)
+             .pluck('orders.id', 'locations.city')
+             .to_h
+      end
+    end
+  end
+
+  def dump_site_city_by_id
+    @dump_site_city_by_id ||= begin
+      dump_site_ids = ordered_events.filter_map(&:dump_site_id).uniq
+      if dump_site_ids.empty?
+        {}
+      else
+        DumpSite.joins(:location)
+                .where(id: dump_site_ids)
+                .pluck('dump_sites.id', 'locations.city')
+                .to_h
+      end
+    end
   end
 end
