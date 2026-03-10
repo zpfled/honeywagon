@@ -184,7 +184,8 @@ class OrdersController < ApplicationController
                                   .where(company_id: current_user.company_id)
                                   .order(:service_schedule)
     @customers = current_user.company.customers.order(:display_name)
-    @locations = current_user.company.locations.order(:label)
+    @all_locations = current_user.company.locations.order(:label)
+    @locations = locations_for_selected_customer
   end
 
   def selected_month
@@ -216,6 +217,16 @@ class OrdersController < ApplicationController
 
   def series_mode?
     params.dig(:order, :series_mode).to_s == '1'
+  end
+
+  def locations_for_selected_customer
+    return Location.none if selected_customer_id.blank?
+
+    @all_locations.where(customer_id: selected_customer_id)
+  end
+
+  def selected_customer_id
+    params.dig(:order, :customer_id).presence || @order&.customer_id
   end
 
   def date_pairs_params

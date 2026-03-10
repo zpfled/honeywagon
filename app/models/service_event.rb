@@ -66,7 +66,13 @@ class ServiceEvent < ApplicationRecord
   end
 
   def prevent_move_later?
-    event_type_delivery?
+    event_type_delivery? && latest_delivery_date.present? && scheduled_on.present? && scheduled_on >= latest_delivery_date
+  end
+
+  def latest_delivery_date
+    return unless event_type_delivery?
+
+    order&.start_date || scheduled_on
   end
 
   def units_impacted_count
@@ -297,8 +303,8 @@ class ServiceEvent < ApplicationRecord
     assigned_route_date = current_assigned_route_date
     return if scheduled_on.blank? || assigned_route_date.blank?
 
-    if event_type_delivery? && assigned_route_date > scheduled_on
-      errors.add(:route_date, 'cannot be after the scheduled date for deliveries')
+    if event_type_delivery? && latest_delivery_date.present? && assigned_route_date > latest_delivery_date
+      errors.add(:route_date, 'cannot be after the order start date for deliveries')
     end
 
     if event_type_pickup? && assigned_route_date < scheduled_on

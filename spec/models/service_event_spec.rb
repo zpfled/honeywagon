@@ -287,14 +287,15 @@ RSpec.describe ServiceEvent, type: :model do
   end
 
   describe 'logistics schedule enforcement' do
-    it 'prevents delivery events from moving later than scheduled' do
-      route = create(:route, route_date: Date.current + 1.day)
+    it 'prevents delivery events from being assigned after the order start date' do
+      route = create(:route, route_date: Date.current)
       order = create(:order, company: route.company, status: 'scheduled', start_date: Date.current, end_date: Date.current + 5.days)
-
       event = create(:service_event, :delivery, order: order, route: route, scheduled_on: route.route_date)
 
-      expect(event.update(scheduled_on: Date.current)).to be(false)
-      expect(event.errors[:route_date]).to include('cannot be after the scheduled date for deliveries')
+      order.update!(start_date: Date.current - 1.day)
+
+      expect(event.update(scheduled_on: Date.current - 1.day)).to be(false)
+      expect(event.errors[:route_date]).to include('cannot be after the order start date for deliveries')
     end
 
     it 'prevents pickup events from moving earlier than scheduled' do

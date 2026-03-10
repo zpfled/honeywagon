@@ -45,6 +45,21 @@ RSpec.describe "RoutesController", type: :request do
     end
   end
 
+  describe "POST /routes/reschedule_service_event" do
+    it "rejects moving a delivery later than the order start date" do
+      order = create(:order, company: user.company, created_by: user, start_date: Date.current, end_date: Date.current + 5.days)
+      service_event = create(:service_event, :delivery, order: order, scheduled_on: Date.current - 1.day)
+
+      post reschedule_service_event_routes_path, params: {
+        service_event_id: service_event.id,
+        target_date: (order.start_date + 1.day).to_s
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)).to include("status" => "error", "message" => "Deliveries cannot move later.")
+    end
+  end
+
   describe "PATCH /routes/:id" do
     it "updates a route on success" do
       route = create(:route, company: user.company, truck: truck, trailer: trailer)

@@ -8,7 +8,7 @@ module Routes
 
     def move_to_next
       return locked_failure('Completed events cannot be moved.') if service_event.status_completed?
-      return locked_failure('Deliveries must stay on or before their scheduled date.') if service_event.prevent_move_later?
+      return locked_failure('Deliveries must stay on or before the order start date.') if service_event.prevent_move_later?
 
       target_route = next_candidate
       return failure('Unable to postpone service event.') unless target_route
@@ -83,9 +83,10 @@ module Routes
     def next_candidate
       return unless route && company
 
-      company.routes.where('route_date > ?', route.route_date)
-             .order(:route_date)
-             .first || create_next_route
+      scope = company.routes.where('route_date > ?', route.route_date)
+      scope = scope.where('route_date <= ?', service_event.latest_delivery_date) if service_event.latest_delivery_date.present?
+
+      scope.order(:route_date).first || create_next_route
     end
 
     def previous_candidate
@@ -98,6 +99,8 @@ module Routes
     end
 
     def create_next_route
+      return if service_event.latest_delivery_date.present? && route.route_date >= service_event.latest_delivery_date
+
       company.routes.create!(
         route_date: route.route_date + 1.day,
         truck: route.truck,

@@ -105,7 +105,7 @@ class RoutesController < ApplicationController
       return render json: { status: 'error', message: 'This event is not part of a recurring series.' }, status: :unprocessable_content
     end
 
-    if service_event.prevent_move_later? && target_date > service_event.scheduled_on
+    if service_event.latest_delivery_date.present? && target_date > service_event.latest_delivery_date
       return render json: { status: 'error', message: 'Deliveries cannot move later.' }, status: :unprocessable_content
     end
 

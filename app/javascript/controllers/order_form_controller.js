@@ -4,6 +4,7 @@ export default class extends Controller {
   static targets = [
     "customer",
     "location",
+    "locationOptionsStore",
     "locationLink",
     "startDate",
     "endDate",
@@ -38,6 +39,7 @@ export default class extends Controller {
     const hasCustomer = customerId && customerId.length > 0
 
     if (this.hasLocationTarget) {
+      this.updateLocationOptions(customerId)
       this.locationTarget.disabled = !hasCustomer
       if (!hasCustomer) this.locationTarget.value = ""
     }
@@ -57,6 +59,32 @@ export default class extends Controller {
         delete this.locationLinkTarget.dataset.turboFrame
       }
     }
+  }
+
+  updateLocationOptions(customerId) {
+    if (!this.hasLocationTarget || !this.hasLocationOptionsStoreTarget) return
+
+    const selectedLocationId = this.locationTarget.value
+    const filteredLocations = this.locationOptionsForCustomer(customerId)
+
+    this.locationTarget.innerHTML = ""
+    this.locationTarget.appendChild(new Option("Select location", ""))
+
+    filteredLocations.forEach((location) => {
+      this.locationTarget.appendChild(new Option(location.label, location.id))
+    })
+
+    if (filteredLocations.some((location) => location.id === selectedLocationId)) {
+      this.locationTarget.value = selectedLocationId
+    }
+  }
+
+  locationOptionsForCustomer(customerId) {
+    if (!customerId) return []
+
+    return Array.from(this.locationOptionsStoreTarget.content.querySelectorAll("option"))
+      .filter((option) => option.value && option.dataset.customerId === String(customerId))
+      .map((option) => ({ id: option.value, label: option.textContent.trim() }))
   }
 
   fetchAvailability() {

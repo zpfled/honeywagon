@@ -168,7 +168,7 @@ class StopPresenter
 
   def later_hint
     return unless service_event.prevent_move_later?
-    'Deliveries must stay on or before their scheduled date.'
+    'Deliveries must stay on or before the order start date.'
   end
 
   def earlier_hint

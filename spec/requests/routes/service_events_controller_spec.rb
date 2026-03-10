@@ -101,7 +101,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
     end
 
     context 'when completing a delivery event' do
-      let(:delivery_order) { create(:order, company: company, created_by: user, start_date: Date.current - 1, end_date: Date.current + 10, status: 'scheduled') }
+      let(:delivery_order) { create(:order, company: company, created_by: user, start_date: Date.current, end_date: Date.current + 10, status: 'scheduled') }
       let(:delivery_event) do
         create(:service_event, :delivery,
                order: delivery_order,
