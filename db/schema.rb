@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_09_123200) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_09_193000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -205,24 +205,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_123200) do
     t.index ["unit_type_id"], name: "index_rental_line_items_on_unit_type_id"
   end
 
-  create_table "route_generation_runs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "company_id", null: false
-    t.datetime "created_at", null: false
-    t.uuid "created_by_id"
-    t.jsonb "metadata", default: {}, null: false
-    t.string "scope_key", null: false
-    t.jsonb "source_params", default: {}, null: false
-    t.integer "state", default: 0, null: false
-    t.string "strategy", default: "capacity_v1", null: false
-    t.datetime "updated_at", null: false
-    t.date "window_end", null: false
-    t.date "window_start", null: false
-    t.index ["company_id", "scope_key"], name: "index_route_generation_runs_active", unique: true, where: "(state = 1)"
-    t.index ["company_id", "scope_key"], name: "index_route_generation_runs_on_company_id_and_scope_key"
-    t.index ["company_id"], name: "index_route_generation_runs_on_company_id"
-    t.index ["scope_key"], name: "index_route_generation_runs_on_scope_key"
-  end
-
   create_table "route_stops", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.uuid "created_by_id"
@@ -247,7 +229,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_123200) do
     t.datetime "created_at", null: false
     t.integer "estimated_drive_meters"
     t.integer "estimated_drive_seconds"
-    t.uuid "generation_run_id"
     t.string "google_calendar_sync_hash"
     t.boolean "optimization_stale", default: true, null: false
     t.date "route_date", null: false
@@ -255,7 +236,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_123200) do
     t.uuid "truck_id"
     t.datetime "updated_at", null: false
     t.index ["company_id", "route_date"], name: "index_routes_on_company_id_and_route_date"
-    t.index ["generation_run_id"], name: "index_routes_on_generation_run_id"
     t.index ["trailer_id"], name: "index_routes_on_trailer_id"
     t.index ["truck_id"], name: "index_routes_on_truck_id"
   end
@@ -482,13 +462,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_09_123200) do
   add_foreign_key "rental_line_items", "orders"
   add_foreign_key "rental_line_items", "rate_plans"
   add_foreign_key "rental_line_items", "unit_types"
-  add_foreign_key "route_generation_runs", "companies"
-  add_foreign_key "route_generation_runs", "users", column: "created_by_id"
   add_foreign_key "route_stops", "routes"
   add_foreign_key "route_stops", "service_events"
   add_foreign_key "route_stops", "users", column: "created_by_id"
   add_foreign_key "routes", "companies"
-  add_foreign_key "routes", "route_generation_runs", column: "generation_run_id"
   add_foreign_key "routes", "trailers"
   add_foreign_key "routes", "trucks"
   add_foreign_key "service_event_reports", "service_events"

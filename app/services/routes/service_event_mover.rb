@@ -51,10 +51,6 @@ module Routes
           next_sequence = target_route.service_events.maximum(:route_sequence).to_i + 1
           service_event.update_column(:route_sequence, next_sequence)
         end
-
-        if target_route.generation_run.blank? && source_route&.generation_run.present?
-          target_route.update_column(:generation_run_id, source_route.generation_run_id)
-        end
       end
 
       service_event.reload
@@ -78,15 +74,6 @@ module Routes
     def next_candidate
       return unless route && company
 
-      if route.generation_run.present?
-        candidate = company.routes
-                           .where(generation_run: route.generation_run)
-                           .where('route_date > ?', route.route_date)
-                           .order(route_date: :asc)
-                           .first
-        return candidate if candidate
-      end
-
       company.routes.where('route_date > ?', route.route_date)
              .order(:route_date)
              .first || create_next_route
@@ -94,15 +81,6 @@ module Routes
 
     def previous_candidate
       return unless route && company
-
-      if route.generation_run.present?
-        candidate = company.routes
-                           .where(generation_run: route.generation_run)
-                           .where('route_date < ?', route.route_date)
-                           .order(route_date: :desc)
-                           .first
-        return candidate if candidate
-      end
 
       company.routes
              .where('route_date < ?', route.route_date)
@@ -114,8 +92,7 @@ module Routes
       company.routes.create!(
         route_date: route.route_date + 1.day,
         truck: route.truck,
-        trailer: route.trailer,
-        generation_run: route&.generation_run
+        trailer: route.trailer
       )
     end
 
@@ -123,8 +100,7 @@ module Routes
       company.routes.create!(
         route_date: route.route_date - 1.day,
         truck: route.truck,
-        trailer: route.trailer,
-        generation_run: route&.generation_run
+        trailer: route.trailer
       )
     end
 

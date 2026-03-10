@@ -10,7 +10,14 @@ RSpec.describe Routes::ServiceEventUncompleter do
   end
 
   it 'uncompletes a completed service event without any report' do
-    event = create(:service_event, :delivery, order: order, route: route, status: :completed)
+    event = create(
+      :service_event,
+      :delivery,
+      order: order,
+      route: route,
+      scheduled_on: route.route_date,
+      status: :completed
+    )
 
     result = call_service_event(event)
 

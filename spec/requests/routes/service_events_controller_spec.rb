@@ -193,7 +193,15 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
     end
 
     it 'reverts a delivery completion without a report' do
-      delivery_event = create(:service_event, :delivery, order: order, route: route, route_date: route.route_date, status: :completed)
+      delivery_event = create(
+        :service_event,
+        :delivery,
+        order: order,
+        route: route,
+        route_date: route.route_date,
+        scheduled_on: route.route_date,
+        status: :completed
+      )
 
       post uncomplete_route_service_event_path(route, delivery_event)
 

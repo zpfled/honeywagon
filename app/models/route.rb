@@ -5,7 +5,6 @@ class Route < ApplicationRecord
   belongs_to :company
   belongs_to :truck
   belongs_to :trailer, optional: true
-  belongs_to :generation_run, class_name: 'RouteGenerationRun', optional: true
   has_many :service_events, dependent: :nullify
   has_many :service_events_with_deleted, -> { with_deleted }, class_name: 'ServiceEvent'
   has_many :route_stops, dependent: :destroy
