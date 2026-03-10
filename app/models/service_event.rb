@@ -307,6 +307,6 @@ class ServiceEvent < ApplicationRecord
   end
 
   def current_assigned_route_date
-    route_stops.joins(:route).order(:position).limit(1).pick('routes.route_date') || route&.route_date
+    route_stops.joins(:route).order(:position).limit(1).pick('routes.route_date')
   end
 end

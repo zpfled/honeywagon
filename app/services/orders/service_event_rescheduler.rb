@@ -11,6 +11,7 @@ module Orders
 
       # Only adjust upcoming service events after the completion date; completed or past ones stay as-is.
       future_events = order.service_events
+                            .includes(primary_route_stop: :route)
                             .where(event_type: ServiceEvent.event_types[:service])
                             .where(ServiceEvent.arel_table[:scheduled_on].gt(completion_date))
                             .order(:scheduled_on)

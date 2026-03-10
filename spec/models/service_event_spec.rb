@@ -218,8 +218,15 @@ RSpec.describe ServiceEvent, type: :model do
         kept_event = create(:service_event, :service, order: order, scheduled_on: route_a.route_date)
         moved_event = create(:service_event, :service, order: order, scheduled_on: route_a.route_date)
       end
-      create(:route_stop, route: route_a, service_event: kept_event, position: 0)
-      moved_stop = create(:route_stop, route: route_a, service_event: moved_event, position: 1)
+      kept_stop = RouteStop.find_or_initialize_by(service_event: kept_event)
+      kept_stop.route = route_a
+      kept_stop.position = route_a.route_stops.where.not(id: kept_stop.id).maximum(:position).to_i + 1
+      kept_stop.save!
+
+      moved_stop = RouteStop.find_or_initialize_by(service_event: moved_event)
+      moved_stop.route = route_a
+      moved_stop.position = route_a.route_stops.where.not(id: moved_stop.id).maximum(:position).to_i + 1
+      moved_stop.save!
 
       route_a.update_column(:optimization_stale, false)
       route_b.update_column(:optimization_stale, false)

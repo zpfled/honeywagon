@@ -11,7 +11,7 @@ class RoutesController < ApplicationController
     @calendar_start = calendar_start_date
     @calendar_end = @calendar_start + 27.days
     @calendar_strategy = calendar_strategy
-    company = current_user.company
+    company = Company.includes(:home_base).find(current_user.company_id)
     Weather::ForecastRefresher.call(company: company)
 
     @run_routes = company.routes
@@ -24,12 +24,20 @@ class RoutesController < ApplicationController
                          .scheduled
                          .where(event_type: due_event_types)
                          .where(scheduled_on: @calendar_start..@calendar_end)
-                         .includes(:dump_site, :route_stops, order: :customer)
     @due_events_by_date = @due_events.group_by(&:scheduled_on)
     assigned_event_ids = assigned_event_ids_for_events(event_ids: @due_events.map(&:id))
     @assigned_due_events_by_date = @due_events.select { |event| assigned_event_ids.include?(event.id) }
                                               .group_by(&:scheduled_on)
     @unassigned_events = @due_events.reject { |event| assigned_event_ids.include?(event.id) }
+    if @unassigned_events.any?
+      preload_associations = [ { order: :customer } ]
+      preload_associations << :dump_site if @unassigned_events.any?(&:event_type_dump?)
+
+      ActiveRecord::Associations::Preloader.new(
+        records: @unassigned_events,
+        associations: preload_associations
+      ).call
+    end
     @unassigned_events_by_date = @unassigned_events.group_by(&:scheduled_on)
     @forecast_by_date = calendar_forecasts(company)
     @plan_window_start, @plan_window_end = selected_planning_window

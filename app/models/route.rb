@@ -168,7 +168,7 @@ class Route < ApplicationRecord
 
   def record_stop_drive_metrics(event_ids:, legs: [])
     legs ||= []
-    events = service_events.where(id: event_ids).index_by(&:id)
+    events = service_events.includes(:order).where(id: event_ids).index_by(&:id)
     leading_legs = [ legs.length - events.length, 0 ].max
     legs_with_defaults = legs + Array.new([ events.length + leading_legs - legs.length, 0 ].max) { { distance_meters: 0, duration_seconds: 0 } }
 
@@ -196,7 +196,7 @@ class Route < ApplicationRecord
   def resequence_service_events!(ordered_ids)
     transaction do
       normalized_ids = Array(ordered_ids).map(&:presence).compact.map(&:to_s)
-      stop_map = ordered_route_stops.includes(:service_event).index_by { |stop| stop.service_event_id.to_s }
+      stop_map = ordered_route_stops.index_by { |stop| stop.service_event_id.to_s }
       ordered_stops = []
 
       normalized_ids.each do |id|

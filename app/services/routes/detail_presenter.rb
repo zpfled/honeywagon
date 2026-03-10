@@ -113,7 +113,6 @@ module Routes
     def service_events_for_display
       events = route.ordered_service_event_relation
                     .includes(order: [ :customer, :location ], service_event_units: :unit_type)
-                    .includes(:service_event_report)
       preload_rental_line_items_for(events)
       dump_events = events.select(&:event_type_dump?)
       if dump_events.any?
