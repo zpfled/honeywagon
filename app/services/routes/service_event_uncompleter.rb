@@ -9,7 +9,7 @@ module Routes
       return failure('This service event cannot be uncompleted because it has a completed service log with gallons recorded.') unless service_event.uncompletion_allowed?
 
       if service_event.update(status: :scheduled, completed_on: nil)
-        Routes::ServiceEventActionResult.new(route: service_event.route, success: true, message: 'Service event marked not completed.')
+        Routes::ServiceEventActionResult.new(route: resolved_route, success: true, message: 'Service event marked not completed.')
       else
         failure(service_event.errors.full_messages.to_sentence.presence || 'Unable to uncomplete service event.')
       end
@@ -20,7 +20,11 @@ module Routes
     attr_reader :service_event
 
     def failure(message)
-      Routes::ServiceEventActionResult.new(route: service_event.route, success: false, message: message)
+      Routes::ServiceEventActionResult.new(route: resolved_route, success: false, message: message)
+    end
+
+    def resolved_route
+      service_event.route || RouteStop.includes(:route).where(service_event_id: service_event.id).order(:position).first&.route
     end
   end
 end

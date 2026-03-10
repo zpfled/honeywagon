@@ -67,9 +67,9 @@ RSpec.describe Route do
 
       route.resequence_service_events!([ event_c.id.to_s, event_a.id.to_s ])
 
-      expect(event_c.reload.route_sequence).to eq(0)
-      expect(event_a.reload.route_sequence).to eq(1)
-      expect(event_b.reload.route_sequence).to eq(2)
+      expect(route.reload.route_stops.order(:position).pluck(:service_event_id)).to eq(
+        [ event_c.id, event_a.id, event_b.id ]
+      )
     end
   end
 

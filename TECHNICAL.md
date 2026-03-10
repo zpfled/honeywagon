@@ -62,7 +62,7 @@
 - Google Calendar push uses per-user OAuth tokens and creates one all-day event per stop on the route date.
 - Operational checklists use company-level tasks and appear on the routes calendar with a daily task list view.
 - Repeating short-term rentals are modeled as linked order series (one order per delivery/pickup pair) to preserve availability accuracy between events.
-- Route planning simplification Phase 0 is gated by `FF_ROUTES_REPLACE_WINDOW_V2` and defaults to off.
+- Route planning uses replace-window semantics by default (no rollout flag); planning requests replace only the selected window.
 - Route assignment source-of-truth is `RouteStop`; each `ServiceEvent` must map to at most one active `RouteStop`.
 - Window planning behavior target is replace-on-plan for the selected window, with atomic rollback on failure.
 - Completed service events are assignment-immutable: they cannot be removed from a route or assigned to a different route.

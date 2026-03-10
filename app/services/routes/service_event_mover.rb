@@ -2,7 +2,7 @@ module Routes
   class ServiceEventMover
     def initialize(service_event)
       @service_event = service_event
-      @route = service_event.route
+      @route = resolve_route
       @company = service_event.order&.company || @route&.company
     end
 
@@ -29,6 +29,11 @@ module Routes
     private
 
     attr_reader :service_event, :route, :company
+
+    def resolve_route
+      service_event.route ||
+        RouteStop.includes(:route).where(service_event_id: service_event.id).order(:position).first&.route
+    end
 
     def move_to_route(target_route, success_message)
       source_route = route

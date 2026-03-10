@@ -2,7 +2,6 @@
 # recurring service, pickup) and tracks its completion state.
 class ServiceEvent < ApplicationRecord
   default_scope { where(deleted_at: nil) }
-  self.ignored_columns += [ 'route_id', 'route_date', 'route_sequence' ]
 
   belongs_to :order, optional: true
   belongs_to :service_event_type
@@ -31,7 +30,6 @@ class ServiceEvent < ApplicationRecord
   after_update_commit :stamp_skipped_on, if: -> { saved_change_to_status? && status_skipped? }
   after_update_commit :complete_order_after_pickup, if: -> { saved_change_to_status? && status_completed? && event_type_pickup? }
   after_commit :refresh_truck_waste_load, if: :affects_truck_waste_load?
-  after_create :apply_pending_route_stop
   after_commit :auto_assign_route, on: :create
 
   # Scope returning only auto-generated events that can be safely regenerated.
@@ -166,9 +164,10 @@ class ServiceEvent < ApplicationRecord
   def estimated_fuel_cost_cents
     return nil unless drive_distance_meters.to_f.positive?
 
-    truck = route&.truck
+    assigned_route = route || route_stops.includes(:route).order(:position).first&.route
+    truck = assigned_route&.truck
     mpg = truck&.miles_per_gallon.to_f
-    price_cents = route&.company&.fuel_price_per_gal_cents.to_i
+    price_cents = assigned_route&.company&.fuel_price_per_gal_cents.to_i
     return nil if mpg <= 0 || price_cents <= 0
 
     miles = drive_distance_meters.to_f / 1609.34
@@ -183,59 +182,8 @@ class ServiceEvent < ApplicationRecord
     update!(deleted_at: Time.current, deleted_by: user)
   end
 
-  # Compatibility helpers during route-stop-only cutover.
-  def route_id
-    route&.id
-  end
-
-  def route_id=(value)
-    @pending_route_id = value
-    @pending_route = Route.find_by(id: value) if value.present?
-    route = @pending_route
-    self.route = route if persisted? && route.present?
-    self.route = nil if persisted? && value.blank?
-  end
-
-  def route=(value)
-    if value.blank?
-      route_stops.delete_all if persisted?
-      @pending_route_id = nil
-      @pending_route = nil
-      @pending_route_date = nil
-      return
-    end
-
-    if persisted?
-      stop = route_stops.first_or_initialize
-      stop.route = value
-      stop.position ||= (@pending_route_sequence.presence || value.route_stops.maximum(:position).to_i + 1)
-      stop.status = status
-      stop.save!
-    else
-      @pending_route_id = value.id
-      @pending_route = value
-      @pending_route_date = nil
-    end
-  end
-
-  def route
-    super || route_stops.includes(:route).order(:position).first&.route || @pending_route
-  end
-
   def route_date
-    @pending_route_date || route&.route_date
-  end
-
-  def route_date=(value)
-    @pending_route_date = value.present? ? value.to_date : nil
-  end
-
-  def route_sequence
-    primary_route_stop&.position || @pending_route_sequence
-  end
-
-  def route_sequence=(value)
-    @pending_route_sequence = value.present? ? value.to_i : nil
+    current_assigned_route_date
   end
 
   private
@@ -328,41 +276,14 @@ class ServiceEvent < ApplicationRecord
     Routes::ServiceEventRouter.new(self).call
   end
 
-  def apply_pending_route_stop
-    return if primary_route_stop.present?
-    return if @pending_route_id.blank?
-
-    route = @pending_route || Route.find_by(id: @pending_route_id)
-    return unless route
-    if event_type_delivery? && route.route_date > scheduled_on
-      errors.add(:route_date, 'cannot be after the scheduled date for deliveries')
-      raise ActiveRecord::RecordInvalid.new(self)
-    end
-    if event_type_pickup? && route.route_date < scheduled_on
-      errors.add(:route_date, 'cannot be before the scheduled date for pickups')
-      raise ActiveRecord::RecordInvalid.new(self)
-    end
-
-    route_stops.create!(
-      route: route,
-      position: @pending_route_sequence.presence || route.route_stops.maximum(:position).to_i + 1,
-      status: status
-    )
-    association(:primary_route_stop).reset
-    association(:route).reset
-  ensure
-    @pending_route_id = nil
-    @pending_route = nil
-    @pending_route_date = nil
-    @pending_route_sequence = nil
-  end
-
   def delivery_route_date
-    route_date || scheduled_on
+    current_assigned_route_date || scheduled_on
   end
 
   def refresh_truck_waste_load
-    route&.truck&.recalculate_waste_load!
+    route_stops.includes(route: :truck).map(&:route).compact.uniq.each do |assigned_route|
+      assigned_route.truck&.recalculate_waste_load!
+    end
   end
 
   def affects_truck_waste_load?
@@ -373,7 +294,7 @@ class ServiceEvent < ApplicationRecord
   end
 
   def enforce_logistics_schedule
-    assigned_route_date = route_date
+    assigned_route_date = current_assigned_route_date
     return if scheduled_on.blank? || assigned_route_date.blank?
 
     if event_type_delivery? && assigned_route_date > scheduled_on
@@ -383,5 +304,9 @@ class ServiceEvent < ApplicationRecord
     if event_type_pickup? && assigned_route_date < scheduled_on
       errors.add(:route_date, 'cannot be before the scheduled date for pickups')
     end
+  end
+
+  def current_assigned_route_date
+    route_stops.joins(:route).order(:position).limit(1).pick('routes.route_date') || route&.route_date
   end
 end

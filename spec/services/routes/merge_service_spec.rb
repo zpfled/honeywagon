@@ -18,9 +18,11 @@ RSpec.describe Routes::MergeService do
 
     expect(result.success?).to be(true)
     expect(Route.exists?(source.id)).to be(false)
-    expect(second_event.reload.route_id).to eq(target.id)
+    expect(second_event.reload.route).to eq(target)
     expect(second_event.route_date).to eq(target.route_date)
-    expect(second_event.route_sequence).to be > first_event.route_sequence
+    first_position = target.route_stops.find_by(service_event_id: first_event.id)&.position
+    second_position = target.route_stops.find_by(service_event_id: second_event.id)&.position
+    expect(second_position).to be > first_position
   end
 
   it 'moves source projected stops onto target projected stops' do

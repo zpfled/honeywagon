@@ -123,7 +123,6 @@ module Routes
         event = build_event(
           event_type: :dump,
           scheduled_on: event_date,
-          route_date: event_date,
           dump_site: dump_site
         )
         append_route_stop(event) if event
@@ -135,8 +134,7 @@ module Routes
 
         event = build_event(
           event_type: :refill,
-          scheduled_on: event_date,
-          route_date: event_date
+          scheduled_on: event_date
         )
         append_route_stop(event) if event
         event

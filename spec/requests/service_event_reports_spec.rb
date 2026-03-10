@@ -18,7 +18,7 @@ RSpec.describe "ServiceEventReports", type: :request do
       service_event_report: { estimated_gallons_pumped: 55, units_pumped: 2 }
     }
 
-    expect(response).to redirect_to(route_path(service_event.route))
+    expect(response).to redirect_to(route_path(service_event.reload.route))
     expect(service_event.reload.estimated_gallons_override).to eq(55)
   end
 

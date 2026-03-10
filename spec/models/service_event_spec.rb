@@ -208,12 +208,23 @@ RSpec.describe ServiceEvent, type: :model do
 
     it 'marks both the previous and new route as stale when an event moves' do
       company = create(:company)
-      route_a = create(:route, company: company, optimization_stale: false)
-      route_b = create(:route, company: company, optimization_stale: false)
+      route_a = create(:route, company: company, route_date: Date.current, optimization_stale: false)
+      route_b = create(:route, company: company, route_date: Date.current + 1.day, optimization_stale: false)
       order = create(:order, company: company, status: 'scheduled')
-      event = create(:service_event, :service, order: order, route: route_a)
+      kept_event = nil
+      moved_event = nil
 
-      event.update!(route: route_b)
+      Routes::ServiceEventRouter.without_auto_assignment do
+        kept_event = create(:service_event, :service, order: order, scheduled_on: route_a.route_date)
+        moved_event = create(:service_event, :service, order: order, scheduled_on: route_a.route_date)
+      end
+      create(:route_stop, route: route_a, service_event: kept_event, position: 0)
+      moved_stop = create(:route_stop, route: route_a, service_event: moved_event, position: 1)
+
+      route_a.update_column(:optimization_stale, false)
+      route_b.update_column(:optimization_stale, false)
+
+      moved_stop.update!(route: route_b, position: 0)
 
       expect(route_a.reload.optimization_stale).to be(true)
       expect(route_b.reload.optimization_stale).to be(true)
@@ -273,9 +284,9 @@ RSpec.describe ServiceEvent, type: :model do
       route = create(:route, route_date: Date.current + 1.day)
       order = create(:order, company: route.company, status: 'scheduled', start_date: Date.current, end_date: Date.current + 5.days)
 
-      event = build(:service_event, :delivery, order: order, route: route, scheduled_on: Date.current, route_date: Date.current + 1.day)
+      event = create(:service_event, :delivery, order: order, route: route, scheduled_on: route.route_date)
 
-      expect(event).not_to be_valid
+      expect(event.update(scheduled_on: Date.current)).to be(false)
       expect(event.errors[:route_date]).to include('cannot be after the scheduled date for deliveries')
     end
 
@@ -283,9 +294,9 @@ RSpec.describe ServiceEvent, type: :model do
       route = create(:route, route_date: Date.current)
       order = create(:order, company: route.company, status: 'scheduled', start_date: Date.current - 5.days, end_date: Date.current)
 
-      event = build(:service_event, :pickup, order: order, route: route, scheduled_on: Date.current, route_date: Date.current - 1.day)
+      event = create(:service_event, :pickup, order: order, route: route, scheduled_on: route.route_date)
 
-      expect(event).not_to be_valid
+      expect(event.update(scheduled_on: Date.current + 1.day)).to be(false)
       expect(event.errors[:route_date]).to include('cannot be before the scheduled date for pickups')
     end
   end

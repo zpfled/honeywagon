@@ -12,7 +12,10 @@ class StopPresenter
   def event = service_event
 
   def stop_number
-    position = service_event.route&.stop_position_for(service_event)
+    projected_position = service_event.route_stops.order(:position).limit(1).pick(:position)
+    return projected_position + 1 if projected_position.present?
+
+    position = resolved_route&.stop_position_for(service_event)
     position.present? ? position + 1 : '—'
   end
 
@@ -102,7 +105,7 @@ class StopPresenter
   end
 
   def refill_location
-    service_event.route&.company&.home_base
+    resolved_route&.company&.home_base
   end
 
   def refill_location_label
@@ -191,6 +194,10 @@ class StopPresenter
 
   def capacity_step_data
     capacity_step
+  end
+
+  def resolved_route
+    service_event.route || service_event.route_stops.includes(:route).order(:position).first&.route
   end
 
   def usage_row(label, used, capacity)
