@@ -25,6 +25,7 @@ Rails.application.routes.draw do
     post :merge, on: :member
     post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
+      post :assign, on: :member
       post :postpone, on: :member
       post :advance, on: :member
       post :complete, on: :member

@@ -41,7 +41,7 @@ RSpec.describe "/orders", type: :request do
       Nokogiri::HTML.parse(response.body)
                    .css("select#order_location_id option")
                    .map { |node| node.text.strip }
-                   .reject(&:blank?)
+                   .reject { |text| text.blank? || text == "Select location" }
     end
 
     it "only lists the current company's unit types in the line item selector" do

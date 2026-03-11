@@ -42,9 +42,9 @@ module Routes
 
     def target_route_for(event)
       if event.logistics_locked?
-        company.routes.find_by(route_date: event.scheduled_on) || company.routes.create!(route_date: event.scheduled_on)
+        company.routes.find_by(route_date: event.scheduled_on) || create_route_for(event.scheduled_on)
       else
-        find_matching_route(event) || company.routes.create!(route_date: event.scheduled_on)
+        find_matching_route(event) || create_route_for(event.scheduled_on)
       end
     end
 
@@ -55,6 +55,12 @@ module Routes
              .where(route_date: range)
              .order(Arel.sql("ABS(route_date - DATE '#{target_date}')"))
              .first
+    end
+
+    def create_route_for(date)
+      Route.without_auto_assignment do
+        company.routes.create!(route_date: date)
+      end
     end
   end
 end

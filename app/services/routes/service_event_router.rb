@@ -65,11 +65,13 @@ module Routes
     end
 
     def create_route(date)
-      company.routes.create!(
-        route_date: date,
-        truck: company.trucks.order(:created_at).first,
-        trailer: default_trailer
-      )
+      Route.without_auto_assignment do
+        company.routes.create!(
+          route_date: date,
+          truck: company.trucks.order(:created_at).first,
+          trailer: default_trailer
+        )
+      end
     end
 
     def default_trailer

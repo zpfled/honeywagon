@@ -226,7 +226,7 @@ class OrdersController < ApplicationController
   end
 
   def selected_customer_id
-    params.dig(:order, :customer_id).presence || @order&.customer_id
+    params.dig(:order, :customer_id).presence || params[:customer_id].presence || @order&.customer_id
   end
 
   def date_pairs_params
