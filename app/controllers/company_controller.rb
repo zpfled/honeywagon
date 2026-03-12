@@ -37,6 +37,7 @@ class CompanyController < ApplicationController
     template =
       case redirect_target
       when customers_company_path then :customers
+      when locations_company_path then :locations
       when expenses_company_path then :expenses
       else :edit
       end
@@ -44,6 +45,8 @@ class CompanyController < ApplicationController
     case template
     when :customers
       load_customers_page_data
+    when :locations
+      load_locations_page_data
     when :expenses
       load_expenses_page_data
     else
@@ -58,12 +61,15 @@ class CompanyController < ApplicationController
     load_customers_page_data
   end
 
+  def locations
+    build_forms
+    load_locations_page_data
+  end
+
   def expenses
     build_forms
     load_expenses_page_data
   end
-
-  private
 
   def set_company
     @company = Company.find(current_user.company_id)
@@ -93,6 +99,10 @@ class CompanyController < ApplicationController
     @customers = @company.customers.order(:display_name)
   end
 
+  def load_locations_page_data
+    @locations = @company.locations.includes(:customer).order(:label)
+  end
+
   def load_expenses_page_data
     @expenses = @company.expenses.order(:name)
     @expense_category_options = Expense::CATEGORIES.map { |value| [ value.humanize, value ] }
@@ -106,12 +116,30 @@ class CompanyController < ApplicationController
       :fuel_price_per_gallon,
       :routing_horizon_days,
       :dump_threshold_percent,
+      :weather_provider,
       home_base_attributes: %i[id label street city state zip lat lng]
     )
   end
 
   def truck_params
-    params.fetch(:truck, {}).permit(:name, :number, :clean_water_capacity_gal, :waste_capacity_gal, :fuel_price_per_gallon, :miles_per_gallon, :preference_rank)
+    params.fetch(:truck, {}).permit(
+      :name,
+      :number,
+      :clean_water_capacity_gal,
+      :waste_capacity_gal,
+      :fuel_price_per_gallon,
+      :miles_per_gallon,
+      :preference_rank,
+      :waste_yellow_threshold_pct,
+      :waste_red_threshold_pct,
+      :waste_red_nearby_miles,
+      :waste_early_dump_proximity_miles,
+      :water_yellow_threshold_pct,
+      :water_red_threshold_pct,
+      :water_red_nearby_miles,
+      :water_early_refill_proximity_miles,
+      :water_min_reserve_gal
+    )
   end
 
   def trailer_params
@@ -197,6 +225,8 @@ class CompanyController < ApplicationController
     }
     render partial: 'company/expense_modal', locals: locals, layout: false
   end
+
+  private
 
   def build_forms
     @truck ||= @company.trucks.new

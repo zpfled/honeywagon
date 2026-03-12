@@ -10,19 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_07_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
   create_table "companies", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.integer "dump_threshold_percent", default: 90, null: false
+    t.datetime "forecast_refresh_at"
     t.integer "fuel_price_per_gal_cents", default: 0, null: false
     t.uuid "home_base_id"
     t.string "name", null: false
     t.integer "routing_horizon_days", default: 3, null: false
     t.boolean "setup_completed", default: false, null: false
     t.datetime "updated_at", null: false
+    t.string "weather_provider", default: "nws", null: false
     t.index ["home_base_id"], name: "index_companies_on_home_base_id"
   end
 
@@ -72,6 +74,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.index ["company_id"], name: "index_expenses_on_company_id"
   end
 
+  create_table "forecast_logs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.date "forecast_date", null: false
+    t.decimal "latitude", precision: 10, scale: 6
+    t.decimal "longitude", precision: 10, scale: 6
+    t.integer "observed_high_temp"
+    t.integer "observed_low_temp"
+    t.integer "predicted_high_temp"
+    t.integer "predicted_low_temp"
+    t.integer "predicted_precip_percent"
+    t.string "provider", null: false
+    t.datetime "retrieved_at"
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "forecast_date"], name: "index_forecast_logs_on_company_id_and_forecast_date"
+    t.index ["company_id", "provider", "forecast_date", "latitude", "longitude"], name: "idx_forecast_logs_unique", unique: true
+    t.index ["company_id"], name: "index_forecast_logs_on_company_id"
+  end
+
   create_table "location_distances", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "computed_at", null: false
     t.datetime "created_at", null: false
@@ -101,6 +122,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.index ["dump_site"], name: "index_locations_on_dump_site"
   end
 
+  create_table "order_series", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "created_by_id"
+    t.string "name", null: false
+    t.text "notes"
+    t.datetime "updated_at", null: false
+    t.index ["company_id"], name: "index_order_series_on_company_id"
+    t.index ["created_by_id"], name: "index_order_series_on_created_by_id"
+  end
+
   create_table "order_units", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "billing_period", null: false
     t.datetime "created_at", null: false
@@ -126,10 +158,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.string "external_reference"
     t.uuid "location_id", null: false
     t.text "notes"
+    t.uuid "order_series_id"
     t.integer "pickup_fee_cents"
     t.integer "rental_subtotal_cents"
     t.date "start_date"
     t.string "status"
+    t.boolean "suppress_recurring_service_events", default: false, null: false
     t.integer "tax_cents"
     t.integer "total_cents"
     t.datetime "updated_at", null: false
@@ -137,6 +171,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.index ["created_by_id"], name: "index_orders_on_created_by_id"
     t.index ["customer_id"], name: "index_orders_on_customer_id"
     t.index ["location_id"], name: "index_orders_on_location_id"
+    t.index ["order_series_id"], name: "index_orders_on_order_series_id"
   end
 
   create_table "rate_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -170,11 +205,48 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.index ["unit_type_id"], name: "index_rental_line_items_on_unit_type_id"
   end
 
+  create_table "route_generation_runs", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "created_at", null: false
+    t.uuid "created_by_id"
+    t.jsonb "metadata", default: {}, null: false
+    t.string "scope_key", null: false
+    t.jsonb "source_params", default: {}, null: false
+    t.integer "state", default: 0, null: false
+    t.string "strategy", default: "capacity_v1", null: false
+    t.datetime "updated_at", null: false
+    t.date "window_end", null: false
+    t.date "window_start", null: false
+    t.index ["company_id", "scope_key"], name: "index_route_generation_runs_active", unique: true, where: "(state = 1)"
+    t.index ["company_id", "scope_key"], name: "index_route_generation_runs_on_company_id_and_scope_key"
+    t.index ["company_id"], name: "index_route_generation_runs_on_company_id"
+    t.index ["scope_key"], name: "index_route_generation_runs_on_scope_key"
+  end
+
+  create_table "route_stops", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.uuid "created_by_id"
+    t.text "notes"
+    t.datetime "planned_arrival_at"
+    t.datetime "planned_departure_at"
+    t.integer "position", null: false
+    t.date "route_date", null: false
+    t.uuid "route_id", null: false
+    t.uuid "service_event_id", null: false
+    t.string "status"
+    t.datetime "updated_at", null: false
+    t.index ["route_id", "position"], name: "index_route_stops_on_route_id_and_position", unique: true
+    t.index ["route_id", "service_event_id"], name: "index_route_stops_on_route_id_and_service_event_id", unique: true
+    t.index ["route_id"], name: "index_route_stops_on_route_id"
+    t.index ["service_event_id"], name: "index_route_stops_on_service_event_id"
+  end
+
   create_table "routes", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "company_id", null: false
     t.datetime "created_at", null: false
     t.integer "estimated_drive_meters"
     t.integer "estimated_drive_seconds"
+    t.uuid "generation_run_id"
     t.string "google_calendar_sync_hash"
     t.boolean "optimization_stale", default: true, null: false
     t.date "route_date", null: false
@@ -182,6 +254,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.uuid "truck_id"
     t.datetime "updated_at", null: false
     t.index ["company_id", "route_date"], name: "index_routes_on_company_id_and_route_date"
+    t.index ["generation_run_id"], name: "index_routes_on_generation_run_id"
     t.index ["trailer_id"], name: "index_routes_on_trailer_id"
     t.index ["truck_id"], name: "index_routes_on_truck_id"
   end
@@ -234,11 +307,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.string "google_calendar_event_id"
     t.text "notes"
     t.uuid "order_id"
+    t.integer "pickup_batch_sequence"
+    t.integer "pickup_batch_total"
     t.date "route_date"
     t.uuid "route_id"
     t.integer "route_sequence"
     t.date "scheduled_on"
     t.uuid "service_event_type_id", null: false
+    t.text "skip_reason"
+    t.date "skipped_on"
     t.integer "status", default: 0
     t.datetime "updated_at", null: false
     t.uuid "user_id", null: false
@@ -267,6 +344,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.index ["rate_plan_id"], name: "index_service_line_items_on_rate_plan_id"
   end
 
+  create_table "tasks", force: :cascade do |t|
+    t.uuid "company_id", null: false
+    t.datetime "completed_at"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.date "due_on", null: false
+    t.text "notes"
+    t.string "status", default: "todo", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "due_on"], name: "index_tasks_on_company_id_and_due_on"
+    t.index ["company_id", "status"], name: "index_tasks_on_company_id_and_status"
+    t.index ["company_id"], name: "index_tasks_on_company_id"
+  end
+
   create_table "trailers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.integer "capacity_spots", default: 0, null: false
     t.uuid "company_id", null: false
@@ -289,7 +381,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.integer "preference_rank"
     t.datetime "updated_at", null: false
     t.integer "waste_capacity_gal", default: 0, null: false
+    t.decimal "waste_early_dump_proximity_miles", precision: 5, scale: 2
     t.integer "waste_load_gal", default: 0, null: false
+    t.decimal "waste_red_nearby_miles", precision: 5, scale: 2
+    t.integer "waste_red_threshold_pct"
+    t.integer "waste_yellow_threshold_pct"
+    t.decimal "water_early_refill_proximity_miles", precision: 5, scale: 2
+    t.integer "water_min_reserve_gal"
+    t.decimal "water_red_nearby_miles", precision: 5, scale: 2
+    t.integer "water_red_threshold_pct"
+    t.integer "water_yellow_threshold_pct"
     t.index ["company_id", "number"], name: "index_trucks_on_company_id_and_number", unique: true
     t.index ["company_id"], name: "index_trucks_on_company_id"
   end
@@ -352,10 +453,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
     t.decimal "longitude", precision: 9, scale: 4
     t.integer "low_temp"
     t.integer "precip_percent"
+    t.string "provider", default: "nws", null: false
     t.datetime "retrieved_at", null: false
     t.string "summary"
     t.datetime "updated_at", null: false
-    t.index ["company_id", "forecast_date", "latitude", "longitude"], name: "index_weather_forecasts_on_company_date_and_location", unique: true
+    t.index ["company_id", "provider", "forecast_date", "latitude", "longitude"], name: "idx_weather_forecasts_provider"
     t.index ["company_id"], name: "index_weather_forecasts_on_company_id"
   end
 
@@ -364,6 +466,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
   add_foreign_key "dump_sites", "companies"
   add_foreign_key "dump_sites", "locations"
   add_foreign_key "expenses", "companies"
+  add_foreign_key "forecast_logs", "companies"
   add_foreign_key "location_distances", "locations", column: "from_location_id", on_delete: :cascade
   add_foreign_key "location_distances", "locations", column: "to_location_id", on_delete: :cascade
   add_foreign_key "locations", "customers"
@@ -378,7 +481,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
   add_foreign_key "rental_line_items", "orders"
   add_foreign_key "rental_line_items", "rate_plans"
   add_foreign_key "rental_line_items", "unit_types"
+  add_foreign_key "route_generation_runs", "companies"
+  add_foreign_key "route_generation_runs", "users", column: "created_by_id"
+  add_foreign_key "route_stops", "routes"
+  add_foreign_key "route_stops", "service_events"
+  add_foreign_key "route_stops", "users", column: "created_by_id"
   add_foreign_key "routes", "companies"
+  add_foreign_key "routes", "route_generation_runs", column: "generation_run_id"
   add_foreign_key "routes", "trailers"
   add_foreign_key "routes", "trucks"
   add_foreign_key "service_event_reports", "service_events"
@@ -393,6 +502,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_12_193100) do
   add_foreign_key "service_events", "users", column: "deleted_by_id"
   add_foreign_key "service_line_items", "orders"
   add_foreign_key "service_line_items", "rate_plans"
+  add_foreign_key "tasks", "companies"
   add_foreign_key "trailers", "companies"
   add_foreign_key "trucks", "companies"
   add_foreign_key "unit_types", "companies"

@@ -43,3 +43,7 @@ spec/examples.txt
 
 # Ignore coverage reports
 /coverage/
+/dump.rdb
+
+# Local routing planning artifacts
+capacity_routing_specifications/

@@ -58,6 +58,21 @@ RSpec.describe Route do
     end
   end
 
+  describe '#resequence_service_events!' do
+    it 'reorders events when ids are provided as strings' do
+      route = create(:route)
+      event_a = create(:service_event, route: route, route_date: route.route_date)
+      event_b = create(:service_event, route: route, route_date: route.route_date)
+      event_c = create(:service_event, route: route, route_date: route.route_date)
+
+      route.resequence_service_events!([ event_c.id.to_s, event_a.id.to_s ])
+
+      expect(event_c.reload.route_sequence).to eq(0)
+      expect(event_a.reload.route_sequence).to eq(1)
+      expect(event_b.reload.route_sequence).to eq(2)
+    end
+  end
+
   describe 'auto-destroy when empty' do
     it 'removes the route once all service events are gone' do
       route = create(:route)

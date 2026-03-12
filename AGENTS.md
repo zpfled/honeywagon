@@ -135,7 +135,8 @@ This app is the source of truth for:
   - Writes are allowed only after explicit confirmation per record (before April 2026).
 
 - **Google Calendar**
-  - Removed from the operational workflow.
+  - No longer the main place that route planning happens.
+  - Routes are pushed to Google Calendar for drivers to use on the road.
   - External changes are ignored entirely.
 
 ### General Integration Rule
