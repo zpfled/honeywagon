@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem 'rails', '~> 8.1.0'
+gem 'rails', '~> 8.1.2'
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem 'propshaft'
 # Use Postgres as Rails database
@@ -86,4 +86,4 @@ gem 'tailwindcss-rails', '~> 4.4'
 
 gem 'foreman', '~> 0.90.0'
 
-gem 'ruby-lsp', '~> 0.26.4'
+gem 'ruby-lsp', '~> 0.26.5'
