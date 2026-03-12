@@ -10,8 +10,7 @@ module Routes
     def call
       return Result.new(success?: false, errors: [ 'Google Calendar is not connected.' ], warnings: []) unless user.google_calendar_connected?
 
-      events = route.service_events
-                    .order(:route_sequence, :created_at)
+      events = route.ordered_service_event_relation(not_skipped: false)
                     .includes(
         order: [ :customer, :location, { rental_line_items: :unit_type }, { service_line_items: :rate_plan } ],
         service_event_units: :unit_type,

@@ -8,6 +8,13 @@ class Truck < ApplicationRecord
             numericality: { greater_than_or_equal_to: 0 }
   validates :miles_per_gallon, numericality: { greater_than: 0 }, allow_nil: true
   validates :preference_rank, numericality: { greater_than_or_equal_to: 1 }, allow_nil: true
+  validates :waste_yellow_threshold_pct, :waste_red_threshold_pct,
+            :water_yellow_threshold_pct, :water_red_threshold_pct,
+            numericality: { greater_than_or_equal_to: 0, less_than_or_equal_to: 100 }, allow_nil: true
+  validates :waste_red_nearby_miles, :waste_early_dump_proximity_miles,
+            :water_red_nearby_miles, :water_early_refill_proximity_miles,
+            numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :water_min_reserve_gal, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
 
   def label
     [ name, number ].compact.join(' • ')

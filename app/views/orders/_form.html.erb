@@ -66,20 +66,77 @@
             class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" %>
         </div>
 
-        <div>
+        <div data-order-form-target="singleDates">
           <%= f.label :start_date, class: "text-sm font-medium text-gray-700" %>
           <%= f.date_field :start_date,
             class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
             data: { order_form_target: "startDate", action: "change->order-form#datesChanged input->order-form#datesChanged" } %>
         </div>
 
-        <div>
+        <div data-order-form-target="singleDates">
           <%= f.label :end_date, class: "text-sm font-medium text-gray-700" %>
           <%= f.date_field :end_date,
             class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
             data: { order_form_target: "endDate", action: "change->order-form#datesChanged input->order-form#datesChanged" } %>
         </div>
       </div>
+
+      <% if order.new_record? %>
+        <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm" data-controller="order-series">
+          <div class="flex items-center justify-between gap-4">
+            <div>
+              <h2 class="text-base font-semibold text-gray-900">Multiple delivery/pickup pairs</h2>
+              <p class="text-xs text-gray-500">Each pair becomes its own order in a linked series.</p>
+            </div>
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+              <%= check_box_tag "order[series_mode]", "1", false,
+                data: { action: "order-series#toggle order-form#seriesModeChanged", order_series_target: "toggle", order_form_target: "seriesToggle" } %>
+              Enable
+            </label>
+          </div>
+
+          <div class="mt-4 hidden" data-order-series-target="section" data-order-form-target="seriesSection">
+            <div>
+              <%= label_tag "order_series_name", "Series name (optional)", class: "text-sm font-medium text-gray-700" %>
+              <%= text_field_tag "order[series_name]", nil,
+                class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
+                placeholder: "Example: Yoder Lumber — Summer weekends" %>
+            </div>
+
+            <div class="mt-4">
+              <div class="grid grid-cols-[1fr_1fr_auto] gap-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <span>Delivery date</span>
+                <span>Pickup date</span>
+                <span></span>
+              </div>
+              <div class="mt-2 space-y-2" data-order-series-target="rows"></div>
+              <div class="mt-3">
+                <button type="button"
+                        class="inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+                        data-action="order-series#addRow">
+                  Add date pair
+                </button>
+              </div>
+            </div>
+
+            <template data-order-series-target="template">
+              <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <input type="date"
+                       name="order[date_pairs][][delivery_on]"
+                       class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" />
+                <input type="date"
+                       name="order[date_pairs][][pickup_on]"
+                       class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20" />
+                <button type="button"
+                        class="inline-flex items-center justify-center rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+                        data-action="order-series#removeRow">
+                  Remove
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      <% end %>
 
       <% payload = @order_form_payload || {} %>
       <% unit_types = payload[:unit_types] || [] %>
@@ -216,7 +273,7 @@
       </div>
     </div>
 
-    <aside class="mt-8 space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-5 lg:mt-0">
+    <aside class="mt-8 space-y-2 rounded-2xl border border-gray-100 bg-gray-50 p-5 lg:mt-0" data-order-form-target="availabilityPanel">
       <div>
         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Unit availability</p>
         <p class="mt-1 text-sm text-gray-600">We’ll show how many units are free for the selected window.</p>

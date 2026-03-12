@@ -85,17 +85,17 @@ module Routes
       attr_reader :route, :ordered_event_ids
 
       def cleanup_auto_generated_capacity_stops!
-        route.service_events
+        route.ordered_service_event_relation(not_skipped: true)
              .where(auto_generated: true, event_type: [ :dump, :refill ], order_id: nil)
              .destroy_all
       end
 
       def events_in_order
-        events_by_id = route.service_events.where(id: ordered_event_ids).index_by(&:id)
+        events_by_id = route.ordered_service_event_relation(not_skipped: true).where(id: ordered_event_ids).index_by(&:id)
         ordered = ordered_event_ids.map { |id| events_by_id[id] }.compact
 
-        remaining = route.service_events.where.not(id: ordered_event_ids)
-        ordered + remaining.order(:route_date, :event_type, :created_at)
+        remaining = route.ordered_service_event_relation(not_skipped: true).where.not(id: ordered_event_ids)
+        ordered + remaining.to_a
       end
 
       def clean_capacity
@@ -120,22 +120,32 @@ module Routes
         dump_site = route.company.dump_sites.order(:name).first
         return nil unless dump_site
 
-        build_event(
+        event = build_event(
           event_type: :dump,
           scheduled_on: event_date,
           route_date: event_date,
           dump_site: dump_site
         )
+        append_route_stop(event) if event
+        event
       end
 
       def create_refill_event(event_date)
         return nil unless route.company.home_base
 
-        build_event(
+        event = build_event(
           event_type: :refill,
           scheduled_on: event_date,
           route_date: event_date
         )
+        append_route_stop(event) if event
+        event
+      end
+
+      def append_route_stop(event)
+        return if event.blank? || !route.has_stop_projection?
+
+        route.append_service_event_stop!(event)
       end
 
       def build_event(attrs)

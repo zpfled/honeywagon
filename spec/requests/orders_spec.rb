@@ -141,4 +141,48 @@ RSpec.describe "/orders", type: :request do
       expect(pickup_event.reload.scheduled_on).to eq(Date.new(2024, 1, 12))
     end
   end
+
+  describe "series creation" do
+    before { sign_in user }
+
+    it "creates a linked series of orders from delivery/pickup pairs" do
+      customer = create(:customer, company: user.company)
+      location = create(:location, customer: customer)
+      unit_type = create(:unit_type, :standard, company: user.company)
+      rate_plan = create(:rate_plan, :event, company: user.company, unit_type: unit_type)
+      create_list(:unit, 2, company: user.company, unit_type: unit_type)
+
+      params = {
+        order: {
+          series_mode: "1",
+          series_name: "Weekend Rentals",
+          customer_id: customer.id,
+          location_id: location.id,
+          status: "scheduled",
+          unit_type_requests: [
+            { unit_type_id: unit_type.id, rate_plan_id: rate_plan.id, quantity: 1 }
+          ],
+          date_pairs: [
+            { delivery_on: "2026-05-26", pickup_on: "2026-05-28" },
+            { delivery_on: "2026-06-02", pickup_on: "2026-06-04" }
+          ]
+        }
+      }
+
+      expect do
+        post orders_path, params: params
+      end.to change { OrderSeries.count }.by(1)
+        .and change { Order.count }.by(2)
+
+      series = OrderSeries.order(created_at: :desc).first
+      expect(series.name).to eq("Weekend Rentals")
+      orders = series.orders.order(:start_date).to_a
+      expect(orders.first.start_date).to eq(Date.new(2026, 5, 26))
+      expect(orders.first.end_date).to eq(Date.new(2026, 5, 28))
+      expect(orders.first.suppress_recurring_service_events).to be(true)
+      expect(orders.first.service_events.event_type_service.count).to eq(0)
+      expect(orders.first.service_events.event_type_delivery.count).to eq(1)
+      expect(orders.first.service_events.event_type_pickup.count).to eq(1)
+    end
+  end
 end

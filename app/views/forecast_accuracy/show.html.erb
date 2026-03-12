@@ -1,0 +1,59 @@
+<%= page_shell(full_width: true) do %>
+  <div class="mx-auto max-w-6xl px-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Forecast accuracy</h1>
+        <p class="mt-1 text-sm text-gray-600">Daily forecast logs for home base (last 30 days).</p>
+      </div>
+    </div>
+
+    <%= card classes: "mt-6 overflow-hidden" do %>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="<%= table_header_class %>">Date</th>
+              <th class="<%= table_header_class %>">Provider</th>
+              <th class="<%= table_header_class %>">High</th>
+              <th class="<%= table_header_class %>">Low</th>
+              <th class="<%= table_header_class %>">Precip</th>
+              <th class="<%= table_header_class %>">Observed high</th>
+              <th class="<%= table_header_class %>">Observed low</th>
+              <th class="<%= table_header_class %>">Error (H/L)</th>
+              <th class="<%= table_header_class %>">Retrieved</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100">
+            <% if @logs.any? %>
+              <% @logs.each do |log| %>
+                <% high_error = log.observed_high_temp && log.predicted_high_temp ? (log.predicted_high_temp - log.observed_high_temp).abs : nil %>
+                <% low_error = log.observed_low_temp && log.predicted_low_temp ? (log.predicted_low_temp - log.observed_low_temp).abs : nil %>
+                <tr>
+                  <td class="<%= table_cell_class %>"><%= l(log.forecast_date) %></td>
+                  <td class="<%= table_cell_class %>"><%= log.provider.to_s.upcase %></td>
+                  <td class="<%= table_cell_class %>"><%= log.predicted_high_temp || '—' %>°</td>
+                  <td class="<%= table_cell_class %>"><%= log.predicted_low_temp || '—' %>°</td>
+                  <td class="<%= table_cell_class %>"><%= log.predicted_precip_percent || '—' %>%</td>
+                  <td class="<%= table_cell_class %>"><%= log.observed_high_temp || '—' %>°</td>
+                  <td class="<%= table_cell_class %>"><%= log.observed_low_temp || '—' %>°</td>
+                  <td class="<%= table_cell_class %>">
+                    <% if high_error || low_error %>
+                      <%= [ high_error, low_error ].compact.map { |value| "#{value}°" }.join(' / ') %>
+                    <% else %>
+                      —
+                    <% end %>
+                  </td>
+                  <td class="<%= table_cell_class %>"><%= log.retrieved_at ? l(log.retrieved_at, format: :short) : '—' %></td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="9" class="<%= table_cell_class('text-center', tone: :muted) %>">No forecast logs yet.</td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+<% end %>

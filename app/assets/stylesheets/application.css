@@ -79,6 +79,10 @@
   background-color: #128232 !important;
 }
 
+.route-map .gm-ui-hover-effect {
+  display: none !important;
+}
+
 .focus\:ring-emerald-600:focus,
 .focus\:ring-emerald-500:focus {
   --tw-ring-color: var(--brand-primary) !important;

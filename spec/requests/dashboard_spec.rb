@@ -47,4 +47,16 @@ RSpec.describe "Dashboard and landing", type: :request do
       expect(response.body).to include(authenticated_root_path)
     end
   end
+
+  describe "GET /dashboard/capacity_routing_preview" do
+    let(:user) { create(:user, role: "admin") }
+
+    it "renders the preview page for admins" do
+      sign_in user
+      get capacity_routing_preview_path
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Capacity routing preview (Phase 3)")
+    end
+  end
 end

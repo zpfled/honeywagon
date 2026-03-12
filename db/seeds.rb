@@ -52,6 +52,14 @@ def seed_unit(unit_type:, serial:, manufacturer:, status: "available")
   end
 end
 
+def seed_ninety_day_tasks(company:, base_date: Date.current)
+  seeder = Tasks::NinetyDayPlanSeeder.new(company: company, base_date: base_date)
+  return if seeder.send(:already_seeded?)
+
+  seeder.call
+  created(Task.new)
+end
+
 def build_unit_type_requests(requests, unit_types)
   Array(requests).map do |req|
     unit_type = unit_types.fetch(req[:unit_type_slug].to_s)
@@ -497,6 +505,13 @@ ActiveRecord::Base.transaction do
     apply_final_status(order, config[:final_status])
 
     was_new ? created(order) : reused(order)
+  end
+
+  banner "Seeding 90-Day Tasks"
+  if Tasks::NinetyDayPlanSeeder.new(company: primary_company).send(:already_seeded?)
+    puts "• Skipping: 90-day tasks already seeded."
+  else
+    seed_ninety_day_tasks(company: primary_company)
   end
 end
 

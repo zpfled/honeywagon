@@ -37,7 +37,12 @@ export default class extends Controller {
   renderSuggestions(suggestions) {
     if (!this.hasResultsTarget) return
     if (suggestions.length === 0) {
-      this.clearSuggestions()
+      this.resultsTarget.innerHTML = ""
+      const empty = document.createElement("div")
+      empty.textContent = "No suggestions found"
+      empty.className = "px-3 py-2 text-left text-sm text-gray-500"
+      this.resultsTarget.appendChild(empty)
+      this.resultsTarget.classList.remove("hidden")
       return
     }
 

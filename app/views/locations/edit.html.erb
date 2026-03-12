@@ -1,0 +1,40 @@
+<turbo-frame id="location_modal">
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 px-4 py-6" data-controller="modal" data-action="keyup@window->modal#maybeClose">
+    <div class="absolute inset-0" data-action="click->modal#close"></div>
+
+    <div class="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
+      <div class="flex items-start justify-between">
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Edit Location</h2>
+          <p class="text-sm text-gray-600">Update coordinates and address details for routing.</p>
+        </div>
+        <button class="text-gray-400 hover:text-gray-700" data-action="click->modal#close">
+          <span class="sr-only">Close</span>
+          ✕
+        </button>
+      </div>
+
+      <%= form_with model: @location,
+        url: location_path(@location),
+        method: :patch,
+        class: "mt-6 space-y-4",
+        data: {
+          controller: "address-autocomplete",
+          address_autocomplete_suggestions_url_value: api_places_autocomplete_path,
+          address_autocomplete_details_url_value: api_places_details_path
+        } do |f| %>
+        <%= render "locations/form_fields", f: f, location: @location %>
+
+        <div class="flex justify-end gap-3 pt-2">
+          <button type="button"
+            class="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+            data-action="click->modal#close">
+            Cancel
+          </button>
+          <%= f.submit "Save location",
+            class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</turbo-frame>

@@ -4,6 +4,9 @@ module Routes
     # when a truck/trailer would exceed its limits. Later we can insert dump
     # stops automatically, but for now we just report violations so the UX
     # can surface them.
+    # NOTE: Routes::CapacityRouting::RouteState now tracks similar resource
+    # state in the upstream planner. Refactor is intentionally deferred for this
+    # pass to avoid coupling optimizer behavior changes into algorithm rollout.
     class CapacitySimulator
       Step = Struct.new(
         :event_id,
@@ -80,7 +83,7 @@ module Routes
       attr_reader :route, :ordered_events
 
       def load_events_in_order(ids)
-        @events_by_id = route.service_events.where(id: ids).index_by(&:id)
+        @events_by_id = route.ordered_service_event_relation(not_skipped: true).where(id: ids).index_by(&:id)
         ids.map { |id| @events_by_id[id] }.compact
       end
 

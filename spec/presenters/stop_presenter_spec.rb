@@ -61,4 +61,30 @@ RSpec.describe StopPresenter do
     expect(presenter.disable_move_later?).to be(true)
     expect(presenter.disable_move_earlier?).to be(true)
   end
+
+  describe '#uncomplete_available?' do
+    it 'is false when the service event is not completed' do
+      expect(described_class.new(create(:service_event, :service, status: :scheduled)).uncomplete_available?).to be(false)
+    end
+
+    it 'is true for completed service events without a report' do
+      expect(described_class.new(create(:service_event, :delivery, status: :completed)).uncomplete_available?).to be(true)
+    end
+
+    it 'is true for completed events with a zero-gallon report value' do
+      event = create(:service_event, :service)
+      event.update!(status: :completed)
+      event.service_event_report.update!(data: { estimated_gallons_pumped: '0' })
+
+      expect(described_class.new(event).uncomplete_available?).to be(true)
+    end
+
+    it 'is false for completed events with positive gallons' do
+      event = create(:service_event, :service)
+      event.update!(status: :completed)
+      event.service_event_report.update!(data: { estimated_gallons_pumped: '15' })
+
+      expect(described_class.new(event).uncomplete_available?).to be(false)
+    end
+  end
 end

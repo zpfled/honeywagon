@@ -48,6 +48,48 @@
           </div>
         </div>
 
+        <div class="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+          <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Operational thresholds (blank = default)</p>
+          <div class="grid gap-3 md:grid-cols-2">
+            <div>
+              <%= f.label :waste_yellow_threshold_pct, "Waste Tank: Warning Level (%, default 65)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :waste_yellow_threshold_pct, min: 0, max: 100, placeholder: "65", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :waste_red_threshold_pct, "Waste Tank: Priority Level (%, default 85)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :waste_red_threshold_pct, min: 0, max: 100, placeholder: "85", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :waste_red_nearby_miles, "Waste Tank: Priority Radius (miles, default 5)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :waste_red_nearby_miles, min: 0, step: "0.1", placeholder: "5", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :waste_early_dump_proximity_miles, "Waste Tank: Early Dump Threshold (miles, default 10)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :waste_early_dump_proximity_miles, min: 0, step: "0.1", placeholder: "10", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :water_yellow_threshold_pct, "Clean Water: Warning Level (%, default 35)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :water_yellow_threshold_pct, min: 0, max: 100, placeholder: "35", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :water_red_threshold_pct, "Clean Water: Priority Level (%, default 15)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :water_red_threshold_pct, min: 0, max: 100, placeholder: "15", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :water_red_nearby_miles, "Clean Water: Priority Radius (miles, default 5)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :water_red_nearby_miles, min: 0, step: "0.1", placeholder: "5", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :water_early_refill_proximity_miles, "Clean Water: Early Refill Threshold (miles, default 10)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :water_early_refill_proximity_miles, min: 0, step: "0.1", placeholder: "10", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+            <div>
+              <%= f.label :water_min_reserve_gal, "Clean Water: Minimum Reserve (gal, default 10)", class: "text-xs font-medium text-gray-600" %>
+              <%= f.number_field :water_min_reserve_gal, min: 0, placeholder: "10", class: "mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" %>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3 pt-2">
           <button type="button" class="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50" data-action="click->modal#close">Cancel</button>
           <%= f.submit "Save truck", class: "inline-flex items-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800" %>

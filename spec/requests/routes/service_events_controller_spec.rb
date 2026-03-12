@@ -21,7 +21,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         service_event.reload
         expect(service_event.route).to eq(next_route)
         expect(service_event.route_date).to eq(next_route.route_date)
-        expect(flash[:notice]).to eq('Service event postponed to the next route.')
+        expect(flash[:notice]).to include('Service event moved to route for')
       end
     end
 
@@ -54,7 +54,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         expect(response).to redirect_to(route_path(previous_route))
         service_event.reload
         expect(service_event.route).to eq(previous_route)
-        expect(flash[:notice]).to eq('Service event moved to the previous route.')
+        expect(flash[:notice]).to include('Service event moved to route for')
       end
     end
 
@@ -71,7 +71,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         service_event.reload
         expect(service_event.route).to eq(new_route)
         expect(service_event.route_date).to eq(new_route.route_date)
-        expect(flash[:notice]).to eq('Service event moved to the previous route.')
+        expect(flash[:notice]).to include('Service event moved to route for')
       end
     end
   end
@@ -138,6 +138,92 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
         expect(pickup_order.status).to eq('completed')
         expect(pickup_order.end_date).to eq(Date.new(2024, 1, 5))
       end
+    end
+  end
+
+  describe 'POST /routes/:route_id/service_events/:id/skip' do
+    include ActiveSupport::Testing::TimeHelpers
+
+    let(:route) { create(:route, company: company, route_date: Date.current) }
+    let(:order) { create(:order, company: company, created_by: user, start_date: Date.current - 1, end_date: Date.current + 30) }
+    let(:unit_type) { create(:unit_type, company: company) }
+    let(:rate_plan) { create(:rate_plan, unit_type: unit_type, service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly]) }
+    let!(:rental_line_item) { create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan) }
+    let(:service_event) { create(:service_event, order: order, route: route, route_date: route.route_date, event_type: :service) }
+    let!(:future_event) { create(:service_event, order: order, event_type: :service, scheduled_on: Date.current + 3.days) }
+
+    it 'marks the service event as skipped and reschedules future events' do
+      travel_to Date.new(2024, 1, 1) do
+        post skip_route_service_event_path(route, service_event), params: { skip_reason: 'Gate locked' }
+      end
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:notice]).to eq('Service event marked skipped.')
+      service_event.reload
+      expect(service_event).to be_status_skipped
+      expect(service_event.skip_reason).to eq('Gate locked')
+      expect(service_event.skipped_on).to eq(Date.new(2024, 1, 1))
+      expect(future_event.reload.scheduled_on).to eq(Date.new(2024, 1, 8))
+    ensure
+      travel_back
+    end
+  end
+
+  describe 'POST /routes/:route_id/service_events/:id/uncomplete' do
+    let(:route) { create(:route, company: company, route_date: Date.current) }
+    let(:order) { create(:order, company: company, created_by: user) }
+    let(:unit_type) { create(:unit_type, company: company) }
+    let(:rate_plan) { create(:rate_plan, unit_type: unit_type, service_schedule: RatePlan::SERVICE_SCHEDULES[:weekly]) }
+    let!(:rental_line_item) { create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan) }
+    let(:service_event) { create(:service_event, :service, order: order, route: route, route_date: route.route_date) }
+    let(:completed_service_event) { create(:service_event, :service, order: order, route: route, route_date: route.route_date) }
+
+    it 'reverts a completed event to scheduled when uncomplete is safe' do
+      completed_service_event.update!(status: :completed)
+      completed_service_event.update_column(:completed_on, Date.current)
+
+      post uncomplete_route_service_event_path(route, completed_service_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:notice]).to eq('Service event marked not completed.')
+
+      completed_service_event.reload
+      expect(completed_service_event).to be_status_scheduled
+      expect(completed_service_event.completed_on).to be_nil
+    end
+
+    it 'reverts a delivery completion without a report' do
+      delivery_event = create(:service_event, :delivery, order: order, route: route, route_date: route.route_date, status: :completed)
+
+      post uncomplete_route_service_event_path(route, delivery_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:notice]).to eq('Service event marked not completed.')
+      delivery_event.reload
+      expect(delivery_event).to be_status_scheduled
+    end
+
+    it 'rejects uncomplete when report has recorded gallons' do
+      completed_service_event.update!(status: :completed)
+      completed_service_event.service_event_report.update!(data: { estimated_gallons_pumped: '11' })
+
+      post uncomplete_route_service_event_path(route, completed_service_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:alert]).to eq('This service event cannot be uncompleted because it has a completed service log with gallons recorded.')
+
+      completed_service_event.reload
+      expect(completed_service_event).to be_status_completed
+      expect(completed_service_event.service_event_report.data['estimated_gallons_pumped']).to eq('11')
+    end
+
+    it 'rejects uncomplete for non-completed events' do
+      post uncomplete_route_service_event_path(route, service_event)
+
+      expect(response).to redirect_to(route_path(route))
+      expect(flash[:alert]).to eq('Only completed service events can be uncompleted.')
+      service_event.reload
+      expect(service_event).to be_status_scheduled
     end
   end
 end
