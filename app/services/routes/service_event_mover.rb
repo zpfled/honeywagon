@@ -2,12 +2,13 @@ module Routes
   class ServiceEventMover
     def initialize(service_event)
       @service_event = service_event
-      @route = service_event.route
+      @route = resolve_route
       @company = service_event.order&.company || @route&.company
     end
 
     def move_to_next
-      return locked_failure('Deliveries must stay on or before their scheduled date.') if service_event.prevent_move_later?
+      return locked_failure('Completed events cannot be moved.') if service_event.status_completed?
+      return locked_failure('Deliveries must stay on or before the order start date.') if service_event.prevent_move_later?
 
       target_route = next_candidate
       return failure('Unable to postpone service event.') unless target_route
@@ -16,6 +17,7 @@ module Routes
     end
 
     def move_to_previous
+      return locked_failure('Completed events cannot be moved.') if service_event.status_completed?
       return locked_failure('Pickups must stay on or before their scheduled date.') if service_event.prevent_move_earlier?
 
       target_route = previous_candidate
@@ -28,33 +30,36 @@ module Routes
 
     attr_reader :service_event, :route, :company
 
+    def resolve_route
+      service_event.route ||
+        RouteStop.includes(:route).where(service_event_id: service_event.id).order(:position).first&.route
+    end
+
     def move_to_route(target_route, success_message)
       source_route = route
-      source_stop = source_route&.route_stops&.find_by(service_event_id: service_event.id) if source_route&.has_stop_projection?
+      source_stop = source_route&.route_stops&.find_by(service_event_id: service_event.id)
+      existing_stop = RouteStop.find_by(service_event_id: service_event.id)
 
-      service_event.assign_attributes(
-        route: target_route,
-        route_date: target_route.route_date,
-        scheduled_on: target_route.route_date
-      )
+      new_position = target_route.route_stops.maximum(:position).to_i + 1
 
       ActiveRecord::Base.transaction do
-        service_event.save!
+        source_stop&.destroy!
+        source_route&.synchronize_route_sequence_with_stops!
 
-        source_stop.destroy! if source_stop
-        source_route&.synchronize_route_sequence_with_stops! if source_route&.has_stop_projection?
-
-        if target_route.has_stop_projection?
-          target_route.append_service_event_stop!(service_event, created_by: nil)
-          target_route.synchronize_route_sequence_with_stops!
+        if existing_stop && existing_stop != source_stop
+          existing_stop.update!(route: target_route, position: new_position, status: service_event.status)
         else
-          next_sequence = target_route.service_events.maximum(:route_sequence).to_i + 1
-          service_event.update_column(:route_sequence, next_sequence)
+          target_route.route_stops.create!(
+            service_event: service_event,
+            position: new_position,
+            status: service_event.status
+          )
         end
-
-        if target_route.generation_run.blank? && source_route&.generation_run.present?
-          target_route.update_column(:generation_run_id, source_route.generation_run_id)
-        end
+        # Reload to clear association cache so logistics validation reads the
+        # newly assigned route stop (important for pickup/delivery constraints).
+        service_event.reload
+        service_event.update!(scheduled_on: target_route.route_date)
+        target_route.synchronize_route_sequence_with_stops!
       end
 
       service_event.reload
@@ -78,31 +83,14 @@ module Routes
     def next_candidate
       return unless route && company
 
-      if route.generation_run.present?
-        candidate = company.routes
-                           .where(generation_run: route.generation_run)
-                           .where('route_date > ?', route.route_date)
-                           .order(route_date: :asc)
-                           .first
-        return candidate if candidate
-      end
+      scope = company.routes.where('route_date > ?', route.route_date)
+      scope = scope.where('route_date <= ?', service_event.latest_delivery_date) if service_event.latest_delivery_date.present?
 
-      company.routes.where('route_date > ?', route.route_date)
-             .order(:route_date)
-             .first || create_next_route
+      scope.order(:route_date).first || create_next_route
     end
 
     def previous_candidate
       return unless route && company
-
-      if route.generation_run.present?
-        candidate = company.routes
-                           .where(generation_run: route.generation_run)
-                           .where('route_date < ?', route.route_date)
-                           .order(route_date: :desc)
-                           .first
-        return candidate if candidate
-      end
 
       company.routes
              .where('route_date < ?', route.route_date)
@@ -111,11 +99,12 @@ module Routes
     end
 
     def create_next_route
+      return if service_event.latest_delivery_date.present? && route.route_date >= service_event.latest_delivery_date
+
       company.routes.create!(
         route_date: route.route_date + 1.day,
         truck: route.truck,
-        trailer: route.trailer,
-        generation_run: route&.generation_run
+        trailer: route.trailer
       )
     end
 
@@ -123,8 +112,7 @@ module Routes
       company.routes.create!(
         route_date: route.route_date - 1.day,
         truck: route.truck,
-        trailer: route.trailer,
-        generation_run: route&.generation_run
+        trailer: route.trailer
       )
     end
 

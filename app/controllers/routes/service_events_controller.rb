@@ -3,6 +3,13 @@ module Routes
     before_action :set_route
     before_action :set_service_event
 
+    def assign
+      result = Routes::ServiceEventAssigner.new(service_event: @service_event, route: @route, actor: current_user).call
+      status = result.success? ? :ok : :unprocessable_content
+
+      render json: { status: result.success? ? 'ok' : 'error', message: result.message }, status: status
+    end
+
     def postpone
       Rails.logger.info("[ServiceEventsController] postpone event=#{@service_event.id} route=#{@route.id}")
       result = Routes::ServiceEventMover.new(@service_event).move_to_next
@@ -51,7 +58,8 @@ module Routes
     end
 
     def set_service_event
-      @service_event = @route.service_events.find(params[:id])
+      scope = action_name == 'assign' ? current_user.company.service_events.scheduled : @route.service_events
+      @service_event = scope.find(params[:id])
     end
 
     def redirect_with_result(result)

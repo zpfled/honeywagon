@@ -18,22 +18,22 @@ RSpec.describe Routes::MergeService do
 
     expect(result.success?).to be(true)
     expect(Route.exists?(source.id)).to be(false)
-    expect(second_event.reload.route_id).to eq(target.id)
+    expect(second_event.reload.route).to eq(target)
     expect(second_event.route_date).to eq(target.route_date)
-    expect(second_event.route_sequence).to be > first_event.route_sequence
+    first_position = target.route_stops.find_by(service_event_id: first_event.id)&.position
+    second_position = target.route_stops.find_by(service_event_id: second_event.id)&.position
+    expect(second_position).to be > first_position
   end
 
   it 'moves source projected stops onto target projected stops' do
     target = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
     source = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current + 1)
 
-    first_order = create(:order, company: company)
-    second_order = create(:order, company: company)
-    first_event = create(:service_event, :service, order: first_order, route: target, route_date: target.route_date)
-    second_event = create(:service_event, :service, order: second_order, route: source, route_date: source.route_date)
+    first_event = create(:service_event, :service, order: nil, scheduled_on: target.route_date)
+    second_event = create(:service_event, :service, order: nil, scheduled_on: source.route_date)
 
-    create(:route_stop, route: target, service_event: first_event, route_date: target.route_date, position: 0)
-    create(:route_stop, route: source, service_event: second_event, route_date: source.route_date, position: 0)
+    create(:route_stop, route: target, service_event: first_event, position: 0)
+    create(:route_stop, route: source, service_event: second_event, position: 0)
 
     result = described_class.call(source: source, target: target)
 
@@ -51,5 +51,18 @@ RSpec.describe Routes::MergeService do
     result = described_class.call(source: route, target: route)
 
     expect(result.success?).to be(false)
+  end
+
+  it 'refuses to merge when the source route has completed events' do
+    target = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
+    source = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current + 1.day)
+    completed_event = create(:service_event, :service, :completed, order: nil, route: source, scheduled_on: source.route_date)
+
+    result = described_class.call(source: source, target: target)
+
+    expect(result.success?).to be(false)
+    expect(result.errors.join).to include('completed events')
+    expect(Route.exists?(source.id)).to be(true)
+    expect(RouteStop.exists?(route_id: source.id, service_event_id: completed_event.id)).to be(true)
   end
 end

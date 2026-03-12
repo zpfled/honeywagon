@@ -37,6 +37,13 @@ RSpec.describe "/orders", type: :request do
   describe "new order form scoping" do
     before { sign_in user }
 
+    def location_option_texts
+      Nokogiri::HTML.parse(response.body)
+                   .css("select#order_location_id option")
+                   .map { |node| node.text.strip }
+                   .reject { |text| text.blank? || text == "Select location" }
+    end
+
     it "only lists the current company's unit types in the line item selector" do
       own_type   = create(:unit_type, name: "Own Type", company: user.company)
       other_type = create(:unit_type, name: "Other Type")
@@ -65,6 +72,28 @@ RSpec.describe "/orders", type: :request do
 
       expect(response.body).to include(own_location.display_label)
       expect(response.body).not_to include(other_location.display_label)
+    end
+
+    it "disables the location dropdown and shows no customer locations until a customer is selected" do
+      customer = create(:customer, company: user.company)
+      create(:location, label: "Customer Site", customer: customer)
+
+      get new_order_path
+
+      html = Nokogiri::HTML.parse(response.body)
+      expect(html.at_css("select#order_location_id")["disabled"]).to eq("disabled")
+      expect(location_option_texts).to be_empty
+    end
+
+    it "filters visible locations to the selected customer" do
+      customer = create(:customer, company: user.company)
+      other_customer = create(:customer, company: user.company)
+      matching_location = create(:location, label: "Matching Site", customer: customer)
+      create(:location, label: "Other Site", customer: other_customer)
+
+      get new_order_path(customer_id: customer.id)
+
+      expect(location_option_texts).to eq([ matching_location.display_label ])
     end
   end
 

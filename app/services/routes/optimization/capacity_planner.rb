@@ -123,7 +123,6 @@ module Routes
         event = build_event(
           event_type: :dump,
           scheduled_on: event_date,
-          route_date: event_date,
           dump_site: dump_site
         )
         append_route_stop(event) if event
@@ -135,15 +134,14 @@ module Routes
 
         event = build_event(
           event_type: :refill,
-          scheduled_on: event_date,
-          route_date: event_date
+          scheduled_on: event_date
         )
         append_route_stop(event) if event
         event
       end
 
       def append_route_stop(event)
-        return if event.blank? || !route.has_stop_projection?
+        return if event.blank?
 
         route.append_service_event_stop!(event)
       end
@@ -153,7 +151,7 @@ module Routes
         user = route.company.users.first
         return nil unless user
 
-        route.service_events.create!(
+        ServiceEvent.create!(
           attrs.merge(
             status: :scheduled,
             auto_generated: true,

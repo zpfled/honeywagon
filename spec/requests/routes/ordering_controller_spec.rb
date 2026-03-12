@@ -21,8 +21,8 @@ RSpec.describe 'Routes::OrderingController', type: :request do
     end
 
     it 'reorders events when manual optimization succeeds' do
-      event_a = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
-      event_b = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
+      event_a = create(:service_event, :service, route: route, order: nil, scheduled_on: route.route_date)
+      event_b = create(:service_event, :service, route: route, order: nil, scheduled_on: route.route_date)
       ordered_ids = [ event_b.id, event_a.id ]
 
       expect(Routes::Optimization::ManualRun).to receive(:call)
@@ -34,11 +34,12 @@ RSpec.describe 'Routes::OrderingController', type: :request do
       expect(response).to redirect_to(route_path(route))
       expect(flash[:notice]).to include('Route updated')
       expect(flash[:notice]).to include('Heads up')
-      expect(event_b.reload.route_sequence).to be < event_a.reload.route_sequence
+      expect(route.reload.route_stops.order(:position).pluck(:service_event_id)).to eq([ event_b.id, event_a.id ])
     end
 
     it 'shows errors when manual optimization fails' do
-      event = create(:service_event, :service, route: route, order: create(:order, company: company, status: 'scheduled'))
+      event = create(:service_event, :service, route: route, order: nil, scheduled_on: route.route_date)
+      initial_stop = route.route_stops.find_by(service_event_id: event.id)
       expect(Routes::Optimization::ManualRun).to receive(:call)
         .with(route, [ event.id ])
         .and_return(manual_run_result(success: false, errors: [ 'Invalid stop' ]))
@@ -47,7 +48,10 @@ RSpec.describe 'Routes::OrderingController', type: :request do
 
       expect(response).to redirect_to(route_path(route))
       expect(flash[:alert]).to include('Invalid stop')
-      expect(event.reload.route_sequence).to eq(event.route_sequence) # unchanged
+      updated_stop = route.reload.route_stops.find_by(service_event_id: event.id)
+      expect(updated_stop).to be_present
+      expect(updated_stop.id).to eq(initial_stop&.id)
+      expect(updated_stop.route_id).to eq(route.id)
     end
   end
 end

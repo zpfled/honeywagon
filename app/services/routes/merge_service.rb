@@ -13,13 +13,10 @@ module Routes
 
     def call
       return Result.new(success?: false, errors: [ 'Route merge requires two different routes.' ]) if source.id == target.id
+      return Result.new(success?: false, errors: [ 'Cannot merge routes that include completed events.' ]) if completed_stops_in_source?
 
       ActiveRecord::Base.transaction do
-        if source.has_stop_projection? || target.has_stop_projection?
-          append_stops_to_target!
-        else
-          append_events_to_target!
-        end
+        append_stops_to_target!
         source.destroy!
       end
 
@@ -34,40 +31,30 @@ module Routes
 
     def append_stops_to_target!
       sequence = start_sequence_for_target
-      source.ordered_service_events.each do |event|
-        event.update!(
-          route: target,
-          route_date: target.route_date,
-          scheduled_on: target.route_date,
-          route_sequence: sequence
-        )
+      source.ordered_route_stops.includes(:service_event).each do |source_stop|
+        event = source_stop.service_event
+        next unless event
 
-        if target.has_stop_projection?
-          target.append_service_event_stop!(event, position: sequence)
-        end
+        source_stop.update!(
+          route: target,
+          position: sequence,
+          status: event.status
+        )
+        event.update!(scheduled_on: target.route_date)
 
         sequence += 1
       end
     end
 
     def start_sequence_for_target
-      if target.has_stop_projection?
-        target.route_stops.where(route_id: target.id).maximum(:position).to_i + 1
-      else
-        target.service_events.maximum(:route_sequence).to_i + 1
-      end
+      target.route_stops.maximum(:position).to_i + 1
     end
 
-    def append_events_to_target!
-      sequence = target.service_events.maximum(:route_sequence).to_i
-      source.service_events.order(:route_sequence, :created_at).find_each do |event|
-        sequence += 1
-        event.update!(
-          route_id: target.id,
-          route_date: target.route_date,
-          route_sequence: sequence
-        )
-      end
+    def completed_stops_in_source?
+      source.route_stops
+            .joins(:service_event)
+            .where(service_events: { status: ServiceEvent.statuses[:completed] })
+            .exists?
     end
   end
 end

@@ -6,6 +6,47 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
 
   before { sign_in user }
 
+  describe 'POST /routes/:route_id/service_events/:id/assign' do
+    around do |example|
+      Routes::ServiceEventRouter.without_auto_assignment do
+        Route.without_auto_assignment { example.run }
+      end
+    end
+
+    let(:route) { create(:route, company: company, route_date: Date.current + 1.day) }
+    let(:order) { create(:order, company: company, created_by: user) }
+    let(:service_event) { create(:service_event, order: order, user: user, scheduled_on: Date.current, route: nil) }
+
+    it 'appends the unassigned event to the route and aligns the scheduled date' do
+      existing_event = create(:service_event, order: order, user: user, scheduled_on: route.route_date, route: route)
+
+      post assign_route_service_event_path(route, service_event), as: :json
+
+      expect(response).to have_http_status(:ok)
+      expect(JSON.parse(response.body)).to include('status' => 'ok')
+
+      service_event.reload
+      expect(service_event.route).to eq(route)
+      expect(service_event.scheduled_on).to eq(route.route_date)
+      expect(route.ordered_service_events).to eq([ existing_event, service_event ])
+    end
+
+    it 'rejects assigning an event already attached to a different route' do
+      other_route = create(:route, company: company, route_date: Date.current)
+      service_event.update!(scheduled_on: other_route.route_date)
+      other_route.append_service_event_stop!(service_event)
+
+      post assign_route_service_event_path(route, service_event), as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)).to include(
+        'status' => 'error',
+        'message' => 'Service event is already assigned to a different route.'
+      )
+      expect(service_event.reload.route).to eq(other_route)
+    end
+  end
+
   describe 'POST /routes/:route_id/service_events/:id/postpone' do
     let(:route) { create(:route, company: company, route_date: Date.current) }
     let(:order) { create(:order, company: company, created_by: user) }
@@ -101,7 +142,7 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
     end
 
     context 'when completing a delivery event' do
-      let(:delivery_order) { create(:order, company: company, created_by: user, start_date: Date.current - 1, end_date: Date.current + 10, status: 'scheduled') }
+      let(:delivery_order) { create(:order, company: company, created_by: user, start_date: Date.current, end_date: Date.current + 10, status: 'scheduled') }
       let(:delivery_event) do
         create(:service_event, :delivery,
                order: delivery_order,
@@ -193,7 +234,15 @@ RSpec.describe 'Routes::ServiceEventsController', type: :request do
     end
 
     it 'reverts a delivery completion without a report' do
-      delivery_event = create(:service_event, :delivery, order: order, route: route, route_date: route.route_date, status: :completed)
+      delivery_event = create(
+        :service_event,
+        :delivery,
+        order: order,
+        route: route,
+        route_date: route.route_date,
+        scheduled_on: route.route_date,
+        status: :completed
+      )
 
       post uncomplete_route_service_event_path(route, delivery_event)
 

@@ -1,11 +1,13 @@
 <%= turbo_stream.update "order_location_id" do %>
-  <%= options_for_select([["Select location", ""]]) +
-      options_from_collection_for_select(
-        current_user.company.locations.order(:label),
-        :id,
-        :display_label,
-        @location.id
-      ) %>
+  <%= render "orders/location_options",
+    locations: @location.customer.locations.order(:label),
+    selected_location_id: @location.id %>
+<% end %>
+
+<%= turbo_stream.update "order_location_options_store" do %>
+  <%= render "orders/location_options",
+    locations: current_user.company.locations.order(:label),
+    selected_location_id: nil %>
 <% end %>
 
 <%= turbo_stream.update "location_modal", "" %>

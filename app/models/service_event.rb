@@ -6,9 +6,10 @@ class ServiceEvent < ApplicationRecord
   belongs_to :order, optional: true
   belongs_to :service_event_type
   belongs_to :user
-  belongs_to :route, optional: true
   belongs_to :deleted_by, class_name: 'User', optional: true
   has_many :route_stops, dependent: :destroy
+  has_one :primary_route_stop, -> { order(:position) }, class_name: 'RouteStop'
+  has_one :route, through: :primary_route_stop
   has_one :service_event_report, dependent: :destroy
   belongs_to :dump_site, optional: true
   has_many :service_event_units, dependent: :destroy
@@ -24,18 +25,12 @@ class ServiceEvent < ApplicationRecord
 
   before_validation :assign_service_event_type, if: -> { service_event_type_id.blank? && event_type.present? }
   before_validation :inherit_user_from_order, if: -> { order.present? && user_id.blank? }
-  before_validation :default_route_date
-  before_validation :assign_route_sequence, on: :create
-  before_validation :reset_route_sequence_for_new_route, if: -> { will_save_change_to_route_id? && route_id.present? }
   after_update_commit :ensure_report_for_completion, if: :saved_change_to_status?
   after_update_commit :stamp_completed_on, if: -> { saved_change_to_status? && status_completed? }
   after_update_commit :stamp_skipped_on, if: -> { saved_change_to_status? && status_skipped? }
   after_update_commit :complete_order_after_pickup, if: -> { saved_change_to_status? && status_completed? && event_type_pickup? }
-  before_destroy :remember_route_for_cleanup
-  after_commit :auto_assign_route, on: :create
   after_commit :refresh_truck_waste_load, if: :affects_truck_waste_load?
-  after_commit :cleanup_empty_routes, on: [ :update, :destroy ]
-  after_commit :flag_routes_for_reoptimization, on: [ :create, :update, :destroy ]
+  after_commit :auto_assign_route, on: :create
 
   # Scope returning only auto-generated events that can be safely regenerated.
   scope :auto_generated, -> { where(auto_generated: true) }
@@ -71,7 +66,13 @@ class ServiceEvent < ApplicationRecord
   end
 
   def prevent_move_later?
-    event_type_delivery?
+    event_type_delivery? && latest_delivery_date.present? && scheduled_on.present? && scheduled_on >= latest_delivery_date
+  end
+
+  def latest_delivery_date
+    return unless event_type_delivery?
+
+    order&.start_date || scheduled_on
   end
 
   def units_impacted_count
@@ -169,9 +170,10 @@ class ServiceEvent < ApplicationRecord
   def estimated_fuel_cost_cents
     return nil unless drive_distance_meters.to_f.positive?
 
-    truck = route&.truck
+    assigned_route = route || route_stops.includes(:route).order(:position).first&.route
+    truck = assigned_route&.truck
     mpg = truck&.miles_per_gallon.to_f
-    price_cents = route&.company&.fuel_price_per_gal_cents.to_i
+    price_cents = assigned_route&.company&.fuel_price_per_gal_cents.to_i
     return nil if mpg <= 0 || price_cents <= 0
 
     miles = drive_distance_meters.to_f / 1609.34
@@ -184,6 +186,10 @@ class ServiceEvent < ApplicationRecord
 
   def soft_delete!(user:)
     update!(deleted_at: Time.current, deleted_by: user)
+  end
+
+  def route_date
+    current_assigned_route_date
   end
 
   private
@@ -270,103 +276,43 @@ class ServiceEvent < ApplicationRecord
 
   public :uncompletion_allowed?
 
-  def default_route_date
-    self.route_date ||= route&.route_date || scheduled_on
-  end
-
-  def assign_route_sequence
-    return unless route_id.present? && route_sequence.nil?
-
-    max_sequence = ServiceEvent.where(route_id: route_id).maximum(:route_sequence)
-    self.route_sequence = max_sequence.to_i + 1
-  end
-
-  def reset_route_sequence_for_new_route
-    self.route_sequence = nil
-    assign_route_sequence
-  end
-
   def auto_assign_route
-    return if route_id.present? || order.blank?
+    return if primary_route_stop.present? || order.blank?
 
     Routes::ServiceEventRouter.new(self).call
   end
 
   def delivery_route_date
-    route_date || route&.route_date || scheduled_on
+    current_assigned_route_date || scheduled_on
   end
 
   def refresh_truck_waste_load
-    affected_trucks = []
-    affected_trucks << route&.truck if route&.truck.present?
-
-    if saved_change_to_route_id?
-      previous_route_id = saved_change_to_route_id.first
-      if previous_route_id
-        previous_route = Route.find_by(id: previous_route_id)
-        affected_trucks << previous_route&.truck
-      end
+    route_stops.includes(route: :truck).map(&:route).compact.uniq.each do |assigned_route|
+      assigned_route.truck&.recalculate_waste_load!
     end
-
-    affected_trucks.compact.uniq.each(&:recalculate_waste_load!)
   end
 
   def affects_truck_waste_load?
-    status_transition_affects_load? ||
-      (status_completed? && (saved_change_to_estimated_gallons_override? ||
-                             previous_changes.key?('deleted_at') ||
-                             saved_change_to_route_id?))
-  end
-
-  def status_transition_affects_load?
-    return false unless saved_change_to_status?
-
-    status_completed? || saved_change_to_status&.first == 'completed'
+    saved_change_to_status? ||
+      saved_change_to_estimated_gallons_override? ||
+      saved_change_to_event_type? ||
+      previous_changes.key?('deleted_at')
   end
 
   def enforce_logistics_schedule
-    return if scheduled_on.blank? || route_date.blank?
+    assigned_route_date = current_assigned_route_date
+    return if scheduled_on.blank? || assigned_route_date.blank?
 
-    if event_type_delivery? && route_date > scheduled_on
-      errors.add(:route_date, 'cannot be after the scheduled date for deliveries')
+    if event_type_delivery? && latest_delivery_date.present? && assigned_route_date > latest_delivery_date
+      errors.add(:route_date, 'cannot be after the order start date for deliveries')
     end
 
-    if event_type_pickup? && route_date < scheduled_on
+    if event_type_pickup? && assigned_route_date < scheduled_on
       errors.add(:route_date, 'cannot be before the scheduled date for pickups')
     end
   end
 
-  def cleanup_empty_routes
-    previous_id = saved_change_to_route_id? ? saved_change_to_route_id.first : @route_id_for_cleanup
-    Routes::Lifecycle.after_service_event_change(self, previous_route_id: previous_id)
-  end
-
-  def remember_route_for_cleanup
-    @route_id_for_cleanup = route_id
-  end
-
-  def flag_routes_for_reoptimization
-    return if Route.auto_assignment_disabled?
-
-    return unless optimization_affecting_change?
-
-    ids = []
-    if destroyed?
-      ids << (@route_id_for_cleanup || saved_change_to_route_id&.first)
-    else
-      ids << route_id if route_id.present?
-      ids << saved_change_to_route_id&.first if saved_change_to_route_id?
-    end
-
-    ids.compact!
-    Route.where(id: ids).update_all(optimization_stale: true) if ids.present?
-  end
-
-  def optimization_affecting_change?
-    destroyed? ||
-      saved_change_to_route_id? ||
-      saved_change_to_route_date? ||
-      saved_change_to_scheduled_on? ||
-      saved_change_to_event_type?
+  def current_assigned_route_date
+    route_stops.joins(:route).order(:position).limit(1).pick('routes.route_date')
   end
 end

@@ -20,7 +20,7 @@ RSpec.describe Routes::DashboardRowPresenter do
                       route: route,
                       route_date: route_date,
                       scheduled_on: route_date)
-    delivery.update_column(:route_date, route_date + 1.day)
+    delivery.update_column(:scheduled_on, route_date - 1.day)
 
     create(:service_event, :service,
            order: order,

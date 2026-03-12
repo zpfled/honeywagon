@@ -3,7 +3,8 @@ require 'rails_helper'
 RSpec.describe StopPresenter do
   let(:order) { create(:order) }
   let(:dump_site) { create(:dump_site) }
-  let(:event) { create(:service_event, :delivery, order: order, route_sequence: 0, drive_distance_meters: 1609.34) }
+  let(:route) { create(:route, company: order.company) }
+  let(:event) { create(:service_event, :delivery, order: order, route: route, scheduled_on: route.route_date, drive_distance_meters: 1609.34) }
   let(:capacity_step) do
     instance_double(
       Routes::Optimization::CapacitySimulator::Step,

@@ -45,6 +45,21 @@ RSpec.describe "RoutesController", type: :request do
     end
   end
 
+  describe "POST /routes/reschedule_service_event" do
+    it "rejects moving a delivery later than the order start date" do
+      order = create(:order, company: user.company, created_by: user, start_date: Date.current, end_date: Date.current + 5.days)
+      service_event = create(:service_event, :delivery, order: order, scheduled_on: Date.current - 1.day)
+
+      post reschedule_service_event_routes_path, params: {
+        service_event_id: service_event.id,
+        target_date: (order.start_date + 1.day).to_s
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)).to include("status" => "error", "message" => "Deliveries cannot move later.")
+    end
+  end
+
   describe "PATCH /routes/:id" do
     it "updates a route on success" do
       route = create(:route, company: user.company, truck: truck, trailer: trailer)
@@ -89,30 +104,16 @@ RSpec.describe "RoutesController", type: :request do
   describe "GET /routes/calendar" do
     it "keeps unassigned due events visible in counts" do
       date = Date.current.beginning_of_week(:sunday)
-      scope = Routes::Generation::Scope.new(
-        company: user.company,
-        scope_start: date,
-        scope_end: date + 27.days,
-        strategy: 'capacity_v1'
-      )
-      run = create(
-        :route_generation_run,
-        company: user.company,
-        state: :active,
-        scope_key: scope.scope_key,
-        window_start: scope.window_start,
-        window_end: scope.window_end
-      )
-      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer, generation_run: run)
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      assigned_order = create(:order, company: user.company, start_date: date, end_date: date + 1.day)
-      assigned_event = create(:service_event, :service, order: assigned_order, route: route, scheduled_on: date, route_date: date)
-      create(:route_stop, route: route, service_event: assigned_event, route_date: date, position: 0)
+      assigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date + 1.day)
+      create(:service_event, :service, order: assigned_order, route: route, route_date: date, scheduled_on: date)
 
-      unassigned_order = create(:order, company: user.company, start_date: date, end_date: date + 1.day)
-      create(:service_event, :pickup, order: unassigned_order, scheduled_on: date)
+      unassigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date + 1.day)
+      unassigned_event = create(:service_event, :pickup, order: unassigned_order, scheduled_on: date)
+      unassigned_event.route_stops.destroy_all
 
-      get calendar_routes_path(start: date.to_s, run_id: run.id)
+      get calendar_routes_path(start: date.to_s)
 
       expect(response.body).to include('2 due · 1 assigned')
       expect(response.body).to include("Pickup · #{unassigned_order.customer.display_name}")
@@ -120,31 +121,14 @@ RSpec.describe "RoutesController", type: :request do
 
     it "counts only due event assignments when generated stops include dump events" do
       date = Date.current.beginning_of_week(:sunday)
-      scope = Routes::Generation::Scope.new(
-        company: user.company,
-        scope_start: date,
-        scope_end: date + 27.days,
-        strategy: 'capacity_v1'
-      )
-      run = create(
-        :route_generation_run,
-        company: user.company,
-        state: :active,
-        scope_key: scope.scope_key,
-        window_start: scope.window_start,
-        window_end: scope.window_end
-      )
-      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer, generation_run: run)
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      due_order = create(:order, company: user.company, start_date: date, end_date: date + 1.day)
-      due_event = create(:service_event, :service, order: due_order, route: route, scheduled_on: date, route_date: date)
+      due_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date + 1.day)
+      create(:service_event, :service, order: due_order, route: route, route_date: date, scheduled_on: date)
       dump_site = create(:dump_site, company: user.company)
-      dump_event = create(:service_event, :dump, route: route, route_date: date, scheduled_on: date, dump_site: dump_site)
+      create(:service_event, :dump, route: route, route_date: date, scheduled_on: date, dump_site: dump_site)
 
-      create(:route_stop, route: route, service_event: due_event, route_date: date, position: 0)
-      create(:route_stop, route: route, service_event: dump_event, route_date: date, position: 1)
-
-      get calendar_routes_path(start: date.to_s, run_id: run.id)
+      get calendar_routes_path(start: date.to_s)
 
       expect(response.body).to include('1 due · 1 assigned')
       expect(response.body).not_to include('Unassigned events')
@@ -154,67 +138,64 @@ RSpec.describe "RoutesController", type: :request do
   describe "GET /routes/day" do
     it "shows unassigned and assigned event buckets for a day" do
       date = Date.current
-      scope = Routes::Generation::Scope.new(
-        company: user.company,
-        scope_start: date.beginning_of_week(:sunday),
-        scope_end: date.beginning_of_week(:sunday) + 27.days,
-        strategy: 'capacity_v1'
-      )
-      run = create(
-        :route_generation_run,
-        company: user.company,
-        state: :active,
-        scope_key: scope.scope_key,
-        window_start: scope.window_start,
-        window_end: scope.window_end
-      )
-      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer, generation_run: run)
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      assigned_order = create(:order, company: user.company, start_date: date, end_date: date)
-      assigned_event = create(:service_event, :service, order: assigned_order, route: route, scheduled_on: date, route_date: date)
-      create(:route_stop, route: route, service_event: assigned_event, route_date: date, position: 0)
+      assigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date)
+      create(:service_event, :service, order: assigned_order, route: route, route_date: date, scheduled_on: date)
 
-      unassigned_order = create(:order, company: user.company, start_date: date, end_date: date)
-      create(:service_event, :service, order: unassigned_order, scheduled_on: date)
+      unassigned_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date)
+      unassigned_event = create(:service_event, :service, order: unassigned_order, scheduled_on: date)
+      unassigned_event.route_stops.destroy_all
 
-      get day_routes_path(date: date.to_s, run_id: run.id)
+      get day_routes_path(date: date.to_s)
 
       expect(response.body).to include('Unassigned due events')
-      expect(response.body).to include('Assigned in active run')
+      expect(response.body).to include('Routes for this day')
       expect(response.body).to include(assigned_order.customer.display_name)
       expect(response.body).to include(unassigned_order.customer.display_name)
     end
 
-    it "lists only due event assignments in the active run bucket" do
+    it "lists only due event assignments in the assigned bucket" do
       date = Date.current
-      scope = Routes::Generation::Scope.new(
-        company: user.company,
-        scope_start: date.beginning_of_week(:sunday),
-        scope_end: date.beginning_of_week(:sunday) + 27.days,
-        strategy: 'capacity_v1'
-      )
-      run = create(
-        :route_generation_run,
-        company: user.company,
-        state: :active,
-        scope_key: scope.scope_key,
-        window_start: scope.window_start,
-        window_end: scope.window_end
-      )
-      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer, generation_run: run)
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
 
-      due_order = create(:order, company: user.company, start_date: date, end_date: date)
-      due_event = create(:service_event, :pickup, order: due_order, route: route, scheduled_on: date, route_date: date)
+      due_order = create(:order, company: user.company, status: 'draft', start_date: date, end_date: date)
+      create(:service_event, :pickup, order: due_order, route: route, route_date: date, scheduled_on: date)
       dump_site = create(:dump_site, company: user.company)
-      dump_event = create(:service_event, :dump, route: route, scheduled_on: date, route_date: date, dump_site: dump_site)
+      create(:service_event, :dump, route: route, route_date: date, scheduled_on: date, dump_site: dump_site)
 
-      create(:route_stop, route: route, service_event: due_event, route_date: date, position: 0)
-      create(:route_stop, route: route, service_event: dump_event, route_date: date, position: 1)
-
-      get day_routes_path(date: date.to_s, run_id: run.id)
+      get day_routes_path(date: date.to_s)
 
       expect(response.body).to include(due_order.customer.display_name)
       expect(response.body).not_to include(dump_site.name)
+    end
+  end
+
+  describe "POST /routes/clear_day" do
+    it "clears future day routes when no completed events are present" do
+      date = Date.current + 2.days
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
+      event = create(:service_event, :service, order: nil, route: route, scheduled_on: date)
+
+      post clear_day_routes_path, params: { date: date.to_s }
+
+      expect(response).to redirect_to(day_routes_path(date: date, strategy: 'capacity_v1'))
+      expect(flash[:notice]).to include('Cleared 1 route')
+      expect(Route.exists?(route.id)).to be(false)
+      expect(RouteStop.exists?(service_event_id: event.id)).to be(false)
+    end
+
+    it "does not clear day routes when completed events are present" do
+      date = Date.current + 2.days
+      route = create(:route, company: user.company, route_date: date, truck: truck, trailer: trailer)
+      completed_event = create(:service_event, :service, :completed, order: nil, route: route, scheduled_on: date)
+
+      post clear_day_routes_path, params: { date: date.to_s }
+
+      expect(response).to redirect_to(day_routes_path(date: date, strategy: 'capacity_v1'))
+      expect(flash[:alert]).to include('completed events')
+      expect(Route.exists?(route.id)).to be(true)
+      expect(RouteStop.exists?(route_id: route.id, service_event_id: completed_event.id)).to be(true)
     end
   end
 end

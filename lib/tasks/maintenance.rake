@@ -18,10 +18,17 @@ namespace :maintenance do
       next if event.scheduled_on.blank?
 
       target_date = event.scheduled_on
-      next if event.route_date == target_date && event.route&.route_date == target_date
+      next if event.route&.route_date == target_date
 
       route = ensure_route_for(event, target_date)
-      event.update!(route: route, route_date: target_date)
+      ActiveRecord::Base.transaction do
+        stop = RouteStop.find_or_initialize_by(service_event: event)
+        stop.route = route
+        stop.position ||= route.route_stops.maximum(:position).to_i + 1
+        stop.status = event.status
+        stop.save!
+        route.synchronize_route_sequence_with_stops!
+      end
       say.call("Realigned #{event.event_type} #{event.id} for order #{event.order_id} to #{target_date}")
     rescue StandardError => e
       say.call("Failed to realign event #{event.id}: #{e.message}")

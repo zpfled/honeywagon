@@ -1,0 +1,8 @@
+<option value="">Select location</option>
+<% locations.each do |location| %>
+  <option value="<%= location.id %>"
+          data-customer-id="<%= location.customer_id %>"
+          <%= "selected" if selected_location_id.to_s == location.id.to_s %>>
+    <%= location.display_label %>
+  </option>
+<% end %>

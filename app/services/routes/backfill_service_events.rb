@@ -20,9 +20,12 @@ module Routes
         route = target_route_for(event)
         created_routes += 1 if route.previous_changes.key?('id')
 
-        attributes = { route: route }
-        attributes[:route_date] = event.logistics_locked? ? event.scheduled_on : route.route_date
-        event.update!(attributes)
+        stop = RouteStop.find_or_initialize_by(service_event: event)
+        stop.route = route
+        stop.position ||= route.route_stops.maximum(:position).to_i + 1
+        stop.status = event.status
+        stop.save!
+        route.synchronize_route_sequence_with_stops!
         assigned += 1
       end
 
@@ -34,14 +37,14 @@ module Routes
     attr_reader :company
 
     def unrouted_events
-      company.service_events.scheduled.where(route_id: nil)
+      company.service_events.scheduled.left_outer_joins(:route_stops).where(route_stops: { id: nil })
     end
 
     def target_route_for(event)
       if event.logistics_locked?
-        company.routes.find_by(route_date: event.scheduled_on) || company.routes.create!(route_date: event.scheduled_on)
+        company.routes.find_by(route_date: event.scheduled_on) || create_route_for(event.scheduled_on)
       else
-        find_matching_route(event) || company.routes.create!(route_date: event.scheduled_on)
+        find_matching_route(event) || create_route_for(event.scheduled_on)
       end
     end
 
@@ -52,6 +55,12 @@ module Routes
              .where(route_date: range)
              .order(Arel.sql("ABS(route_date - DATE '#{target_date}')"))
              .first
+    end
+
+    def create_route_for(date)
+      Route.without_auto_assignment do
+        company.routes.create!(route_date: date)
+      end
     end
   end
 end

@@ -29,10 +29,12 @@ RSpec.describe Routes::GoogleCalendarPusher do
   end
 
   it 'uses projected stop order when route stops are present' do
-    reordered_first = create(:service_event, :service, route: route, scheduled_on: route.route_date)
-    reordered_second = create(:service_event, :delivery, order: create(:order, company: company, created_by: user), route: route, scheduled_on: route.route_date)
-    create(:route_stop, route: route, service_event: reordered_second, route_date: route.route_date, position: 0)
-    create(:route_stop, route: route, service_event: reordered_first, route_date: route.route_date, position: 1)
+    reordered_first = create(:service_event, :service, scheduled_on: route.route_date)
+    reordered_second = create(:service_event, :delivery, order: create(:order, company: company, created_by: user), scheduled_on: route.route_date)
+    reordered_first.route_stops.delete_all
+    reordered_second.route_stops.delete_all
+    create(:route_stop, route: route, service_event: reordered_second, position: 0)
+    create(:route_stop, route: route, service_event: reordered_first, position: 1)
 
     calendar_client = instance_double(Google::CalendarClient)
     allow(Google::CalendarClient).to receive(:new).with(user).and_return(calendar_client)

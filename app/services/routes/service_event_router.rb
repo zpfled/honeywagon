@@ -31,9 +31,12 @@ module Routes
       return unless company.trucks.exists?
 
       route = target_route
-      attrs = { route: route }
-      attrs[:route_date] = event.logistics_locked? ? event.scheduled_on : route.route_date
-      event.update!(attrs)
+      stop = RouteStop.find_or_initialize_by(service_event: event)
+      stop.route = route
+      stop.position ||= route.route_stops.maximum(:position).to_i + 1
+      stop.status = event.status
+      stop.save!
+      route.synchronize_route_sequence_with_stops!
       route
     end
 
@@ -62,11 +65,13 @@ module Routes
     end
 
     def create_route(date)
-      company.routes.create!(
-        route_date: date,
-        truck: company.trucks.order(:created_at).first,
-        trailer: default_trailer
-      )
+      Route.without_auto_assignment do
+        company.routes.create!(
+          route_date: date,
+          truck: company.trucks.order(:created_at).first,
+          trailer: default_trailer
+        )
+      end
     end
 
     def default_trailer

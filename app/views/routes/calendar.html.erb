@@ -19,31 +19,21 @@
                     calendar_routes_path(start: (@calendar_start - 28.days).to_s),
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
         <%= link_to "Today",
-                    calendar_routes_path(start: Date.current.beginning_of_week(:sunday).to_s, strategy: @calendar_strategy, run_id: @generation_run&.id),
+                    calendar_routes_path(start: Date.current.beginning_of_week(:sunday).to_s, strategy: @calendar_strategy),
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
         <%= link_to "Next 4 weeks →",
                     calendar_routes_path(start: (@calendar_start + 28.days).to_s),
                     class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
       </div>
       <div class="flex flex-wrap items-center gap-2">
-        <% if @generation_run %>
-          <%= form_with url: calendar_routes_path(start: @calendar_start), method: :get, class: "inline-flex items-center gap-2" do %>
-            <%= label_tag :run_id, "Run", class: "text-xs font-semibold text-gray-600" %>
-            <%= select_tag :run_id,
-                           options_for_select(
-                             @generation_runs.map { |run| [ run_label(run), run.id ] },
-                             @generation_run&.id
-                           ),
-                           class: "rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm" %>
-            <%= submit_tag "Use", class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
-          <% end %>
-        <% end %>
-        <% @horizon_options.each do |horizon| %>
-          <%= button_to "Plan next #{horizon} days",
-                        generate_routes_path(start: @calendar_start, horizon_days: horizon, strategy: @calendar_strategy),
-                        method: :post,
-                        form: { class: "inline-block" },
-                        class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
+        <%= form_with url: generate_routes_path, method: :post, class: "inline-flex flex-wrap items-center gap-2" do %>
+          <%= hidden_field_tag :start, @calendar_start %>
+          <%= hidden_field_tag :strategy, @calendar_strategy %>
+          <%= label_tag :plan_start, "Plan", class: "text-xs font-semibold text-gray-600" %>
+          <%= date_field_tag :plan_start, @plan_window_start, class: "rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm" %>
+          <span class="text-xs text-gray-500">to</span>
+          <%= date_field_tag :plan_end, @plan_window_end, class: "rounded-lg border border-gray-200 bg-white px-2 py-2 text-sm" %>
+          <%= submit_tag "Plan selected window", class: "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50" %>
         <% end %>
       </div>
     </div>
@@ -61,7 +51,7 @@
       <% @calendar_start.upto(@calendar_end).with_index do |date, idx| %>
         <% due_events = @due_events_by_date.fetch(date, []) %>
         <% day_routes = @routes_by_date.fetch(date, []) %>
-        <% assigned_count = @run_stops_by_date.fetch(date, []).size %>
+        <% assigned_count = @assigned_due_events_by_date.fetch(date, []).size %>
         <% due_count = due_events.size %>
         <% unassigned_count = [ due_count - assigned_count, 0 ].max %>
         <% days_out = (date - today).to_i %>
@@ -75,7 +65,7 @@
              data-routes-calendar-target="day"
              data-date="<%= date.to_s %>"
              data-action="dragover->routes-calendar#dragOver drop->routes-calendar#drop dragleave->routes-calendar#dragLeave">
-          <%= link_to day_routes_path(date: date.to_s, run_id: @generation_run&.id, strategy: @calendar_strategy),
+          <%= link_to day_routes_path(date: date.to_s, strategy: @calendar_strategy),
                       class: "block rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60" do %>
             <div class="flex items-start justify-between <%= today_header_classes %> cursor-pointer hover:brightness-95" data-routes-calendar-target="count" data-date="<%= date.to_s %>">
               <div class="leading-none">
@@ -113,6 +103,7 @@
               <div class="text-xs text-gray-500">No routes</div>
             <% else %>
               <% day_routes.each do |route| %>
+                <% route_presenter = RoutePresenter.new(route) %>
                 <% over_capacity = route.over_capacity? %>
                 <% capacity_dims = route.over_capacity_dimensions.map { |dim| dim.to_s.humanize } %>
                 <% summary_events = if route.route_stops.loaded? && route.route_stops.any?
@@ -131,10 +122,10 @@
                               action: "dragstart->routes-calendar#dragStart dragend->routes-calendar#dragEnd",
                               route_id: route.id,
                               route_date: route.route_date,
-                              route_label: route.truck&.name || "Route #{route.id}"
+                              route_label: route_presenter.display_name
                             } do %>
                   <div class="flex items-center justify-between gap-2">
-                    <div class="font-semibold text-gray-900"><%= route.truck&.name || "Truck TBD" %></div>
+                    <div class="font-semibold text-gray-900"><%= route_presenter.display_name %></div>
                     <% if over_capacity %>
                       <span class="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800"
                             title="Over capacity: <%= capacity_dims.join(', ') %>">

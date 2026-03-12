@@ -12,15 +12,13 @@ module Routes
       event = ServiceEvent.new(
         event_type: :dump,
         service_event_type: event_type,
-        route: @route,
-        route_date: @route.route_date,
         scheduled_on: @route.route_date,
         user: current_user,
         dump_site: dump_site
       )
 
       if event.save
-        @route.append_service_event_stop!(event) if @route.has_stop_projection?
+        @route.append_service_event_stop!(event)
         redirect_to route_path(@route), notice: 'Dump event scheduled on this route.'
       else
         redirect_to route_path(@route), alert: event.errors.full_messages.to_sentence.presence || 'Unable to schedule dump event.'

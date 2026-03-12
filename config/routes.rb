@@ -19,11 +19,13 @@ Rails.application.routes.draw do
     get :calendar, on: :collection
     get :day, on: :collection
     post :generate, on: :collection
+    post :clear_day, on: :collection
     post :refresh_forecasts, on: :collection
     post :reschedule_service_event, on: :collection
     post :merge, on: :member
     post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
+      post :assign, on: :member
       post :postpone, on: :member
       post :advance, on: :member
       post :complete, on: :member

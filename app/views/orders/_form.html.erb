@@ -39,13 +39,18 @@
         <div>
           <%= f.label :location_id, "Location", class: "text-sm font-medium text-gray-700" %>
           <% locations = @locations || Location.none %>
-          <%= f.collection_select :location_id, locations, :id, :display_label,
-            { include_blank: "Select location" },
+          <% all_locations = @all_locations || Location.none %>
+          <%= f.select :location_id,
+            render("location_options", locations: locations, selected_location_id: order.location_id),
+            {},
             {
               class: "mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-900 focus:ring-2 focus:ring-gray-900/20",
               data: { order_form_target: "location" },
               disabled: order.customer_id.blank?
             } %>
+          <template id="order_location_options_store" data-order-form-target="locationOptionsStore">
+            <%= render("location_options", locations: all_locations, selected_location_id: nil) %>
+          </template>
           <% location_link_href = order.customer_id.present? ? new_location_path(customer_id: order.customer_id) : new_location_path %>
           <%= link_to "+ Add location",
             location_link_href,

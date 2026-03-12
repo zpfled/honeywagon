@@ -13,13 +13,13 @@ RSpec.describe Routes::ServiceEventMover do
            end_date: Date.current + 2.days)
   end
 
-  it "refuses to postpone delivery events" do
+  it "refuses to postpone delivery events past the order start date" do
     event = create(:service_event, :delivery, order: order, route: route, route_date: route.route_date, scheduled_on: order.start_date)
 
     result = described_class.new(event).move_to_next
 
     expect(result).not_to be_success
-    expect(result.message).to include("stay on or before their scheduled date")
+    expect(result.message).to include("stay on or before the order start date")
   end
 
   it "refuses to move pickups earlier" do
@@ -48,10 +48,8 @@ RSpec.describe Routes::ServiceEventMover do
     source = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current)
     target = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current + 1.day)
     target_stop_event = create(:service_event, :service, route: target, route_date: target.route_date, scheduled_on: target.route_date)
-    create(:route_stop, route: target, service_event: target_stop_event, route_date: target.route_date, position: 0)
 
     moved_event = create(:service_event, :service, order: order, route: source, route_date: source.route_date, scheduled_on: order.start_date)
-    create(:route_stop, route: source, service_event: moved_event, route_date: source.route_date, position: 0)
 
     result = described_class.new(moved_event).move_to_next
 
@@ -70,5 +68,26 @@ RSpec.describe Routes::ServiceEventMover do
     expect(result).to be_success
     expect(event.reload.route).to eq(previous_route)
     expect(event.scheduled_on).to eq(previous_route.route_date)
+  end
+
+  it "allows deliveries to move later up to the order start date" do
+    earlier_route = create(:route, company: company, truck: truck, trailer: trailer, route_date: Date.current - 1.day)
+    event = create(:service_event, :delivery, order: order, route: earlier_route, route_date: earlier_route.route_date, scheduled_on: earlier_route.route_date)
+
+    result = described_class.new(event).move_to_next
+
+    expect(result).to be_success
+    expect(event.reload.route).to eq(route)
+    expect(event.scheduled_on).to eq(order.start_date)
+  end
+
+  it "refuses to move completed events" do
+    event = create(:service_event, :service, :completed, order: order, route: route, route_date: route.route_date, scheduled_on: route.route_date)
+
+    result = described_class.new(event).move_to_next
+
+    expect(result).not_to be_success
+    expect(result.message).to include("Completed events cannot be moved")
+    expect(event.reload.route).to eq(route)
   end
 end

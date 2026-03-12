@@ -4,7 +4,6 @@ FactoryBot.define do
     route_date { Date.today }
     truck { association(:truck, company: company) }
     trailer { association(:trailer, company: company) }
-    generation_run { nil }
 
     trait :without_trailer do
       trailer { nil }

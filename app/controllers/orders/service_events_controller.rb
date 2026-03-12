@@ -26,28 +26,9 @@ module Orders
     def assign_route
       @service_event = @order.service_events.find(params[:id])
       route = current_user.company.routes.find(params[:route_id])
+      result = Routes::ServiceEventAssigner.new(service_event: @service_event, route: route, actor: current_user).call
 
-      if @service_event.scheduled_on.blank?
-        return redirect_to(order_path(@order), alert: 'Service event is missing a scheduled date.')
-      end
-
-      event_date = @service_event.scheduled_on.to_date
-      route_date = route.route_date.to_date
-      if (route_date - event_date).abs > 14
-        return redirect_to(order_path(@order), alert: 'Pick a route within 2 weeks of the service date.')
-      end
-
-      attrs = {
-        route: route,
-        route_date: route.route_date,
-        scheduled_on: route.route_date
-      }
-
-      if @service_event.update(attrs)
-        redirect_to(order_path(@order), notice: 'Service event assigned to route.')
-      else
-        redirect_to(order_path(@order), alert: @service_event.errors.full_messages.to_sentence.presence || 'Unable to assign route.')
-      end
+      redirect_to(order_path(@order), (result.success? ? :notice : :alert) => result.message)
     rescue ActiveRecord::RecordNotFound
       redirect_to(order_path(@order), alert: 'Service event or route could not be found.')
     end

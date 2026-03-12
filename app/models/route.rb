@@ -5,10 +5,9 @@ class Route < ApplicationRecord
   belongs_to :company
   belongs_to :truck
   belongs_to :trailer, optional: true
-  belongs_to :generation_run, class_name: 'RouteGenerationRun', optional: true
-  has_many :service_events, dependent: :nullify
-  has_many :service_events_with_deleted, -> { with_deleted }, class_name: 'ServiceEvent'
   has_many :route_stops, dependent: :destroy
+  has_many :service_events, -> { distinct }, through: :route_stops, source: :service_event
+  has_many :service_events_with_deleted, -> { with_deleted.distinct }, through: :route_stops, source: :service_event
   has_many :stop_service_events, through: :route_stops, source: :service_event
 
   validates :route_date, presence: true
@@ -32,7 +31,6 @@ class Route < ApplicationRecord
 
   after_initialize :set_default_date
   before_validation :assign_default_assets
-  before_destroy :nullify_deleted_service_events
   after_create -> { Routes::Lifecycle.after_route_create(self) }
   after_update_commit -> { Routes::Lifecycle.after_route_update(self) }
 
@@ -79,12 +77,10 @@ class Route < ApplicationRecord
   end
 
   def ordered_service_event_scope
-    return service_events
-             .joins(:route_stops)
-             .where(route_stops: { route_id: id })
-             .order('route_stops.position ASC') if has_stop_projection?
-
-    service_events.order(Arel.sql('COALESCE(route_sequence, 0)'), :created_at)
+    ServiceEvent
+      .joins(:route_stops)
+      .where(route_stops: { route_id: id })
+      .order('route_stops.position ASC')
   end
 
   def has_stop_projection?
@@ -104,15 +100,13 @@ class Route < ApplicationRecord
   def append_service_event_stop!(service_event, position: nil, created_by: nil)
     return if service_event.blank?
 
-    stop_position = position.presence || (route_stops.where(route_date: route_date).maximum(:position).to_i + 1)
+    stop_position = position.presence || (route_stops.maximum(:position).to_i + 1)
     route_stops.create!(
       service_event: service_event,
       position: stop_position,
-      route_date: route_date,
       status: service_event.status,
       created_by: created_by
     )
-    service_event.update_column(:route_sequence, stop_position)
     stop_position
   end
 
@@ -127,11 +121,12 @@ class Route < ApplicationRecord
   def synchronize_route_sequence_with_stops!
     return unless has_stop_projection?
 
-    ordered_route_stops.includes(:service_event).each_with_index do |stop, index|
-      next unless stop.service_event
+    ordered_route_stops.each_with_index do |stop, index|
+      next if stop.position == index
 
-      stop.service_event.update_column(:route_sequence, index)
+      stop.update_column(:position, index)
     end
+    @stop_service_hash = nil
   end
 
   def ordered_service_events
@@ -139,14 +134,11 @@ class Route < ApplicationRecord
   end
 
   def ordered_stops_or_events
-    return ordered_route_stops.includes(:service_event).to_a if has_stop_projection?
-
-    ordered_service_event_scope.to_a
+    ordered_route_stops.includes(:service_event).to_a
   end
 
   def route_position_label(event)
-    return stop_position_for(event) if has_stop_projection?
-    event&.route_sequence.to_i
+    stop_position_for(event)
   end
 
   def has_operational_stops?
@@ -158,7 +150,7 @@ class Route < ApplicationRecord
     digest_input = ordered_events.map.with_index do |event, index|
       [
         event&.id,
-        has_stop_projection? ? (stop_position_for(event) || event&.route_sequence || index) : event&.route_sequence.to_i,
+        stop_position_for(event) || index,
         event&.scheduled_on
       ].join(':')
     end.join('|')
@@ -176,7 +168,7 @@ class Route < ApplicationRecord
 
   def record_stop_drive_metrics(event_ids:, legs: [])
     legs ||= []
-    events = service_events.where(id: event_ids).index_by(&:id)
+    events = service_events.includes(:order).where(id: event_ids).index_by(&:id)
     leading_legs = [ legs.length - events.length, 0 ].max
     legs_with_defaults = legs + Array.new([ events.length + leading_legs - legs.length, 0 ].max) { { distance_meters: 0, duration_seconds: 0 } }
 
@@ -204,53 +196,31 @@ class Route < ApplicationRecord
   def resequence_service_events!(ordered_ids)
     transaction do
       normalized_ids = Array(ordered_ids).map(&:presence).compact.map(&:to_s)
-
-      if has_stop_projection?
-        stop_map = ordered_route_stops.includes(:service_event).index_by { |stop| stop.service_event_id.to_s }
-        sequence = 0
-
-        normalized_ids.each do |id|
-          stop = stop_map.delete(id)
-          next unless stop
-          next unless stop.service_event
-
-          stop.update!(position: sequence)
-          stop.service_event.update!(route_sequence: sequence)
-          sequence += 1
-        end
-
-        stop_map.values.each do |stop|
-          next unless stop.service_event
-
-          stop.update!(position: sequence)
-          stop.service_event.update!(route_sequence: sequence)
-          sequence += 1
-        end
-
-        @stop_service_hash = nil
-        return
-      end
-
-      events = service_events.includes(:order).index_by { |event| event.id.to_s }
-      sequence = 0
+      stop_map = ordered_route_stops.index_by { |stop| stop.service_event_id.to_s }
+      ordered_stops = []
 
       normalized_ids.each do |id|
-        event = events.delete(id)
-        next unless event
+        stop = stop_map.delete(id)
+        ordered_stops << stop if stop
+      end
+      ordered_stops.concat(stop_map.values.sort_by(&:position))
 
-        event.update!(route_sequence: sequence)
-        sequence += 1
+      # Avoid unique position collisions (route_id + position) by assigning
+      # temporary unique positions first, then final contiguous positions.
+      temp_base = route_stops.maximum(:position).to_i + ordered_stops.size + 100
+      ordered_stops.each_with_index do |stop, index|
+        stop.update_columns(position: temp_base + index)
+      end
+      ordered_stops.each_with_index do |stop, index|
+        stop.update_columns(position: index)
       end
 
-      events.values.sort_by { |event| event.route_sequence.to_i }.each do |event|
-        event.update!(route_sequence: sequence)
-        sequence += 1
-      end
+      @stop_service_hash = nil
     end
   end
 
   def assigned_service_events_count
-    has_stop_projection? ? ordered_service_events.length : service_events.count
+    ordered_route_stops.count
   end
 
   private
@@ -301,10 +271,6 @@ class Route < ApplicationRecord
     events = events_scope.includes(service_event_units: :unit_type)
     preload_rental_line_items_for(events)
     events.sum { |event| event.units_by_type.values.sum }
-  end
-
-  def nullify_deleted_service_events
-    service_events_with_deleted.where.not(deleted_at: nil).update_all(route_id: nil)
   end
 
   # TODO: Evaluate indexes to support presenter aggregations (service_events counts/sums).

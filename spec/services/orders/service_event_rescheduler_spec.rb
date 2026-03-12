@@ -39,8 +39,10 @@ RSpec.describe Orders::ServiceEventRescheduler do
         described_class.new(order).shift_from(completion_date: Date.current)
 
         expect(event1.reload.scheduled_on).to eq(Date.current + 7)
-        expect(event1.route).to_not be_nil
-        expect(event1.route_date).to eq(Date.current + 7)
+        expect(event1.route).to be_present
+        expect(
+          ((event1.scheduled_on - Routes::BackfillServiceEvents::WINDOW)..(event1.scheduled_on + Routes::BackfillServiceEvents::WINDOW))
+        ).to cover(event1.route.route_date)
 
         expect(event2.reload.scheduled_on).to eq(Date.current + 14)
         expect(manual_event.reload.scheduled_on).to eq(Date.current + 21)
