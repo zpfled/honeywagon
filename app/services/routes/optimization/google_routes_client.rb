@@ -20,7 +20,7 @@ module Routes
         keyword_init: true
       )
 
-      def initialize(api_key: GoogleMaps.api_key)
+      def initialize(api_key: GoogleMaps.server_api_key)
         @api_key = api_key
       end
 

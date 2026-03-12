@@ -17,7 +17,6 @@ module Weather
       return unless (periods = forecast_periods)
 
       target_periods = periods.select { |period| period_date(period) == date }
-      target_periods = [ nearest_period(periods, date) ].compact if target_periods.empty?
       return if target_periods.empty?
 
       daytime = target_periods.find { |period| period['isDaytime'] }

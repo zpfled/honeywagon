@@ -5,8 +5,12 @@ module Api
     before_action :authenticate_user!
 
     def autocomplete
-      suggestions = google_client.autocomplete(params[:query].to_s)
-      Rails.logger.info("[Places] autocomplete query=#{params[:query]} suggestions=#{suggestions.size}")
+      query = params[:query].to_s
+      suggestions = google_client.autocomplete(query)
+      Rails.logger.info("[Places] autocomplete query=#{query} suggestions=#{suggestions.size}")
+      if query.present? && suggestions.empty?
+        Rails.logger.warn("[Places] autocomplete returned zero suggestions query=#{query}")
+      end
       render json: { suggestions: suggestions }
     end
 

@@ -58,4 +58,43 @@ RSpec.describe "/locations", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
   end
+
+  describe "GET /locations/:id/edit" do
+    it "renders the edit modal for a company location" do
+      customer = create(:customer, company: user.company)
+      location = create(:location, customer: customer)
+
+      get edit_location_path(location)
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include(location.display_label)
+    end
+
+    it "returns not found for locations outside the company" do
+      other_location = create(:location)
+
+      get edit_location_path(other_location)
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe "PATCH /locations/:id" do
+    it "updates coordinates for a company location" do
+      customer = create(:customer, company: user.company)
+      location = create(:location, customer: customer, lat: nil, lng: nil)
+
+      patch location_path(location), params: {
+        location: {
+          lat: 43.123456,
+          lng: -90.654321
+        }
+      }
+
+      expect(response).to redirect_to(locations_company_path)
+      location.reload
+      expect(location.lat.to_f).to eq(43.123456)
+      expect(location.lng.to_f).to eq(-90.654321)
+    end
+  end
 end

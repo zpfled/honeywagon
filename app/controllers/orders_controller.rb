@@ -53,6 +53,27 @@ class OrdersController < ApplicationController
 
   def create
     @order = current_user.company.orders.new(created_by: current_user)
+    if series_mode?
+      result = Orders::SeriesCreator.new(
+        company: current_user.company,
+        created_by: current_user,
+        base_params: order_params.except(:start_date, :end_date),
+        unit_type_requests: unit_type_requests_params,
+        service_item_requests: service_line_items_params,
+        date_pairs: date_pairs_params,
+        series_name: params.dig(:order, :series_name)
+      ).call
+
+      if result.success?
+        redirect_to result.orders.first, notice: "Series created (#{result.orders.size} orders)."
+      else
+        @order.errors.add(:base, result.errors.to_sentence)
+        build_order_form_payload
+        render :new, status: :unprocessable_content
+      end
+      return
+    end
+
     builder = Orders::Builder.new(@order)
     builder.assign(
       params:               order_params,
@@ -148,6 +169,7 @@ class OrdersController < ApplicationController
                        .includes(
                          :customer,
                          :location,
+                         :order_series,
                          { rental_line_items: :unit_type },
                          { service_line_items: :rate_plan },
                          { service_events: :route }
@@ -190,6 +212,39 @@ class OrdersController < ApplicationController
       :tax_cents,
       :total_cents
     )
+  end
+
+  def series_mode?
+    params.dig(:order, :series_mode).to_s == '1'
+  end
+
+  def date_pairs_params
+    raw = params.dig(:order, :date_pairs)
+    return [] unless raw.present?
+
+    entries =
+      if raw.is_a?(Array)
+        raw
+      else
+        raw.respond_to?(:values) ? raw.values : Array(raw)
+      end
+
+    entries.map do |entry|
+      source =
+        if entry.respond_to?(:to_unsafe_h)
+          entry.to_unsafe_h
+        elsif entry.respond_to?(:to_h)
+          entry.to_h
+        else
+          entry
+        end
+
+      attrs = source.respond_to?(:with_indifferent_access) ? source.with_indifferent_access : source
+      {
+        delivery_on: attrs[:delivery_on],
+        pickup_on: attrs[:pickup_on]
+      }
+    end
   end
 
   def build_order_form_payload

@@ -37,7 +37,7 @@ module Routes
 
         return failure_result(errors) if errors.any?
 
-        ordered_ids = route.service_events.order(:route_date, :event_type, :created_at).pluck(:id)
+        ordered_ids = route.ordered_service_event_relation(not_skipped: false).pluck(:id)
         planner_warnings = []
         optimization_result = nil
         simulation = nil
@@ -94,7 +94,7 @@ module Routes
       # Base query for all events on this route. Sorting by created_at gives deterministic order
       # before Google reorders them.
       def ordered_events
-        @ordered_events ||= route.service_events.order(:route_date, :event_type, :created_at)
+        @ordered_events ||= route.ordered_service_event_relation(not_skipped: false)
       end
 
       def home_base_coordinates

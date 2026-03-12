@@ -168,6 +168,32 @@ RSpec.describe Orders::ServiceEventGenerator do
       expect(quantities).to eq([ 2, 2, 1 ])
     end
   end
+
+  describe "pickup splitting" do
+    let(:start_date) { Date.new(2024, 8, 1) }
+    let(:end_date) { Date.new(2024, 8, 10) }
+    let(:order) { create(:order, start_date: start_date, end_date: end_date) }
+    let!(:unit_type) { create(:unit_type, :standard, company: order.company) }
+    let!(:rate_plan) { create(:rate_plan, service_schedule: none_schedule, unit_type: unit_type, company: order.company) }
+
+    before do
+      create(:trailer, company: order.company, capacity_spots: 2, preference_rank: 1)
+      create(:trailer, company: order.company, capacity_spots: 10, preference_rank: 2)
+      create(:rental_line_item, order: order, unit_type: unit_type, rate_plan: rate_plan, service_schedule: none_schedule, billing_period: RatePlan::BILLING_PERIODS.first, quantity: 12)
+    end
+
+    it "splits pickup events based on trailer capacities" do
+      generate
+
+      pickups = order.service_events.auto_generated.where(event_type: :pickup).order(:pickup_batch_sequence)
+      expect(pickups.count).to eq(2)
+      expect(pickups.pluck(:pickup_batch_total).uniq).to eq([ 2 ])
+      expect(pickups.pluck(:pickup_batch_sequence)).to eq([ 1, 2 ])
+
+      quantities = pickups.map { |event| event.service_event_units.sum(:quantity) }
+      expect(quantities.sort).to eq([ 2, 10 ])
+    end
+  end
   describe "service-only orders" do
     let(:order) { create(:order, start_date: Date.new(2024, 6, 1), end_date: Date.new(2024, 7, 1)) }
 

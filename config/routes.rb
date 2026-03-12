@@ -1,3 +1,5 @@
+require 'sidekiq/web'
+
 Rails.application.routes.draw do
   resources :orders do
     collection do
@@ -13,12 +15,20 @@ Rails.application.routes.draw do
     end
   end
   resources :service_events, only: :update
-  resources :routes, only: [ :index, :show, :create, :update ] do
+  resources :routes, only: [ :show, :create, :update ] do
+    get :calendar, on: :collection
+    get :day, on: :collection
+    post :generate, on: :collection
+    post :refresh_forecasts, on: :collection
+    post :reschedule_service_event, on: :collection
+    post :merge, on: :member
     post :push_to_calendar, on: :member
     resources :service_events, only: [], module: :routes do
       post :postpone, on: :member
       post :advance, on: :member
       post :complete, on: :member
+      post :uncomplete, on: :member
+      post :skip, on: :member
       delete :destroy, on: :member
     end
     resources :dump_events, only: :create, module: :routes
@@ -33,6 +43,7 @@ Rails.application.routes.draw do
   resource :company, only: %i[edit update], controller: 'company' do
     collection do
       get :customers
+      get :locations
       get :expenses
       get :new_unit_type
       get :new_rate_plan
@@ -45,11 +56,15 @@ Rails.application.routes.draw do
     get 'places/autocomplete', to: 'places#autocomplete', as: :places_autocomplete
     get 'places/details', to: 'places#details', as: :places_details
   end
-  resources :locations, only: [ :new, :create ]
+  resources :locations, only: [ :new, :create, :edit, :update ]
+  resources :tasks, only: %i[index create update] do
+    patch :postpone, on: :member
+  end
   resources :trucks, only: %i[edit update]
   resources :trailers, only: %i[edit update]
   resources :rate_plans, only: [ :new, :create ]
   resources :customers, only: [ :new, :create ]
+  get 'operations/forecast-accuracy', to: 'forecast_accuracy#show', as: :forecast_accuracy
   get 'google_calendar/connect', to: 'google_calendars#connect', as: :google_calendar_connect
   devise_for :users, controllers: {
     registrations: 'users/registrations',
@@ -62,6 +77,10 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get 'up' => 'rails/health#show', as: :rails_health_check
 
+  authenticate :user do
+    mount Sidekiq::Web => '/rails/sidekiq'
+  end
+
   # Render dynamic PWA files from app/views/pwa/* (remember to link manifest in application.html.erb)
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
@@ -70,6 +89,8 @@ Rails.application.routes.draw do
   authenticated :user do
     root to: 'dashboard#index', as: :authenticated_root
   end
+
+  get 'dashboard/capacity_routing_preview', to: 'dashboard#capacity_routing_preview', as: :capacity_routing_preview
 
   unauthenticated do
     root to: 'public#landing', as: :unauthenticated_root

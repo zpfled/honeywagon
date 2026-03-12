@@ -15,11 +15,13 @@ module UiHelper
     danger: 'bg-rose-600 text-white hover:bg-rose-500 focus:ring-rose-500'
   }.freeze
 
-  def page_shell(&block)
-    content_tag(:div, capture(&block), class: PAGE_SHELL_CLASS)
+  def page_shell(full_width: false, classes: '', &block)
+    base = full_width ? 'w-full px-4 py-8' : PAGE_SHELL_CLASS
+    css = [ base, classes ].compact.join(' ')
+    content_tag(:div, capture(&block), class: css)
   end
 
-  def card(variant: :default, classes: '', &block)
+  def card(variant: :default, classes: '', data: nil, &block)
     palette = {
       default: 'bg-white ring-gray-200',
       muted: 'bg-gray-50 ring-gray-200',
@@ -27,7 +29,7 @@ module UiHelper
       success: 'bg-emerald-50 ring-emerald-200'
     }
     css = [ CARD_BASE_CLASS, palette.fetch(variant, palette[:default]), classes ].compact.join(' ')
-    content_tag(:div, capture(&block), class: css)
+    content_tag(:div, capture(&block), class: css, data: data)
   end
 
   def button_classes(variant: :primary, size: :md)
@@ -70,6 +72,14 @@ module UiHelper
     return '' if temp.nil?
     return 'text-rose-700 font-semibold' if temp < 10
     return 'text-amber-600 font-semibold' if temp < 32
+
+    ''
+  end
+
+  def heat_risk_class(temp)
+    return '' if temp.nil?
+    return 'text-rose-700 font-semibold' if temp >= 100
+    return 'text-amber-600 font-semibold' if temp >= 90
 
     ''
   end
